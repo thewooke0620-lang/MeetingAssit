@@ -89,6 +89,11 @@
   .row > * { flex: 1 1 0; }
   .check { display: flex; align-items: center; gap: 8px; font-size: 14px; }
   .check input { width: 18px; height: 18px; }
+  .cmp { margin-top: 6px; padding-left: 10px; border-left: 2px solid var(--line); }
+  .cmp p { margin: 2px 0; font-size: .8em; line-height: 1.5; color: #c3cad6; }
+  .cmp-l { display: inline-block; min-width: 4.5em; margin-right: 8px; font-size: .85em; font-weight: 700; color: var(--warn); }
+  #lat { cursor: pointer; }
+  .stat { margin: 0; white-space: pre-wrap; font: inherit; font-size: 12.5px; line-height: 1.7; padding: 8px 10px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); }
   #connState { font-size: 13px; padding: 8px 10px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); }
 </style>
 </head>
@@ -98,7 +103,7 @@
   <span class="title">회의 통역 도우미</span>
   <span id="status" class="pill">대기</span>
   <span id="timer" class="timer">00:00</span>
-  <span id="lat" class="pill" style="display:none"></span>
+  <span id="lat" class="pill" style="display:none" title="눌러서 속도 기록 보기"></span>
   <span class="spacer"></span>
   <select id="source" class="btn" title="소리 입력">
     <option value="system">PC 소리 (회의)</option>
@@ -196,11 +201,24 @@
         <label class="check"><input id="draft" type="checkbox"> 말하는 도중에도 미리 번역 (더 빠름)</label>
         <div class="hint">문장이 끝나기 전에 흐린 글씨로 먼저 번역을 보여 주고, 문장이 끝나면 확정 번역으로 바꿉니다. Claude 호출 횟수가 늘어납니다.</div>
       </div>
+      <div class="field">
+        <label class="check"><input id="refine" type="checkbox"> 긴 문장은 끊어서 먼저 번역하고, 끝나면 다듬기</label>
+        <div class="hint">긴 문장을 쉼표에서 끊어 번역을 빨리 보여 주고, 문장이 끝나면 전체를 다시 번역해 한 줄로 자연스럽게 고칩니다. 긴 문장마다 Claude 호출이 한 번 늘어납니다.</div>
+      </div>
+      <div class="field">
+        <label class="check"><input id="compare" type="checkbox"> 번역 비교 모드 (테스트용)</label>
+        <div class="hint">같은 문장을 Soniox와 다른 Claude 모델이 번역한 결과를 작은 글씨로 함께 보여 줍니다. 큰 글씨가 위에서 고른 모델입니다. 품질을 비교할 때만 켜 주세요. Claude 호출이 약 두 배로 늘어납니다.</div>
+      </div>
     </div>
     <div class="field">
-      <label for="terms">자주 나오는 용어 (선택)</label>
-      <textarea id="terms" placeholder="회사명, 사람 이름, 프로젝트명 등을 줄바꿈이나 쉼표로 구분해 적어 주세요"></textarea>
-      <div class="hint">등록한 단어는 더 정확하게 받아 적습니다.</div>
+      <label for="brief">회의 배경 (선택)</label>
+      <textarea id="brief" maxlength="1500" placeholder="예) A사와 공급 계약 조건 협의. 상대는 구매팀 John, 법무팀 Sarah. 납기와 위약금이 쟁점."></textarea>
+      <div class="hint">회의 주제, 참석자, 쟁점을 적어 두면 뜻이 여러 개인 단어를 상황에 맞게 번역합니다. 회의마다 바꿔 주세요.</div>
+    </div>
+    <div class="field">
+      <label for="terms">용어집 (선택)</label>
+      <textarea id="terms" placeholder="한 줄에 하나씩 적어 주세요.&#10;Acme Corp&#10;escrow = 에스크로&#10;term sheet = 주요 조건서"></textarea>
+      <div class="hint">등록한 단어는 더 정확하게 받아 적습니다. <b>영어 = 한국어</b>로 적으면 번역할 때 항상 그 표현을 씁니다. 회사명이나 사람 이름처럼 그대로 둘 단어는 영어만 적어 주세요.</div>
     </div>
     <div class="row">
       <div class="field">
@@ -227,6 +245,12 @@
       <label class="check"><input id="diar" type="checkbox"> 목소리로 화자 구분</label>
       <div class="hint">말하는 사람이 바뀌면 화자 1, 화자 2처럼 표시합니다. 화자 이름을 누르면 이름을 바꿀 수 있습니다.</div>
     </div>
+    <div class="field" id="statField">
+      <label>번역 속도 기록 (시작부터 지금까지)</label>
+      <pre id="statBox" class="stat"></pre>
+      <div class="hint">보통은 중간값, 느릴 때는 가장 느린 10% 구간의 값입니다. 시작을 누를 때마다 새로 쌓입니다.</div>
+      <button id="copyStats" class="btn" type="button" style="margin-top:6px">기록 복사</button>
+    </div>
   </div>
   <div class="dlg-foot">
     <button id="cancelSettings" class="btn" type="button">닫기</button>
@@ -244,14 +268,22 @@
 const SENT_END = /[.?!…。？！]["')\]”’]?\s*$/;
 const SPECIAL = /^<[a-z_]+>$/i;
 
+const CLAUSE_LEN = 80;        // 다듬기 켬: 이 길이를 넘으면 쉼표에서 끊어 먼저 번역
+const CLAUSE_LEN_PLAIN = 140; // 다듬기 끔: 예전 기준
+const HARD_LEN = 260;         // 쉼표가 없어도 이 길이를 넘으면 끊는다
+const MERGE_MAX = 600;        // 이보다 긴 문장은 합쳐서 다시 번역하지 않는다
+
 function createCore() {
   // mode: "inline" = Soniox 내장 번역, "llm" = 문장 단위로 외부 LLM(Claude)이 번역
-  return { blocks: [], breakNext: false, nf: { en: "", ko: "", speaker: null }, diar: false, mode: "inline" };
+  // refine: 긴 문장을 끊어 먼저 번역하고, 문장이 끝나면 합쳐서 다시 번역
+  return { blocks: [], breakNext: false, nf: { en: "", ko: "", speaker: null }, diar: false, mode: "inline", refine: true };
 }
 
 function newBlock(core, speaker) {
+  // cont: 앞줄과 같은 문장의 뒷부분(쉼표나 길이 때문에 끊긴 줄) / swap: 합친 뒤 새 번역을 기다리는 중
   const b = { en: "", ko: "", speaker: speaker || null, needsTr: false, koDone: false, dirty: true, el: null,
-              trSrc: "", trState: "", ac: null, lastChange: Date.now(), mt: "", mtDone: false };
+              trSrc: "", trState: "", ac: null, lastChange: Date.now(), mt: "", mtDone: false,
+              cont: false, swap: false, draftKo: "", alt: "", altSrc: "", altState: "", altLabel: "", altMs: 0, altAc: null };
   core.blocks.push(b);
   return b;
 }
@@ -272,29 +304,35 @@ function lastBlock(core) {
 }
 
 // 다음 원문 토큰이 새 줄(블록)에서 시작해야 하는지 판단
-function shouldBreak(core, txt, speaker) {
+// "" = 같은 줄에 이어 붙임 / "new" = 새 문장 / "cont" = 같은 문장인데 길어서 끊음
+function breakKind(core, txt, speaker) {
   const b = lastBlock(core);
-  if (!b) return true;
-  if (!b.en.trim() && !b.ko.trim()) return false;
-  if (core.breakNext) return true;
-  if (core.diar && speaker && b.speaker && speaker !== b.speaker) return true;
+  if (!b) return "new";
+  if (!b.en.trim() && !b.ko.trim()) return "";
+  if (core.breakNext) return "new";
+  if (core.diar && speaker && b.speaker && speaker !== b.speaker) return "new";
   const startsWord = /^\s/.test(txt);
   if (core.mode === "llm") {
     // LLM 번역은 문장마다 한 줄. 긴 문장은 쉼표에서 끊어 번역이 빨리 시작되게 한다
     // 짧은 토막("It has." 같은 것)은 문장으로 보지 않고 다음 말과 이어 붙인다
-    if (startsWord && SENT_END.test(b.en) && lastSentenceWords(b.en) >= 4) return true;
-    if (startsWord && b.en.length > 140 && /[,;:]\s*$/.test(b.en)) return true;
-    if (startsWord && b.en.length > 260) return true;
-    return false;
+    if (startsWord && SENT_END.test(b.en) && lastSentenceWords(b.en) >= 4) return "new";
+    if (startsWord && b.en.length > (core.refine ? CLAUSE_LEN : CLAUSE_LEN_PLAIN) && /[,;:]\s*$/.test(b.en)) return "cont";
+    if (startsWord && b.en.length > HARD_LEN) return "cont";
+    return "";
   }
-  if (startsWord && SENT_END.test(b.en) && (b.ko.length > 0 || b.en.length > 240)) return true;
-  if (startsWord && b.en.length > 400) return true;
-  return false;
+  if (startsWord && SENT_END.test(b.en) && (b.ko.length > 0 || b.en.length > 240)) return "new";
+  if (startsWord && b.en.length > 400) return "new";
+  return "";
+}
+
+function shouldBreak(core, txt, speaker) {
+  return !!breakKind(core, txt, speaker);
 }
 
 function appendOriginal(core, txt, speaker, translated) {
   let b = lastBlock(core);
-  if (shouldBreak(core, txt, speaker)) b = newBlock(core, speaker);
+  const kind = breakKind(core, txt, speaker);
+  if (kind) { b = newBlock(core, speaker); b.cont = kind === "cont" && !!core.refine; }
   core.breakNext = false;
   if (!b.speaker && speaker) b.speaker = speaker;
   if (translated) b.needsTr = true;
@@ -412,13 +450,73 @@ function currentPartial(core) {
   return { text, block: b };
 }
 
-function exportText(core, names) {
+// 끊어 번역한 줄들을 문장이 끝나면 한 줄로 합친다. 합친 줄은 전체를 다시 번역해야 한다(trSrc 를 비움)
+// 돌려주는 값: heads = 합쳐진 줄, removed = 없어진 줄 (화면 요소와 진행 중인 번역 정리에 쓴다)
+function mergeChains(core, now) {
+  const res = { heads: [], removed: [] };
+  if (core.mode !== "llm" || !core.refine) return res;
+  let e = core.blocks.length - 1;
+  while (e > 0) {
+    if (!core.blocks[e].cont) { e--; continue; }
+    let s = e;
+    while (s > 0 && core.blocks[s].cont) s--;
+    const last = core.blocks[e];
+    const isTail = e === core.blocks.length - 1;
+    let closed = !isTail;                       // 뒤에 새 문장이 시작됐으면 이 문장은 끝난 것
+    if (isTail) {
+      const nf = core.nf.en;
+      closed = core.breakNext || (SENT_END.test(last.en) && (!nf || /^\s/.test(nf) || now - last.lastChange > 250));
+    }
+    if (closed) {
+      const parts = core.blocks.slice(s, e + 1);
+      const total = parts.reduce((a, b) => a + b.en.length, 0);
+      if (total > MERGE_MAX) {
+        for (let i = s + 1; i <= e; i++) core.blocks[i].cont = false;   // 너무 긴 문장은 끊은 채로 둔다
+      } else {
+        const head = parts[0];
+        const held = parts.map((b) => (b.ko || b.draftKo || "").trim()).filter(Boolean).join(" ");
+        head.en = parts.map((b) => b.en).join("");
+        head.mt = parts.map((b) => b.mt).join("");
+        head.mtDone = last.mtDone;
+        head.needsTr = parts.some((b) => b.needsTr);
+        head.ko = held; head.swap = !!held; head.draftKo = "";
+        head.trSrc = ""; head.trState = ""; head.lastChange = last.lastChange; head.dirty = true;
+        head.alt = ""; head.altSrc = ""; head.altState = ""; head.altMs = 0;
+        core.blocks.splice(s + 1, e - s);
+        res.heads.push(head);
+        for (let i = 1; i < parts.length; i++) res.removed.push(parts[i]);
+      }
+    }
+    e = s - 1;
+  }
+  return res;
+}
+
+// 용어집: 한 줄에 하나(또는 쉼표로 구분). "영어 = 번역어" 로 적으면 번역어를 지정한다
+function parseTerms(raw) {
+  const list = [];
+  for (const item of (raw || "").split(/[\n,]/)) {
+    const s = item.trim();
+    if (!s) continue;
+    const parts = s.split(/\s*(?:=>|->|→|=)\s*/);
+    const src = (parts[0] || "").trim(), dst = (parts[1] || "").trim();
+    if (src) list.push({ src, dst });
+  }
+  return list.slice(0, 200);
+}
+
+function exportText(core, names, withCmp) {
   const out = [];
   for (const b of core.blocks) {
     const en = b.en.trim(), ko = b.ko.trim();
     if (!en && !ko) continue;
     const who = b.speaker ? "[" + ((names && names[b.speaker]) || "화자 " + b.speaker) + "] " : "";
-    out.push(who + en + (ko ? "\n" + ko : ""));
+    let s = who + en + (ko ? "\n" + ko : "");
+    if (withCmp) {
+      if (b.mt && b.mt.trim()) s += "\n  [Soniox] " + b.mt.trim();
+      if (b.alt && b.alt.trim()) s += "\n  [" + (b.altLabel || "비교") + "] " + b.alt.trim();
+    }
+    out.push(s);
   }
   return out.join("\n\n");
 }
@@ -432,7 +530,8 @@ const STORE_KEY = "meeting-interpreter.settings.v1";
 const DEFAULTS = {
   apiKey: "", hint: "en", target: "ko", terms: "", fontSize: "18",
   model: "stt-rt-v6", showOriginal: true, diar: true, source: "system", ver: 2,
-  engine: "soniox", claudeKey: "", claudeModel: "claude-haiku-5-5", draft: true, preview: true
+  engine: "soniox", claudeKey: "", claudeModel: "claude-haiku-5-5", draft: true, preview: true,
+  brief: "", refine: true, compare: false
 };
 
 function loadSettings() {
@@ -480,6 +579,7 @@ function applyDisplaySettings() {
   el.transcript.classList.toggle("hide-en", !settings.showOriginal && settings.target !== "none");
   core.diar = !!settings.diar;
   core.mode = settings.engine === "claude" && settings.target !== "none" ? "llm" : "inline";
+  core.refine = settings.refine !== false;
   el.source.value = settings.source;
 }
 
@@ -492,7 +592,8 @@ function buildBlockEl() {
   const spk = document.createElement("div"); spk.className = "spk";
   const en = document.createElement("p"); en.className = "en";
   const ko = document.createElement("p"); ko.className = "ko";
-  wrap.append(spk, en, ko);
+  const cmp = document.createElement("div"); cmp.className = "cmp"; cmp.style.display = "none";
+  wrap.append(spk, en, ko, cmp);
   return wrap;
 }
 
@@ -504,8 +605,19 @@ function speakerColor(sp) {
   return SPK_COLORS[(isNaN(n) ? String(sp).length : n - 1 + SPK_COLORS.length) % SPK_COLORS.length];
 }
 
-function fillBlockEl(node, enText, koText, speaker, nfEn, nfKo, showSpeaker) {
-  const [spk, en, ko] = node.children;
+function fillBlockEl(node, enText, koText, speaker, nfEn, nfKo, showSpeaker, cmpLines) {
+  const [spk, en, ko, cmp] = node.children;
+  // 번역 비교 모드: 다른 엔진의 번역을 작게 덧붙인다
+  cmp.textContent = "";
+  if (cmpLines && cmpLines.length) {
+    for (const [label, text] of cmpLines) {
+      const p = document.createElement("p");
+      const l = document.createElement("span"); l.className = "cmp-l"; l.textContent = label;
+      p.append(l, text);
+      cmp.append(p);
+    }
+  }
+  cmp.style.display = cmpLines && cmpLines.length ? "" : "none";
   const show = speaker && core.diar && showSpeaker !== false;
   spk.textContent = show ? speakerLabel(speaker) : "";
   spk.dataset.speaker = speaker || "";
@@ -530,6 +642,7 @@ function render() {
   const ghostNeeded = !!nf.en && shouldBreak(core, nf.en, nf.speaker);
   const llm = core.mode === "llm";
   const usePreview = llm && settings.preview !== false;
+  const cmpOn = llm && !!settings.compare;
   const last = n ? core.blocks[n - 1] : null;
   // LLM 모드: 임시 즉시 번역(nf.ko)을 마지막 줄에 붙일지, 새 줄(ghost)에 붙일지
   const nfKoToGhost = llm && ghostNeeded && (!last || last.mtDone || !!last.ko);
@@ -553,7 +666,16 @@ function render() {
     if (!b.el) { b.el = buildBlockEl(); el.transcript.append(b.el); b.dirty = true; }
     const showSpk = i === 0 || core.blocks[i - 1].speaker !== b.speaker;
     if (b.dirty || tailEn || tailKo || b.hadTail || b.shownSpk !== showSpk) {
-      fillBlockEl(b.el, b.en, b.ko, b.speaker, tailEn, tailKo, showSpk);
+      let cmp = null;
+      if (cmpOn && b.ko) {
+        cmp = [];
+        if (b.mt.trim()) cmp.push(["Soniox", b.mt.trim()]);
+        if (b.alt || b.altState) {
+          cmp.push([b.altLabel + (b.altMs ? " " + (b.altMs / 1000).toFixed(1) + "초" : ""),
+                    b.alt || (b.altState === "run" ? "…" : b.altState === "err" ? "(번역 실패)" : "")]);
+        }
+      }
+      fillBlockEl(b.el, b.en, b.ko, b.speaker, tailEn, tailKo, showSpk, cmp);
       b.shownSpk = showSpk;
       b.hadTail = !!(tailEn || tailKo);
       b.dirty = false;
@@ -697,10 +819,12 @@ function stopAudio() {
 // ---------------------------------------------------------------------------
 const R = {
   running: false, starting: false, ws: null, open: false, queue: [], sampleRate: 16000,
-  retries: 0, retryTimer: null, tick: null, startedAt: 0, fatal: false, wake: null, closeTimer: null
+  retries: 0, retryTimer: null, tick: null, startedAt: 0, fatal: false, wake: null, closeTimer: null,
+  noEpDelay: false, noCtxExtra: false   // Soniox가 거부한 선택 설정은 빼고 연결한다
 };
 const FATAL_CODES = [400, 401, 402, 403, 429];
 const EP_DELAY_MS = 1000;
+const BRIEF_MAX = 1500;       // 회의 배경 최대 글자 수
 
 function buildConfig() {
   const cfg = {
@@ -714,11 +838,20 @@ function buildConfig() {
   if (!R.noEpDelay) cfg.max_endpoint_delay_ms = EP_DELAY_MS;
   if (settings.hint && settings.hint !== "auto") cfg.language_hints = [settings.hint];
   if (settings.diar) cfg.enable_speaker_diarization = true;
-  if (settings.target && settings.target !== "none" && (settings.engine !== "claude" || settings.preview !== false)) {
+  if (settings.target && settings.target !== "none" && (settings.engine !== "claude" || settings.preview !== false || settings.compare)) {
     cfg.translation = { type: "one_way", target_language: settings.target };
   }
-  const terms = (settings.terms || "").split(/[\n,]/).map((s) => s.trim()).filter(Boolean);
-  if (terms.length) cfg.context = { terms: terms.slice(0, 200) };
+  const terms = parseTerms(settings.terms);
+  const ctx = {};
+  if (terms.length) ctx.terms = terms.map((t) => t.src);
+  // 번역어 지정과 회의 배경. 거부되면 빼고 다시 연결한다
+  if (!R.noCtxExtra) {
+    const pairs = terms.filter((t) => t.dst).map((t) => ({ source: t.src, target: t.dst }));
+    if (pairs.length && cfg.translation) ctx.translation_terms = pairs;
+    const brief = (settings.brief || "").trim().slice(0, BRIEF_MAX);
+    if (brief) ctx.text = brief;
+  }
+  if (Object.keys(ctx).length) cfg.context = ctx;
   return cfg;
 }
 
@@ -744,8 +877,57 @@ const T = {
   lean: 2, blocked: false, lastFirstMs: 0, lastTotalMs: 0, tick: null,
   // 미리 번역(말하는 도중 번역) 상태
   draft: { sent: "", ko: "", koFor: "", block: null, busy: false, ac: null, at: 0, promise: null },
-  draftGap: DRAFT_GAP_MS, lastDraftMs: 0
+  draftGap: DRAFT_GAP_MS, lastDraftMs: 0,
+  // 속도 기록 (시작할 때마다 새로 쌓는다)
+  stats: {}, counts: { final: 0, draft: 0, refine: 0, alt: 0, reuse: 0 }, altBusy: 0
 };
+
+// ---------------------------------------------------------------------------
+// 속도 기록
+// ---------------------------------------------------------------------------
+const STAT_ROWS = [
+  ["dfirst", "미리 번역 첫 글자"], ["ddone", "미리 번역 완료"],
+  ["wait", "문장 끝 → 번역 요청"], ["first", "확정 번역 첫 글자"], ["done", "확정 번역 완료"],
+  ["rdone", "다듬기 완료"], ["afirst", "비교 모델 첫 글자"], ["adone", "비교 모델 완료"]
+];
+const MODEL_SHORT = { "claude-haiku-5-5": "Haiku", "claude-sonnet-5-5": "Sonnet" };
+
+function stat(key, ms) {
+  if (!(ms >= 0)) return;
+  const a = T.stats[key] || (T.stats[key] = []);
+  a.push(ms);
+  if (a.length > 3000) a.shift();
+}
+
+function resetStats() {
+  T.stats = {}; T.counts = { final: 0, draft: 0, refine: 0, alt: 0, reuse: 0 };
+  T.lastFirstMs = 0; T.lastTotalMs = 0; T.lastDraftMs = 0;
+}
+
+// 평균 · 보통(중간값) · 느릴 때(가장 느린 10% 구간) 를 글로 정리
+function statSummary() {
+  const sec = (ms) => (ms / 1000).toFixed(2) + "초";
+  const rows = [];
+  for (const [key, label] of STAT_ROWS) {
+    const a = T.stats[key];
+    if (!a || !a.length) continue;
+    const s = a.slice().sort((x, y) => x - y);
+    const avg = s.reduce((x, y) => x + y, 0) / s.length;
+    const q = (p) => s[Math.min(s.length - 1, Math.floor(p * s.length))];
+    rows.push(label + ": 평균 " + sec(avg) + " · 보통 " + sec(q(0.5)) + " · 느릴 때 " + sec(q(0.9)) + " (" + s.length + "건)");
+  }
+  if (!rows.length) return "아직 기록이 없습니다. 번역 방식을 Claude로 두고 회의를 시작하면 쌓입니다.";
+  const c = T.counts, onOff = (v) => (v ? "켬" : "끔");
+  rows.push("Claude 호출: 확정 " + c.final + "건 · 미리 번역 " + c.draft + "건 · 다듬기 " + c.refine + "건 · 비교 " + c.alt + "건 (미리 번역을 그대로 쓴 문장 " + c.reuse + "건)");
+  rows.push("설정: " + (MODEL_SHORT[settings.claudeModel] || settings.claudeModel) + " · 즉시 번역 " + onOff(settings.preview !== false) +
+    " · 미리 번역 " + onOff(settings.draft !== false) + " · 다듬기 " + onOff(settings.refine !== false) + " · 비교 " + onOff(!!settings.compare));
+  return rows.join("\n");
+}
+
+function renderStats() {
+  const node = document.getElementById("statBox");
+  if (node) node.textContent = statSummary();
+}
 
 // 문장 비교용: 끝의 문장부호·공백·대소문자 차이는 같은 문장으로 본다
 function sameText(a, b) {
@@ -776,6 +958,7 @@ function showLatency() {
   if (T.lean < 2) parts.push("느린 설정");
   const node = document.getElementById("lat");
   if (node) { node.textContent = parts.length ? "Claude " + parts.join(" · ") : ""; node.style.display = parts.length ? "" : "none"; }
+  if (el.dlg.open) renderStats();
 }
 
 // 이 줄에 보여 줄 미리 번역이 있으면 돌려준다
@@ -785,6 +968,23 @@ function draftFor(b) {
   if (d.block === b) return d.ko;
   if (d.block === null && b && b.en.trim().slice(0, 12) === d.sent.slice(0, 12)) return d.ko;
   return "";
+}
+
+// 번역에 참고로 줄 앞 대화 (최근 3줄). withKo 면 이미 보여 준 번역도 함께 준다: 용어와 말투가 앞뒤로 이어지게
+function contextFor(idx, withKo) {
+  const items = [];
+  let size = 0;
+  for (let i = Math.min(idx, core.blocks.length) - 1; i >= 0 && items.length < 3; i--) {
+    const x = core.blocks[i];
+    const en = x.en.trim();
+    if (!en) continue;
+    if (items.length && size + en.length > 500) break;
+    const cut = en.length > 400;
+    size += Math.min(en.length, 400);
+    const ko = withKo && !cut && x.trState === "done" && !x.swap && x.trSrc === en ? x.ko.trim() : "";
+    items.unshift("Said: " + (cut ? en.slice(-400) : en) + (ko ? "\nShown translation: " + ko : ""));
+  }
+  return items.join("\n");
 }
 
 async function pumpDraft() {
@@ -802,18 +1002,21 @@ async function pumpDraft() {
   const ac = new AbortController();
   d.busy = true; d.ac = ac; d.at = now; d.sent = cur.text; d.block = cur.block;
   const idx = cur.block ? core.blocks.indexOf(cur.block) : core.blocks.length;
-  const context = core.blocks.slice(Math.max(0, idx - 2), idx).map((x) => x.en.trim()).filter(Boolean).join(" ").slice(-400);
-  let out = "";
+  const context = contextFor(idx, true);
+  let out = "", first = true;
   const prevKo = d.ko;
+  T.counts.draft++;
   try {
     // 글자가 오는 대로 바로 보여 준다. 앞서 보여 준 미리 번역이 있으면 새 번역이 그만큼 길어졌을 때 바꾼다 (깜빡임 방지)
     d.promise = claudeStream(cur.text, context, ac.signal, (delta) => {
+      if (first) { first = false; T.lastDraftMs = performance.now() - now; stat("dfirst", T.lastDraftMs); }
       out += delta;
       if (T.draft === d && d.ac === ac && (!prevKo || out.length >= prevKo.length)) { d.ko = out; scheduleRender(); }
     }, true);
     await d.promise;
     if (T.draft === d && d.ac === ac) {
-      d.ko = out.trim(); d.koFor = d.sent; T.lastDraftMs = performance.now() - now;
+      d.ko = out.trim(); d.koFor = d.sent;
+      stat("ddone", performance.now() - now);
       showLatency();
       scheduleRender();
     }
@@ -831,23 +1034,30 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 function claudeSystemPrompt() {
   const lang = LANG_NAME[settings.target] || "Korean";
   let p = "You are a simultaneous interpreter in a live business meeting. Translate the speech inside <translate> into natural, concise spoken " + lang + ". " +
-    "Text inside <context> is what was said just before; use it only to resolve meaning and never translate it. " +
+    "<context> holds what was said just before (\"Said\") and, when available, the translation the listener already saw (\"Shown translation\"); " +
+    "use it only to resolve meaning and to keep names, terms and tone consistent, and never translate or repeat it. " +
+    "If <translate> continues an unfinished sentence from <context>, translate only the new part so that it reads on naturally from the shown translation. " +
     "Keep people's names, company names, product names and acronyms unchanged. " +
+    "Keep every number, amount, date and unit exactly as stated. " +
     "If the text is an unfinished fragment, translate the fragment as it is without completing it. " +
     "Output only the translation: no quotes, no labels, no notes, no source text.";
   if (settings.target === "ko") p += " Use polite Korean (합니다/해요체) and natural Korean word order.";
-  const terms = (settings.terms || "").split(/[\n,]/).map((x) => x.trim()).filter(Boolean).slice(0, 200);
-  if (terms.length) p += " Terms that may appear (keep as written): " + terms.join(", ") + ".";
+  const brief = (settings.brief || "").trim().slice(0, BRIEF_MAX);
+  if (brief) p += "\n\nMeeting background, for understanding only (never translate or mention it): " + brief;
+  const terms = parseTerms(settings.terms);
+  const fixed = terms.filter((t) => t.dst), keep = terms.filter((t) => !t.dst);
+  if (fixed.length) p += "\n\nGlossary. Always translate these terms exactly as given: " + fixed.map((t) => t.src + " = " + t.dst).join("; ") + ".";
+  if (keep.length) p += "\n\nTerms that may appear (keep as written): " + keep.map((t) => t.src).join(", ") + ".";
   return p;
 }
 
-async function claudeStream(text, context, signal, onDelta, retried) {
+async function claudeStream(text, context, signal, onDelta, retried, model) {
   const body = {
-    model: settings.claudeModel || "claude-haiku-5-5",
+    model: model || settings.claudeModel || "claude-haiku-5-5",
     max_tokens: 600,
     stream: true,
     system: claudeSystemPrompt(),
-    messages: [{ role: "user", content: (context ? "<context>" + context + "</context>\n" : "") + "<translate>" + text + "</translate>" }]
+    messages: [{ role: "user", content: (context ? "<context>\n" + context + "\n</context>\n" : "") + "<translate>" + text + "</translate>" }]
   };
   // lean 2: 생각 끔 + 최소 노력 / 1: 최소 노력만 / 0: 기본값
   if (T.lean >= 2) body.thinking = { type: "disabled" };
@@ -868,9 +1078,9 @@ async function claudeStream(text, context, signal, onDelta, retried) {
     const err = new Error((j && j.error && j.error.message) || ("HTTP " + res.status));
     err.status = res.status;
     if (res.status === 400 && T.lean > 0 && /thinking|effort|output_config/i.test(err.message)) {
-      T.lean -= 1; return claudeStream(text, context, signal, onDelta, retried);
+      T.lean -= 1; return claudeStream(text, context, signal, onDelta, retried, model);
     }
-    if ((res.status === 429 || res.status >= 500) && !retried) { await sleep(500); return claudeStream(text, context, signal, onDelta, true); }
+    if ((res.status === 429 || res.status >= 500) && !retried) { await sleep(500); return claudeStream(text, context, signal, onDelta, true, model); }
     throw err;
   }
   const reader = res.body.getReader();
@@ -912,38 +1122,54 @@ async function translateBlock(idx) {
   if (b.ac) { try { b.ac.abort(); } catch (e) {} }
   const ac = new AbortController();
   b.ac = ac; b.trState = "run"; b.dirty = true;
+  // 끊어 번역한 조각을 합친 줄: 다듬은 번역이 올 때까지 조각 번역을 그대로 보여 준다
+  const held = b.swap ? b.ko : "";
   // 방금 같은 문장을 미리 번역했거나 번역 중이면 다시 요청하지 않고 그 결과를 쓴다
   const d = T.draft;
-  if (sameText(d.sent, src) && (d.busy || sameText(d.koFor, src))) {
+  if (!held && sameText(d.sent, src) && (d.busy || sameText(d.koFor, src))) {
     if (d.busy && d.promise) { try { await d.promise; } catch (e) {} await sleep(0); }
     if (b.ac !== ac) return;
     if (T.draft === d && sameText(d.koFor, src) && d.ko) {
       b.ko = d.ko; b.draftKo = ""; b.trState = "done"; b.ac = null; b.dirty = true;
+      T.counts.reuse++;
       resetDraft(); scheduleRender();
       return;
     }
   }
-  const carried = draftFor(b);
-  if (carried) b.draftKo = carried;
-  if (carried || T.draft.block === b) resetDraft();
-  const context = core.blocks.slice(Math.max(0, idx - 2), idx).map((x) => x.en.trim()).filter(Boolean).join(" ").slice(-400);
+  if (!held) {
+    const carried = draftFor(b);
+    if (carried) b.draftKo = carried;
+    if (carried || T.draft.block === b) resetDraft();
+  }
+  const context = contextFor(idx, true);
   const t0 = performance.now();
-  let first = true;
+  if (held) T.counts.refine++; else { T.counts.final++; stat("wait", Date.now() - b.lastChange); }
+  let first = true, out = "";
   try {
     await claudeStream(src, context, ac.signal, (delta) => {
       if (b.ac !== ac) return;
-      if (first) { b.ko = ""; first = false; T.lastFirstMs = performance.now() - t0; }
-      b.ko += delta; b.dirty = true; scheduleRender();
+      if (first) {
+        first = false;
+        if (!held) { b.ko = ""; T.lastFirstMs = performance.now() - t0; stat("first", T.lastFirstMs); }
+      }
+      out += delta;
+      if (!held || out.length >= held.length) b.ko = out;      // 다듬기는 기존 번역만큼 길어졌을 때 바꾼다 (깜빡임 방지)
+      b.dirty = true; scheduleRender();
     });
     if (b.ac === ac) {
-      b.trState = "done"; b.ac = null; T.lastTotalMs = performance.now() - t0;
+      if (out.trim()) b.ko = out;
+      b.swap = false; b.draftKo = "";
+      b.trState = "done"; b.ac = null;
+      const total = performance.now() - t0;
+      if (held) stat("rdone", total); else { T.lastTotalMs = total; stat("done", total); }
       showLatency();
       setConnState("Soniox 연결됨 · Claude 번역 정상 (첫 글자 " + (T.lastFirstMs / 1000).toFixed(1) + "초, 완료 " + (T.lastTotalMs / 1000).toFixed(1) + "초" +
         (settings.draft && T.lastDraftMs ? ", 미리 번역 " + (T.lastDraftMs / 1000).toFixed(1) + "초" : "") + ")");
     }
   } catch (e) {
     if (e && e.name === "AbortError") return;
-    if (b.ac === ac) { b.trState = "err"; b.ac = null; }
+    // 다듬기가 실패하면 조각 번역을 그대로 확정한다
+    if (b.ac === ac) { b.trState = held ? "done" : "err"; b.swap = false; b.ac = null; }
     const text = claudeErrorText(e);
     if (e && (e.status === 401 || e.status === 403 || e.status === 404 || (e.status === 400 && text))) T.blocked = true;
     if (text) showBanner(text);
@@ -952,10 +1178,76 @@ async function translateBlock(idx) {
   b.dirty = true; scheduleRender();
 }
 
+// 문장이 끝나면 끊어 번역한 줄들을 한 줄로 합치고, 없어진 줄의 화면 요소와 진행 중이던 번역을 정리한다
+function applyMerges() {
+  if (!core.refine) return;
+  const lb = lastBlock(core);
+  if (lb && lb.cont && !lb.ko && !lb.draftKo) lb.draftKo = draftFor(lb);   // 마지막 조각의 미리 번역도 살린다
+  const res = mergeChains(core, Date.now());
+  if (!res.removed.length) return;
+  const stop = (x, key) => { if (x[key]) { try { x[key].abort(); } catch (e) {} x[key] = null; } };
+  for (const h of res.heads) { stop(h, "ac"); stop(h, "altAc"); }
+  for (const b of res.removed) {
+    stop(b, "ac"); stop(b, "altAc");
+    if (b.el) { b.el.remove(); b.el = null; }
+    if (T.draft.block === b) resetDraft();
+  }
+  scheduleRender();
+}
+
+// ---------------------------------------------------------------------------
+// 번역 비교 모드 (테스트용): 같은 문장을 다른 Claude 모델로도 번역해 나란히 보여 준다
+// ---------------------------------------------------------------------------
+function altModel() {
+  return settings.claudeModel === "claude-sonnet-5-5" ? "claude-haiku-5-5" : "claude-sonnet-5-5";
+}
+
+function pumpCompare() {
+  if (!settings.compare || T.altBusy >= 2) return;
+  const n = core.blocks.length;
+  for (let i = 0; i < n && T.altBusy < 2; i++) {
+    const b = core.blocks[i];
+    const src = b.en.trim();
+    if (!src || b.trState !== "done" || b.swap || b.trSrc !== src || b.altSrc === src) continue;
+    const next = core.blocks[i + 1];
+    if (b.cont || (next && next.cont)) continue;              // 곧 합쳐질 조각은 건너뛴다
+    if (i === n - 1 && !SENT_END.test(b.en)) continue;        // 아직 말하는 중인 문장도 건너뛴다
+    translateAlt(i);
+  }
+}
+
+async function translateAlt(idx) {
+  const b = core.blocks[idx];
+  const src = b.en.trim();
+  const model = altModel();
+  const ac = new AbortController();
+  b.altSrc = src; b.alt = ""; b.altLabel = MODEL_SHORT[model] || model; b.altState = "run"; b.altMs = 0; b.altAc = ac; b.dirty = true;
+  T.altBusy++; T.counts.alt++;
+  const t0 = performance.now();
+  let first = true;
+  try {
+    // 비교가 공정하도록 앞 문장의 번역(다른 모델이 만든 것)은 주지 않는다
+    await claudeStream(src, contextFor(idx, false), ac.signal, (delta) => {
+      if (b.altAc !== ac) return;
+      if (first) { first = false; b.altMs = performance.now() - t0; stat("afirst", b.altMs); }
+      b.alt += delta; b.dirty = true; scheduleRender();
+    }, false, model);
+    if (b.altAc === ac) { b.altState = "done"; stat("adone", performance.now() - t0); }
+  } catch (e) {
+    if (b.altAc === ac) b.altState = e && e.name === "AbortError" ? "" : "err";
+  } finally {
+    T.altBusy--;
+    if (b.altAc === ac) b.altAc = null;
+    b.dirty = true; scheduleRender();
+  }
+}
+
 function pumpTranslations() {
   if (core.mode !== "llm" || T.blocked) return;
+  applyMerges();
   for (const i of blocksToTranslate(core, Date.now())) translateBlock(i);
   pumpDraft();
+  pumpCompare();
 }
 
 function openSocket() {
@@ -987,11 +1279,18 @@ function openSocket() {
     let msg;
     try { msg = JSON.parse(ev.data); } catch (e) { return; }
     if (msg.error_code) {
-      // 이 모델이 확정 대기 시간 설정을 받지 않으면 그 설정만 빼고 다시 연결한다
-      if (msg.error_code === 400 && !R.noEpDelay && /endpoint/i.test(msg.error_message || "")) {
-        R.noEpDelay = true;
-        try { ws.close(); } catch (e) {}
-        return;
+      // 새로 넣은 선택 설정(확정 대기 시간, 번역어 지정, 회의 배경)을 Soniox가 받지 않으면 그것만 빼고 다시 연결한다
+      // 어느 설정 때문인지 알 수 없으면 둘 다 뺀다. 그래도 거부되면 아래에서 오류로 안내한다
+      if (msg.error_code === 400 && (!R.noEpDelay || !R.noCtxExtra)) {
+        const m = msg.error_message || "";
+        const ep = /endpoint/i.test(m), cx = /context|translation_terms/i.test(m);
+        const before = String(R.noEpDelay) + String(R.noCtxExtra);
+        if (ep || !cx) R.noEpDelay = true;
+        if (cx || !ep) R.noCtxExtra = true;
+        if (before !== String(R.noEpDelay) + String(R.noCtxExtra)) {
+          try { ws.close(); } catch (e) {}
+          return;
+        }
       }
       const text = errorText(msg.error_code, msg.error_message);
       setConnState("오류: " + text);
@@ -1049,7 +1348,7 @@ async function start() {
     openSettingsDialog(); showBanner("번역 방식이 Claude로 되어 있습니다. 설정에서 Claude API 키를 입력해 주세요.", true); return;
   }
   R.starting = true; R.fatal = false; R.retries = 0; R.queue = [];
-  T.blocked = false; T.draftGap = DRAFT_GAP_MS; resetDraft();
+  T.blocked = false; T.draftGap = DRAFT_GAP_MS; resetDraft(); resetStats(); showLatency();
   warmClaude();
   hideBanner();
   el.toggle.disabled = true;
@@ -1138,7 +1437,7 @@ el.clear.addEventListener("click", () => {
 });
 
 el.save.addEventListener("click", () => {
-  const text = exportText(core, speakerNames);
+  const text = exportText(core, speakerNames, core.mode === "llm" && !!settings.compare);
   if (!text) { showBanner("저장할 기록이 없습니다.", true); return; }
   const d = new Date(), p = (x) => String(x).padStart(2, "0");
   const name = "회의기록_" + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "_" + p(d.getHours()) + p(d.getMinutes()) + ".txt";
@@ -1181,10 +1480,26 @@ function openSettingsDialog() {
   $("engine").value = settings.engine; $("claudeKey").value = settings.claudeKey;
   $("claudeKey").type = "password"; $("showClaudeKey").textContent = "보기";
   $("claudeModel").value = settings.claudeModel; $("draft").checked = settings.draft !== false; $("preview").checked = settings.preview !== false;
+  $("refine").checked = settings.refine !== false; $("compare").checked = !!settings.compare;
+  $("brief").value = settings.brief || "";
   $("claudeBox").style.display = settings.engine === "claude" ? "" : "none";
+  $("copyStats").textContent = "기록 복사";
+  renderStats();
   if (!el.dlg.open) el.dlg.showModal();
 }
 el.openSettings.addEventListener("click", openSettingsDialog);
+// 위쪽 속도 표시를 누르면 속도 기록으로 바로 간다
+$("lat").addEventListener("click", () => { openSettingsDialog(); $("statField").scrollIntoView({ block: "center" }); });
+$("copyStats").addEventListener("click", async () => {
+  const text = statSummary();
+  let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {}
+  if (!ok) {
+    // 클립보드 권한이 없으면 글자를 선택해 둔다 (Ctrl+C 로 복사)
+    try { const r = document.createRange(); r.selectNodeContents($("statBox")); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); } catch (e) {}
+  }
+  $("copyStats").textContent = ok ? "복사했습니다" : "선택했습니다. Ctrl+C 로 복사해 주세요";
+});
 $("cancelSettings").addEventListener("click", () => el.dlg.close());
 $("showKey").addEventListener("click", () => {
   const k = $("apiKey"); const show = k.type === "password";
@@ -1201,7 +1516,8 @@ $("saveSettings").addEventListener("click", () => {
     terms: $("terms").value, fontSize: $("fontSize").value, model: $("model").value,
     showOriginal: $("showOriginal").checked, diar: $("diar").checked,
     engine: $("engine").value, claudeKey: $("claudeKey").value.trim(), claudeModel: $("claudeModel").value,
-    draft: $("draft").checked, preview: $("preview").checked
+    draft: $("draft").checked, preview: $("preview").checked,
+    refine: $("refine").checked, compare: $("compare").checked, brief: $("brief").value.trim()
   });
   T.blocked = false; T.lean = 2;
   // 이미 번역이 달린 줄은 다시 번역하지 않는다
