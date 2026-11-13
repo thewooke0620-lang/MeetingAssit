@@ -57,7 +57,8 @@
   #stage { position: relative; flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 14px 16px 60px; font-size: var(--fs); }
   .block { padding: 10px 0 12px; border-bottom: 1px solid #1c2028; }
   .block:last-child { border-bottom: 0; }
-  .spk { font-size: 11px; color: var(--accent); font-weight: 700; margin-bottom: 2px; }
+  .spk { display: inline-block; font-size: 12px; color: var(--accent); font-weight: 700; margin-bottom: 4px; padding: 2px 9px; border-radius: 999px; background: rgba(255,255,255,.06); cursor: pointer; }
+  .block.same-spk { border-top: 0; padding-top: 0; }
   .en { color: var(--muted); font-size: .82em; line-height: 1.5; margin: 0 0 4px; }
   .ko { color: var(--text); font-size: 1em; line-height: 1.55; margin: 0; font-weight: 500; }
   .nf { opacity: .55; }
@@ -218,7 +219,8 @@
       <label class="check"><input id="showOriginal" type="checkbox"> 영어 원문도 함께 표시</label>
     </div>
     <div class="field">
-      <label class="check"><input id="diar" type="checkbox"> 말하는 사람 구분 표시</label>
+      <label class="check"><input id="diar" type="checkbox"> 목소리로 화자 구분</label>
+      <div class="hint">말하는 사람이 바뀌면 화자 1, 화자 2처럼 표시합니다. 화자 이름을 누르면 이름을 바꿀 수 있습니다.</div>
     </div>
   </div>
   <div class="dlg-foot">
@@ -249,6 +251,17 @@ function newBlock(core, speaker) {
   return b;
 }
 
+function wordCount(text) {
+  const t = text.trim();
+  return t ? t.split(/\s+/).length : 0;
+}
+
+// 줄의 마지막 문장(마침표 사이 구간)이 몇 단어인지
+function lastSentenceWords(text) {
+  const parts = text.trim().split(/[.?!…。？！]+\s*/).filter((x) => x.trim());
+  return parts.length ? wordCount(parts[parts.length - 1]) : 0;
+}
+
 function lastBlock(core) {
   return core.blocks.length ? core.blocks[core.blocks.length - 1] : null;
 }
@@ -263,7 +276,8 @@ function shouldBreak(core, txt, speaker) {
   const startsWord = /^\s/.test(txt);
   if (core.mode === "llm") {
     // LLM 번역은 문장마다 한 줄. 긴 문장은 쉼표에서 끊어 번역이 빨리 시작되게 한다
-    if (startsWord && SENT_END.test(b.en)) return true;
+    // 짧은 토막("It has." 같은 것)은 문장으로 보지 않고 다음 말과 이어 붙인다
+    if (startsWord && SENT_END.test(b.en) && lastSentenceWords(b.en) >= 4) return true;
     if (startsWord && b.en.length > 140 && /[,;:]\s*$/.test(b.en)) return true;
     if (startsWord && b.en.length > 260) return true;
     return false;
@@ -308,7 +322,11 @@ function processTokens(core, tokens) {
     const txt = typeof t.text === "string" ? t.text : "";
     if (!txt) continue;
     if (SPECIAL.test(txt.trim())) {
-      if (t.is_final && txt.trim().toLowerCase() === "<end>") core.breakNext = true;
+      if (t.is_final && txt.trim().toLowerCase() === "<end>") {
+        const lb = lastBlock(core);
+        // LLM 번역 모드에서는 잠깐 쉰 것만으로 줄을 나누지 않는다
+        if (core.mode !== "llm" || (lb && lastSentenceWords(lb.en) >= 4 && SENT_END.test(lb.en))) core.breakNext = true;
+      }
       continue;
     }
     const isTr = t.translation_status === "translation";
@@ -333,16 +351,19 @@ function blocksToTranslate(core, now) {
   for (let i = 0; i < n; i++) {
     const b = core.blocks[i];
     const src = b.en.trim();
+    const isLast = i === n - 1;
+    const idle = now - b.lastChange;
+    const nf = core.nf.en;
+    // 3초 넘게 조용하면 다음 말은 새 줄에서 시작
+    if (isLast && src && !nf && idle > 3000) core.breakNext = true;
     if (!src || src === b.trSrc) continue;
-    let ready = i < n - 1;
+    let ready = !isLast;
     if (!ready) {
-      const idle = now - b.lastChange;
-      const nf = core.nf.en;
       if (core.breakNext) ready = true;
       else if (SENT_END.test(b.en) && (!nf || /^\s/.test(nf))) ready = true;   // 문장이 끝남
       else if (SENT_END.test(b.en) && idle > 250) ready = true;
-      else if (!nf && idle > 1200) { ready = true; core.breakNext = true; }      // 말이 멈춤
-      else if (idle > 2500) { ready = true; core.breakNext = true; }
+      else if (!nf && idle > 1200) ready = true;                                // 말이 잠깐 멈춤: 번역만 하고 줄은 유지
+      else if (idle > 2500) ready = true;
     }
     if (ready) out.push(i);
   }
@@ -364,12 +385,12 @@ function currentPartial(core) {
   return { text, block: b };
 }
 
-function exportText(core) {
+function exportText(core, names) {
   const out = [];
   for (const b of core.blocks) {
     const en = b.en.trim(), ko = b.ko.trim();
     if (!en && !ko) continue;
-    const who = b.speaker ? "[화자 " + b.speaker + "] " : "";
+    const who = b.speaker ? "[" + ((names && names[b.speaker]) || "화자 " + b.speaker) + "] " : "";
     out.push(who + en + (ko ? "\n" + ko : ""));
   }
   return out.join("\n\n");
@@ -383,14 +404,16 @@ const WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 const STORE_KEY = "meeting-interpreter.settings.v1";
 const DEFAULTS = {
   apiKey: "", hint: "en", target: "ko", terms: "", fontSize: "18",
-  model: "stt-rt-v6", showOriginal: true, diar: false, source: "system",
+  model: "stt-rt-v6", showOriginal: true, diar: true, source: "system", ver: 2,
   engine: "soniox", claudeKey: "", claudeModel: "claude-haiku-5-5", draft: true
 };
 
 function loadSettings() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
-    return Object.assign({}, DEFAULTS, raw ? JSON.parse(raw) : {});
+    const saved = raw ? JSON.parse(raw) : {};
+    if (!saved.ver || saved.ver < 2) { saved.diar = true; saved.ver = 2; }   // 화자 구분을 기본으로 켬
+    return Object.assign({}, DEFAULTS, saved);
   } catch (e) { return Object.assign({}, DEFAULTS); }
 }
 function saveSettings(s) {
@@ -446,10 +469,21 @@ function buildBlockEl() {
   return wrap;
 }
 
-function fillBlockEl(node, enText, koText, speaker, nfEn, nfKo) {
+const SPK_COLORS = ["#4f8cff", "#3ecf8e", "#f5a524", "#e879f9", "#ff8a65", "#22d3ee", "#c4b5fd", "#facc15"];
+const speakerNames = {};
+function speakerLabel(sp) { return speakerNames[sp] || "화자 " + sp; }
+function speakerColor(sp) {
+  const n = parseInt(sp, 10);
+  return SPK_COLORS[(isNaN(n) ? String(sp).length : n - 1 + SPK_COLORS.length) % SPK_COLORS.length];
+}
+
+function fillBlockEl(node, enText, koText, speaker, nfEn, nfKo, showSpeaker) {
   const [spk, en, ko] = node.children;
-  spk.textContent = speaker && core.diar ? "화자 " + speaker : "";
-  spk.style.display = spk.textContent ? "" : "none";
+  const show = speaker && core.diar && showSpeaker !== false;
+  spk.textContent = show ? speakerLabel(speaker) : "";
+  spk.dataset.speaker = speaker || "";
+  spk.style.color = show ? speakerColor(speaker) : "";
+  spk.style.display = show ? "" : "none";
   en.textContent = enText.replace(/^\s+/, "");
   if (nfEn) { const s = document.createElement("span"); s.className = "nf"; s.textContent = en.textContent ? nfEn : nfEn.replace(/^\s+/, ""); en.append(s); }
   ko.textContent = koText.replace(/^\s+/, "");
@@ -483,8 +517,10 @@ function render() {
       else if (b.trState === "err") tailKo = "(번역 실패)";
     }
     if (!b.el) { b.el = buildBlockEl(); el.transcript.append(b.el); b.dirty = true; }
-    if (b.dirty || tailEn || tailKo || b.hadTail) {
-      fillBlockEl(b.el, b.en, b.ko, b.speaker, tailEn, tailKo);
+    const showSpk = i === 0 || core.blocks[i - 1].speaker !== b.speaker;
+    if (b.dirty || tailEn || tailKo || b.hadTail || b.shownSpk !== showSpk) {
+      fillBlockEl(b.el, b.en, b.ko, b.speaker, tailEn, tailKo, showSpk);
+      b.shownSpk = showSpk;
       b.hadTail = !!(tailEn || tailKo);
       b.dirty = false;
     }
@@ -493,7 +529,8 @@ function render() {
   if (ghostNeeded || (nf.ko && !koTarget)) {
     if (!ghostEl) ghostEl = buildBlockEl();
     const ghostKo = core.mode === "llm" ? (T.draft.block === null ? T.draft.ko : "") : (!koTarget ? nf.ko : "");
-    fillBlockEl(ghostEl, "", "", nf.speaker, ghostNeeded ? nf.en : "", ghostKo);
+    const ghostSpk = !n || core.blocks[n - 1].speaker !== nf.speaker;
+    fillBlockEl(ghostEl, "", "", nf.speaker, ghostNeeded ? nf.en : "", ghostKo, ghostSpk);
     el.transcript.append(ghostEl);
   } else if (ghostEl && ghostEl.parentNode) {
     ghostEl.remove();
@@ -503,6 +540,21 @@ function render() {
   if (stick) el.stage.scrollTop = el.stage.scrollHeight;
   else el.jump.classList.add("show");
 }
+
+// 화자 이름을 누르면 이름을 바꿀 수 있다
+el.transcript.addEventListener("click", (ev) => {
+  const t = ev.target;
+  if (!t || !t.classList || !t.classList.contains("spk")) return;
+  const sp = t.dataset.speaker;
+  if (!sp) return;
+  let name = null;
+  try { name = window.prompt("이 화자의 이름을 입력해 주세요.", speakerNames[sp] || ""); } catch (e) { return; }
+  if (name === null) return;
+  name = name.trim().slice(0, 20);
+  if (name) speakerNames[sp] = name; else delete speakerNames[sp];
+  for (const b of core.blocks) b.dirty = true;
+  render();
+});
 
 let renderQueued = false;
 function scheduleRender() {
@@ -619,8 +671,7 @@ function buildConfig() {
     audio_format: "pcm_s16le",
     sample_rate: R.sampleRate,
     num_channels: 1,
-    enable_endpoint_detection: true,
-    max_endpoint_delay_ms: 500
+    enable_endpoint_detection: true
   };
   if (settings.hint && settings.hint !== "auto") cfg.language_hints = [settings.hint];
   if (settings.diar) cfg.enable_speaker_diarization = true;
@@ -991,7 +1042,7 @@ el.clear.addEventListener("click", () => {
 });
 
 el.save.addEventListener("click", () => {
-  const text = exportText(core);
+  const text = exportText(core, speakerNames);
   if (!text) { showBanner("저장할 기록이 없습니다.", true); return; }
   const d = new Date(), p = (x) => String(x).padStart(2, "0");
   const name = "회의기록_" + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "_" + p(d.getHours()) + p(d.getMinutes()) + ".txt";
