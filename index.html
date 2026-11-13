@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>회의 통역 도우미</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --bg: #0f1115; --panel: #181b22; --panel2: #1f232c; --line: #2a2f3a;
+    --text: #eef1f6; --muted: #98a2b3; --accent: #4f8cff; --ok: #3ecf8e;
+    --warn: #f5a524; --err: #ff6b6b; --fs: 18px;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: "Pretendard", "Noto Sans KR", "Malgun Gothic", system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex; flex-direction: column;
+  }
+  button, select, input, textarea { font: inherit; color: inherit; }
+  header {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    padding: 10px 12px; background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  .title { font-weight: 700; font-size: 15px; margin-right: 4px; white-space: nowrap; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
+    padding: 4px 10px; border-radius: 999px; background: var(--panel2); color: var(--muted);
+    border: 1px solid var(--line); white-space: nowrap;
+  }
+  .pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .pill.live { color: var(--ok); } .pill.live::before { background: var(--ok); animation: blink 1.4s infinite; }
+  .pill.wait { color: var(--warn); } .pill.wait::before { background: var(--warn); }
+  .pill.err { color: var(--err); } .pill.err::before { background: var(--err); }
+  @keyframes blink { 50% { opacity: .35; } }
+  .spacer { flex: 1 1 auto; }
+  .btn {
+    border: 1px solid var(--line); background: var(--panel2); border-radius: 8px;
+    padding: 7px 12px; font-size: 13px; cursor: pointer; white-space: nowrap;
+  }
+  .btn:hover { border-color: #3a4150; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; padding: 7px 18px; }
+  .btn.stop { background: var(--err); border-color: var(--err); color: #fff; font-weight: 700; padding: 7px 18px; }
+  select.btn { padding-right: 8px; }
+  .timer { font-variant-numeric: tabular-nums; font-size: 12px; color: var(--muted); min-width: 44px; text-align: right; }
+
+  #banner {
+    display: none; padding: 10px 14px; font-size: 13px; line-height: 1.5;
+    background: #2a1d1d; color: #ffc9c9; border-bottom: 1px solid #4a2a2a;
+  }
+  #banner.info { background: #1b2433; color: #cfe0ff; border-bottom-color: #2a3a55; }
+  #banner.show { display: block; }
+
+  #stageHome { flex: 1 1 auto; min-height: 0; display: flex; }
+  #stage { position: relative; flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 14px 16px 60px; font-size: var(--fs); }
+  .block { padding: 10px 0 12px; border-bottom: 1px solid #1c2028; }
+  .block:last-child { border-bottom: 0; }
+  .spk { font-size: 11px; color: var(--accent); font-weight: 700; margin-bottom: 2px; }
+  .en { color: var(--muted); font-size: .82em; line-height: 1.5; margin: 0 0 4px; }
+  .ko { color: var(--text); font-size: 1em; line-height: 1.55; margin: 0; font-weight: 500; }
+  .nf { opacity: .55; }
+  .hide-en .en { display: none; }
+  #empty { color: var(--muted); font-size: 14px; line-height: 1.7; max-width: 560px; margin: 8vh auto 0; padding: 0 8px; }
+  #empty h2 { color: var(--text); font-size: 17px; margin: 0 0 8px; }
+  #empty ol { padding-left: 20px; margin: 8px 0; }
+  #jump {
+    position: sticky; bottom: 8px; left: 50%; transform: translateX(-50%); display: none;
+    background: var(--accent); color: #fff; border: 0; border-radius: 999px; padding: 7px 16px; font-size: 13px; cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0,0,0,.4);
+  }
+  #jump.show { display: inline-block; }
+
+  dialog { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 14px; padding: 0; width: min(520px, 94vw); max-height: 90vh; }
+  dialog::backdrop { background: rgba(0,0,0,.6); }
+  .dlg-head { display: flex; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--line); font-weight: 700; }
+  .dlg-body { padding: 14px 16px; overflow-y: auto; max-height: 64vh; }
+  .dlg-foot { display: flex; gap: 8px; justify-content: flex-end; padding: 12px 16px; border-top: 1px solid var(--line); }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; }
+  .field .hint { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+  .field input[type=text], .field input[type=password], .field select, .field textarea {
+    width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 14px;
+  }
+  .field textarea { min-height: 70px; resize: vertical; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .row > * { flex: 1 1 0; }
+  .check { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+  .check input { width: 18px; height: 18px; }
+  #connState { font-size: 13px; padding: 8px 10px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="title">회의 통역 도우미</span>
+  <span id="status" class="pill">대기</span>
+  <span id="timer" class="timer">00:00</span>
+  <span class="spacer"></span>
+  <select id="source" class="btn" title="소리 입력">
+    <option value="system">PC 소리 (회의)</option>
+    <option value="mic">마이크</option>
+  </select>
+  <button id="toggle" class="btn primary">시작</button>
+  <button id="pip" class="btn" title="회의 창 위에 띄우는 작은 창">작은 창</button>
+  <button id="save" class="btn" title="기록을 텍스트 파일로 저장">저장</button>
+  <button id="clear" class="btn" title="화면의 기록 지우기">지우기</button>
+  <button id="openSettings" class="btn">설정</button>
+</header>
+
+<div id="banner"></div>
+
+<div id="stageHome">
+  <div id="stage">
+    <div id="empty">
+      <h2>사용 방법</h2>
+      <ol>
+        <li><b>설정</b>에서 Soniox API 키를 입력합니다. (처음 한 번)</li>
+        <li><b>시작</b>을 누릅니다.</li>
+        <li>화면 공유 창이 뜨면 <b>전체 화면</b>을 고르고 <b>시스템 오디오도 공유</b>를 켠 뒤 공유를 누릅니다.</li>
+        <li>회의나 영상에서 영어가 들리면 영어 자막과 한국어 번역이 표시됩니다.</li>
+      </ol>
+      <p>정지를 누르면 요금이 더 이상 발생하지 않습니다. 화면은 녹화되거나 전송되지 않고 소리만 사용합니다.</p>
+    </div>
+    <div id="transcript"></div>
+    <button id="jump">최신으로 ↓</button>
+  </div>
+</div>
+
+<dialog id="settings">
+  <div class="dlg-head">설정</div>
+  <div class="dlg-body">
+    <div class="field">
+      <label for="apiKey">Soniox API 키</label>
+      <div class="row">
+        <input id="apiKey" type="password" autocomplete="off" spellcheck="false" placeholder="console.soniox.com 에서 발급" style="flex:4 1 0">
+        <button id="showKey" class="btn" type="button" style="flex:1 1 0">보기</button>
+      </div>
+      <div class="hint">키는 이 브라우저에만 저장됩니다. 다른 사람과 공유하는 PC에서는 사용 후 지워 주세요.</div>
+    </div>
+    <div class="field">
+      <label>연결 상태</label>
+      <div id="connState">아직 연결한 적이 없습니다.</div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="hint">회의 언어</label>
+        <select id="hint">
+          <option value="en">영어</option>
+          <option value="auto">자동 감지</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="target">번역 언어</label>
+        <select id="target">
+          <option value="ko">한국어</option>
+          <option value="ja">일본어</option>
+          <option value="zh">중국어</option>
+          <option value="en">영어</option>
+          <option value="none">번역 안 함</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label for="terms">자주 나오는 용어 (선택)</label>
+      <textarea id="terms" placeholder="회사명, 사람 이름, 프로젝트명 등을 줄바꿈이나 쉼표로 구분해 적어 주세요"></textarea>
+      <div class="hint">등록한 단어는 더 정확하게 받아 적습니다.</div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="fontSize">글자 크기</label>
+        <select id="fontSize">
+          <option value="15">작게</option>
+          <option value="18">보통</option>
+          <option value="22">크게</option>
+          <option value="27">아주 크게</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="model">인식 모델</label>
+        <select id="model">
+          <option value="stt-rt-v6">stt-rt-v6 (최신)</option>
+          <option value="stt-rt-v5">stt-rt-v5</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label class="check"><input id="showOriginal" type="checkbox"> 영어 원문도 함께 표시</label>
+    </div>
+    <div class="field">
+      <label class="check"><input id="diar" type="checkbox"> 말하는 사람 구분 표시</label>
+    </div>
+  </div>
+  <div class="dlg-foot">
+    <button id="cancelSettings" class="btn" type="button">닫기</button>
+    <button id="saveSettings" class="btn primary" type="button">저장</button>
+  </div>
+</dialog>
+
+<script>
+"use strict";
+
+/*CORE-START*/
+// ---------------------------------------------------------------------------
+// 자막 조립 로직 (화면과 무관한 순수 로직)
+// ---------------------------------------------------------------------------
+const SENT_END = /[.?!…。？！]["')\]”’]?\s*$/;
+const SPECIAL = /^<[a-z_]+>$/i;
+
+function createCore() {
+  return { blocks: [], breakNext: false, nf: { en: "", ko: "", speaker: null }, diar: false };
+}
+
+function newBlock(core, speaker) {
+  const b = { en: "", ko: "", speaker: speaker || null, needsTr: false, koDone: false, dirty: true, el: null };
+  core.blocks.push(b);
+  return b;
+}
+
+function lastBlock(core) {
+  return core.blocks.length ? core.blocks[core.blocks.length - 1] : null;
+}
+
+// 다음 원문 토큰이 새 줄(블록)에서 시작해야 하는지 판단
+function shouldBreak(core, txt, speaker) {
+  const b = lastBlock(core);
+  if (!b) return true;
+  if (!b.en.trim() && !b.ko.trim()) return false;
+  if (core.breakNext) return true;
+  if (core.diar && speaker && b.speaker && speaker !== b.speaker) return true;
+  const startsWord = /^\s/.test(txt);
+  if (startsWord && SENT_END.test(b.en) && (b.ko.length > 0 || b.en.length > 240)) return true;
+  if (startsWord && b.en.length > 400) return true;
+  return false;
+}
+
+function appendOriginal(core, txt, speaker, translated) {
+  let b = lastBlock(core);
+  if (shouldBreak(core, txt, speaker)) b = newBlock(core, speaker);
+  core.breakNext = false;
+  if (!b.speaker && speaker) b.speaker = speaker;
+  if (translated) b.needsTr = true;
+  b.en += txt;
+  b.dirty = true;
+}
+
+// 번역 토큰을 붙일 블록 고르기: 앞 문장의 번역이 아직 끝나지 않았으면 앞 블록에 붙인다
+function translationTarget(core) {
+  const n = core.blocks.length;
+  if (!n) return newBlock(core, null);
+  const cur = core.blocks[n - 1];
+  const prev = n > 1 ? core.blocks[n - 2] : null;
+  if (prev && prev.needsTr && !prev.koDone && cur.ko === "") return prev;
+  return cur;
+}
+
+function appendTranslation(core, txt) {
+  const b = translationTarget(core);
+  b.ko += txt;
+  b.koDone = SENT_END.test(b.ko);
+  b.dirty = true;
+}
+
+// Soniox 응답 한 건의 tokens 배열을 처리
+function processTokens(core, tokens) {
+  core.nf = { en: "", ko: "", speaker: null };
+  for (const t of tokens || []) {
+    const txt = typeof t.text === "string" ? t.text : "";
+    if (!txt) continue;
+    if (SPECIAL.test(txt.trim())) {
+      if (t.is_final && txt.trim().toLowerCase() === "<end>") core.breakNext = true;
+      continue;
+    }
+    const isTr = t.translation_status === "translation";
+    if (t.is_final) {
+      if (isTr) appendTranslation(core, txt);
+      else appendOriginal(core, txt, t.speaker || null, t.translation_status === "original");
+    } else if (isTr) {
+      core.nf.ko += txt;
+    } else {
+      if (!core.nf.en) core.nf.speaker = t.speaker || null;
+      core.nf.en += txt;
+    }
+  }
+}
+
+function exportText(core) {
+  const out = [];
+  for (const b of core.blocks) {
+    const en = b.en.trim(), ko = b.ko.trim();
+    if (!en && !ko) continue;
+    const who = b.speaker ? "[화자 " + b.speaker + "] " : "";
+    out.push(who + en + (ko ? "\n" + ko : ""));
+  }
+  return out.join("\n\n");
+}
+/*CORE-END*/
+
+// ---------------------------------------------------------------------------
+// 설정
+// ---------------------------------------------------------------------------
+const WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
+const STORE_KEY = "meeting-interpreter.settings.v1";
+const DEFAULTS = {
+  apiKey: "", hint: "en", target: "ko", terms: "", fontSize: "18",
+  model: "stt-rt-v6", showOriginal: true, diar: false, source: "system"
+};
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    return Object.assign({}, DEFAULTS, raw ? JSON.parse(raw) : {});
+  } catch (e) { return Object.assign({}, DEFAULTS); }
+}
+function saveSettings(s) {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); return true; }
+  catch (e) { return false; }
+}
+
+let settings = loadSettings();
+const core = createCore();
+
+// ---------------------------------------------------------------------------
+// 화면 요소
+// ---------------------------------------------------------------------------
+const $ = (id) => document.getElementById(id);
+const el = {
+  status: $("status"), timer: $("timer"), source: $("source"), toggle: $("toggle"),
+  pip: $("pip"), save: $("save"), clear: $("clear"), openSettings: $("openSettings"),
+  banner: $("banner"), stageHome: $("stageHome"), stage: $("stage"), empty: $("empty"),
+  transcript: $("transcript"), jump: $("jump"), dlg: $("settings"), connState: $("connState")
+};
+let ghostEl = null;
+
+function setStatus(kind, text) {
+  el.status.className = "pill" + (kind ? " " + kind : "");
+  el.status.textContent = text;
+}
+function showBanner(text, info) {
+  el.banner.textContent = text;
+  el.banner.className = "show" + (info ? " info" : "");
+}
+function hideBanner() { el.banner.className = ""; el.banner.textContent = ""; }
+function setConnState(text) { el.connState.textContent = text; }
+
+function applyDisplaySettings() {
+  document.documentElement.style.setProperty("--fs", settings.fontSize + "px");
+  el.stage.style.setProperty("--fs", settings.fontSize + "px");
+  el.transcript.classList.toggle("hide-en", !settings.showOriginal && settings.target !== "none");
+  core.diar = !!settings.diar;
+  el.source.value = settings.source;
+}
+
+// ---------------------------------------------------------------------------
+// 그리기
+// ---------------------------------------------------------------------------
+function buildBlockEl() {
+  const wrap = document.createElement("div");
+  wrap.className = "block";
+  const spk = document.createElement("div"); spk.className = "spk";
+  const en = document.createElement("p"); en.className = "en";
+  const ko = document.createElement("p"); ko.className = "ko";
+  wrap.append(spk, en, ko);
+  return wrap;
+}
+
+function fillBlockEl(node, enText, koText, speaker, nfEn, nfKo) {
+  const [spk, en, ko] = node.children;
+  spk.textContent = speaker && core.diar ? "화자 " + speaker : "";
+  spk.style.display = spk.textContent ? "" : "none";
+  en.textContent = enText.replace(/^\s+/, "");
+  if (nfEn) { const s = document.createElement("span"); s.className = "nf"; s.textContent = en.textContent ? nfEn : nfEn.replace(/^\s+/, ""); en.append(s); }
+  ko.textContent = koText.replace(/^\s+/, "");
+  if (nfKo) { const s = document.createElement("span"); s.className = "nf"; s.textContent = ko.textContent ? nfKo : nfKo.replace(/^\s+/, ""); ko.append(s); }
+  en.style.display = en.textContent ? "" : "none";
+  ko.style.display = ko.textContent ? "" : "none";
+}
+
+function nearBottom() {
+  return el.stage.scrollHeight - el.stage.scrollTop - el.stage.clientHeight < 90;
+}
+
+function render() {
+  const stick = nearBottom();
+  const n = core.blocks.length;
+  const nf = core.nf;
+  const ghostNeeded = !!nf.en && shouldBreak(core, nf.en, nf.speaker);
+  let koTarget = nf.ko ? (n ? translationTarget(core) : null) : null;
+  // 새 문장이 시작됐고 앞 블록 번역이 이미 끝났다면, 임시 번역도 새 줄에 표시
+  if (koTarget && ghostNeeded && koTarget === core.blocks[n - 1] && (koTarget.koDone || !koTarget.needsTr)) koTarget = null;
+
+  for (let i = 0; i < n; i++) {
+    const b = core.blocks[i];
+    const isLast = i === n - 1;
+    const tailEn = isLast && !ghostNeeded ? nf.en : "";
+    const tailKo = koTarget === b ? nf.ko : "";
+    if (!b.el) { b.el = buildBlockEl(); el.transcript.append(b.el); b.dirty = true; }
+    if (b.dirty || tailEn || tailKo || b.hadTail) {
+      fillBlockEl(b.el, b.en, b.ko, b.speaker, tailEn, tailKo);
+      b.hadTail = !!(tailEn || tailKo);
+      b.dirty = false;
+    }
+  }
+
+  if (ghostNeeded || (nf.ko && !koTarget)) {
+    if (!ghostEl) ghostEl = buildBlockEl();
+    fillBlockEl(ghostEl, "", "", nf.speaker, ghostNeeded ? nf.en : "", !koTarget ? nf.ko : "");
+    el.transcript.append(ghostEl);
+  } else if (ghostEl && ghostEl.parentNode) {
+    ghostEl.remove();
+  }
+
+  if (n || ghostNeeded) el.empty.style.display = "none";
+  if (stick) el.stage.scrollTop = el.stage.scrollHeight;
+  else el.jump.classList.add("show");
+}
+
+el.stage.addEventListener("scroll", () => { if (nearBottom()) el.jump.classList.remove("show"); });
+el.jump.addEventListener("click", () => { el.stage.scrollTop = el.stage.scrollHeight; el.jump.classList.remove("show"); });
+
+// ---------------------------------------------------------------------------
+// 소리 입력
+// ---------------------------------------------------------------------------
+const WORKLET_SRC = `
+class PCMTap extends AudioWorkletProcessor {
+  constructor(options) {
+    super();
+    const n = (options && options.processorOptions && options.processorOptions.chunk) || 1600;
+    this.buf = new Int16Array(n);
+    this.n = 0;
+  }
+  process(inputs) {
+    const input = inputs[0];
+    if (!input || !input.length || !input[0]) return true;
+    const chs = input.length, len = input[0].length;
+    for (let i = 0; i < len; i++) {
+      let s = 0;
+      for (let c = 0; c < chs; c++) s += input[c][i];
+      s /= chs;
+      if (s > 1) s = 1; else if (s < -1) s = -1;
+      this.buf[this.n++] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+      if (this.n === this.buf.length) {
+        const copy = this.buf.slice(0);
+        this.port.postMessage(copy.buffer, [copy.buffer]);
+        this.n = 0;
+      }
+    }
+    return true;
+  }
+}
+registerProcessor("pcm-tap", PCMTap);
+`;
+
+const A = { stream: null, ctx: null, src: null, node: null, mute: null };
+
+async function getStream(source) {
+  const md = navigator.mediaDevices;
+  if (!md) throw new Error("이 브라우저에서는 소리 입력을 사용할 수 없습니다. 크롬이나 엣지에서 https 주소로 열어 주세요.");
+  if (source === "system") {
+    if (!md.getDisplayMedia) throw new Error("이 기기에서는 PC 소리 공유를 지원하지 않습니다. 입력을 마이크로 바꿔 주세요.");
+    const stream = await md.getDisplayMedia({
+      video: true,
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+      systemAudio: "include"
+    });
+    if (!stream.getAudioTracks().length) {
+      stream.getTracks().forEach((t) => t.stop());
+      throw new Error("소리가 공유되지 않았습니다. 다시 시작한 뒤 공유 창에서 '전체 화면'을 고르고 '시스템 오디오도 공유'를 켜 주세요.");
+    }
+    return stream;
+  }
+  return md.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+}
+
+async function startAudio(stream, onChunk) {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  let ctx;
+  try { ctx = new AC({ sampleRate: 16000 }); } catch (e) { ctx = new AC(); }
+  let src;
+  try {
+    src = ctx.createMediaStreamSource(new MediaStream(stream.getAudioTracks()));
+  } catch (e) {
+    // 일부 브라우저는 입력과 다른 샘플레이트를 허용하지 않는다
+    try { await ctx.close(); } catch (_) {}
+    ctx = new AC();
+    src = ctx.createMediaStreamSource(new MediaStream(stream.getAudioTracks()));
+  }
+  if (ctx.state === "suspended") await ctx.resume();
+  const url = URL.createObjectURL(new Blob([WORKLET_SRC], { type: "application/javascript" }));
+  try { await ctx.audioWorklet.addModule(url); } finally { URL.revokeObjectURL(url); }
+  const node = new AudioWorkletNode(ctx, "pcm-tap", {
+    numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1],
+    processorOptions: { chunk: Math.round(ctx.sampleRate / 10) }
+  });
+  node.port.onmessage = (e) => onChunk(e.data);
+  const mute = ctx.createGain(); mute.gain.value = 0;
+  src.connect(node); node.connect(mute); mute.connect(ctx.destination);
+  A.stream = stream; A.ctx = ctx; A.src = src; A.node = node; A.mute = mute;
+  return ctx.sampleRate;
+}
+
+function stopAudio() {
+  try { if (A.node) { A.node.port.onmessage = null; A.node.disconnect(); } } catch (e) {}
+  try { if (A.src) A.src.disconnect(); } catch (e) {}
+  try { if (A.mute) A.mute.disconnect(); } catch (e) {}
+  try { if (A.ctx) A.ctx.close(); } catch (e) {}
+  try { if (A.stream) A.stream.getTracks().forEach((t) => t.stop()); } catch (e) {}
+  A.stream = A.ctx = A.src = A.node = A.mute = null;
+}
+
+// ---------------------------------------------------------------------------
+// Soniox 연결
+// ---------------------------------------------------------------------------
+const R = {
+  running: false, starting: false, ws: null, open: false, queue: [], sampleRate: 16000,
+  retries: 0, retryTimer: null, tick: null, startedAt: 0, fatal: false, wake: null, closeTimer: null
+};
+const FATAL_CODES = [400, 401, 402, 403, 429];
+
+function buildConfig() {
+  const cfg = {
+    model: settings.model || "stt-rt-v6",
+    audio_format: "pcm_s16le",
+    sample_rate: R.sampleRate,
+    num_channels: 1,
+    enable_endpoint_detection: true
+  };
+  if (settings.hint && settings.hint !== "auto") cfg.language_hints = [settings.hint];
+  if (settings.diar) cfg.enable_speaker_diarization = true;
+  if (settings.target && settings.target !== "none") {
+    cfg.translation = { type: "one_way", target_language: settings.target };
+  }
+  const terms = (settings.terms || "").split(/[\n,]/).map((s) => s.trim()).filter(Boolean);
+  if (terms.length) cfg.context = { terms: terms.slice(0, 200) };
+  return cfg;
+}
+
+function errorText(code, msg) {
+  switch (code) {
+    case 401: return "API 키가 올바르지 않습니다. 설정에서 키를 다시 확인해 주세요.";
+    case 402: return "Soniox 계정의 잔액 또는 월 한도가 소진되었습니다. Soniox 콘솔에서 확인해 주세요.";
+    case 403: return "이 키로는 사용할 수 없습니다. Soniox 콘솔에서 키 권한을 확인해 주세요.";
+    case 429: return "동시 연결 수나 사용량 한도를 넘었습니다. 잠시 후 다시 시도해 주세요.";
+    case 400: return "설정 값이 맞지 않아 연결이 거부되었습니다. (" + (msg || "원인 미상") + ")";
+    default: return "Soniox 오류 " + code + ": " + (msg || "");
+  }
+}
+
+function openSocket() {
+  let ws;
+  try {
+    ws = new WebSocket(WS_URL, ["soniox-api-key", settings.apiKey.trim()]);
+  } catch (e) {
+    R.fatal = true;
+    showBanner("연결을 만들 수 없습니다. API 키에 공백이나 특수문자가 섞이지 않았는지 확인해 주세요.");
+    stop();
+    return;
+  }
+  ws.binaryType = "arraybuffer";
+  R.ws = ws; R.open = false;
+  setStatus("wait", R.retries ? "재연결 중" : "연결 중");
+
+  ws.onopen = () => {
+    if (R.ws !== ws) return;
+    ws.send(JSON.stringify(buildConfig()));
+    R.open = true;
+    for (const chunk of R.queue) ws.send(chunk);
+    R.queue = [];
+    setStatus("live", "듣는 중");
+    setConnState("연결됨 (" + new Date().toLocaleTimeString() + ")");
+  };
+
+  ws.onmessage = (ev) => {
+    if (R.ws !== ws || typeof ev.data !== "string") return;
+    let msg;
+    try { msg = JSON.parse(ev.data); } catch (e) { return; }
+    if (msg.error_code) {
+      const text = errorText(msg.error_code, msg.error_message);
+      setConnState("오류: " + text);
+      if (FATAL_CODES.includes(msg.error_code)) {
+        R.fatal = true;
+        showBanner(text);
+        setStatus("err", "오류");
+      }
+      return;
+    }
+    if (msg.tokens && msg.tokens.length) {
+      R.retries = 0;
+      processTokens(core, msg.tokens);
+      render();
+    }
+    if (msg.finished) { try { ws.close(); } catch (e) {} }
+  };
+
+  ws.onerror = () => { /* onclose 에서 처리 */ };
+
+  ws.onclose = () => {
+    if (R.ws !== ws) return;
+    R.open = false; R.ws = null;
+    if (!R.running) return;
+    if (R.fatal) { stop(); return; }
+    if (R.retries < 3) {
+      R.retries++;
+      setStatus("wait", "재연결 중");
+      R.retryTimer = setTimeout(openSocket, 800 * R.retries);
+    } else {
+      showBanner("Soniox와 연결이 끊어졌습니다. 인터넷 연결과 API 키를 확인한 뒤 다시 시작해 주세요.");
+      setConnState("연결 끊김 (" + new Date().toLocaleTimeString() + ")");
+      stop();
+    }
+  };
+}
+
+function onChunk(buf) {
+  if (!R.running) return;
+  if (R.open && R.ws && R.ws.readyState === 1) R.ws.send(buf);
+  else { R.queue.push(buf); if (R.queue.length > 50) R.queue.shift(); }
+}
+
+function fmt(ms) {
+  const s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
+  const p = (x) => String(x).padStart(2, "0");
+  return h ? h + ":" + p(m) + ":" + p(r) : p(m) + ":" + p(r);
+}
+
+async function start() {
+  if (R.running || R.starting) return;
+  if (!settings.apiKey.trim()) { openSettingsDialog(); showBanner("먼저 설정에서 Soniox API 키를 입력해 주세요.", true); return; }
+  R.starting = true; R.fatal = false; R.retries = 0; R.queue = [];
+  hideBanner();
+  el.toggle.disabled = true;
+  setStatus("wait", "소리 연결 중");
+  try {
+    const stream = await getStream(settings.source);
+    stream.getTracks().forEach((t) => t.addEventListener("ended", () => { if (R.running) stop(); }));
+    R.running = true;
+    R.sampleRate = await startAudio(stream, onChunk);
+  } catch (e) {
+    R.running = false; R.starting = false;
+    stopAudio();
+    el.toggle.disabled = false;
+    setStatus("", "대기");
+    const name = e && e.name;
+    let text;
+    if (name === "NotAllowedError" || name === "AbortError" || name === "SecurityError") {
+      if (!/^https?:$/.test(location.protocol)) text = "파일을 직접 열면 브라우저가 소리 권한을 막습니다. https 로 시작하는 웹 주소로 열어 주세요.";
+      else if (settings.source === "mic") text = "마이크 권한이 거부되었습니다. 주소창 왼쪽 아이콘을 눌러 마이크를 '허용'으로 바꾼 뒤 다시 시작해 주세요.";
+      else text = "화면 공유가 취소되었습니다. 다시 시작한 뒤 공유 창에서 '전체 화면'을 고르고 '시스템 오디오도 공유'를 켜 주세요.";
+    } else if (name === "NotFoundError") {
+      text = "소리 입력 장치를 찾을 수 없습니다. 마이크가 연결되어 있는지 확인해 주세요.";
+    } else {
+      text = (e && e.message) || "소리 입력을 시작하지 못했습니다.";
+    }
+    showBanner(text);
+    return;
+  }
+  R.starting = false;
+  el.toggle.disabled = false;
+  el.toggle.textContent = "정지"; el.toggle.className = "btn stop";
+  el.source.disabled = true;
+  R.startedAt = Date.now();
+  R.tick = setInterval(() => { el.timer.textContent = fmt(Date.now() - R.startedAt); }, 500);
+  try { if (navigator.wakeLock) R.wake = await navigator.wakeLock.request("screen"); } catch (e) {}
+  openSocket();
+}
+
+function stop() {
+  const wasRunning = R.running;
+  R.running = false; R.starting = false;
+  clearTimeout(R.retryTimer); clearInterval(R.tick);
+  stopAudio();
+  const ws = R.ws;
+  if (ws) {
+    R.ws = null; R.open = false;
+    try {
+      if (ws.readyState === 1) {
+        ws.send("");  // 빈 문자열 = 소리 끝
+        R.closeTimer = setTimeout(() => { try { ws.close(); } catch (e) {} }, 3000);
+        ws.onmessage = (ev) => {
+          if (typeof ev.data !== "string") return;
+          try {
+            const msg = JSON.parse(ev.data);
+            if (msg.tokens && msg.tokens.length) { processTokens(core, msg.tokens); render(); }
+            if (msg.finished) { clearTimeout(R.closeTimer); ws.close(); }
+          } catch (e) {}
+        };
+        ws.onclose = () => { clearTimeout(R.closeTimer); core.nf = { en: "", ko: "", speaker: null }; core.breakNext = true; render(); };
+      } else { ws.close(); }
+    } catch (e) {}
+  }
+  try { if (R.wake) R.wake.release(); } catch (e) {}
+  R.wake = null; R.queue = [];
+  el.toggle.textContent = "시작"; el.toggle.className = "btn primary"; el.toggle.disabled = false;
+  el.source.disabled = false;
+  if (wasRunning && !R.fatal) setStatus("", "정지됨");
+  core.breakNext = true;
+}
+
+// ---------------------------------------------------------------------------
+// 버튼
+// ---------------------------------------------------------------------------
+el.toggle.addEventListener("click", () => { if (R.running) stop(); else start(); });
+
+el.source.addEventListener("change", () => { settings.source = el.source.value; saveSettings(settings); });
+
+el.clear.addEventListener("click", () => {
+  if (core.blocks.length && !window.confirm("화면의 기록을 모두 지울까요?")) return;
+  core.blocks = []; core.nf = { en: "", ko: "", speaker: null }; core.breakNext = false;
+  el.transcript.textContent = ""; ghostEl = null;
+  if (!R.running) el.empty.style.display = "";
+});
+
+el.save.addEventListener("click", () => {
+  const text = exportText(core);
+  if (!text) { showBanner("저장할 기록이 없습니다.", true); return; }
+  const d = new Date(), p = (x) => String(x).padStart(2, "0");
+  const name = "회의기록_" + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "_" + p(d.getHours()) + p(d.getMinutes()) + ".txt";
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿" + text], { type: "text/plain;charset=utf-8" }));
+  a.download = name;
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+});
+
+// 작은 창 (회의 창 위에 항상 떠 있는 창)
+let pipWin = null;
+if (!("documentPictureInPicture" in window)) el.pip.style.display = "none";
+el.pip.addEventListener("click", async () => {
+  if (pipWin) { pipWin.close(); return; }
+  try {
+    pipWin = await window.documentPictureInPicture.requestWindow({ width: 520, height: 320 });
+  } catch (e) { showBanner("작은 창을 열지 못했습니다. 크롬이나 엣지 최신 버전에서 사용해 주세요."); return; }
+  for (const s of document.querySelectorAll("style")) pipWin.document.head.append(s.cloneNode(true));
+  pipWin.document.body.style.cssText = "margin:0;display:flex;height:100vh;background:#0f1115;";
+  pipWin.document.body.append(el.stage);
+  el.stage.scrollTop = el.stage.scrollHeight;
+  el.pip.textContent = "작은 창 닫기";
+  pipWin.addEventListener("pagehide", () => {
+    el.stageHome.append(el.stage);
+    el.stage.scrollTop = el.stage.scrollHeight;
+    el.pip.textContent = "작은 창";
+    pipWin = null;
+  });
+});
+
+// 설정 창
+function openSettingsDialog() {
+  $("apiKey").value = settings.apiKey;
+  $("apiKey").type = "password"; $("showKey").textContent = "보기";
+  $("hint").value = settings.hint; $("target").value = settings.target;
+  $("terms").value = settings.terms; $("fontSize").value = String(settings.fontSize);
+  $("model").value = settings.model;
+  $("showOriginal").checked = !!settings.showOriginal; $("diar").checked = !!settings.diar;
+  if (!el.dlg.open) el.dlg.showModal();
+}
+el.openSettings.addEventListener("click", openSettingsDialog);
+$("cancelSettings").addEventListener("click", () => el.dlg.close());
+$("showKey").addEventListener("click", () => {
+  const k = $("apiKey"); const show = k.type === "password";
+  k.type = show ? "text" : "password"; $("showKey").textContent = show ? "숨기기" : "보기";
+});
+$("saveSettings").addEventListener("click", () => {
+  settings = Object.assign({}, settings, {
+    apiKey: $("apiKey").value.trim(), hint: $("hint").value, target: $("target").value,
+    terms: $("terms").value, fontSize: $("fontSize").value, model: $("model").value,
+    showOriginal: $("showOriginal").checked, diar: $("diar").checked
+  });
+  const ok = saveSettings(settings);
+  applyDisplaySettings();
+  for (const b of core.blocks) b.dirty = true;
+  render();
+  el.dlg.close();
+  if (!ok) showBanner("설정을 이 브라우저에 저장하지 못했습니다. 창을 닫으면 다시 입력해야 합니다.");
+  else if (R.running) showBanner("바뀐 설정은 정지 후 다시 시작하면 적용됩니다.", true);
+  else hideBanner();
+});
+
+// ---------------------------------------------------------------------------
+// 시작 준비
+// ---------------------------------------------------------------------------
+(function init() {
+  const canShare = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+  const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if (!canShare || mobile) {
+    const opt = el.source.querySelector('option[value="system"]');
+    if (opt) opt.remove();
+    settings.source = "mic";
+  }
+  applyDisplaySettings();
+  if (!/^https?:$/.test(location.protocol)) {
+    showBanner("파일을 직접 열면 브라우저가 소리 권한을 막습니다. https 로 시작하는 웹 주소로 열어 주세요.");
+  } else if (!window.isSecureContext) {
+    showBanner("이 주소에서는 소리 입력이 막혀 있습니다. https 로 시작하는 주소로 열어 주세요.");
+  } else if (!settings.apiKey) {
+    showBanner("처음이시면 '설정'에서 Soniox API 키를 먼저 입력해 주세요.", true);
+  }
+  window.addEventListener("beforeunload", () => { if (R.running) stop(); });
+})();
+</script>
+</body>
+</html>
