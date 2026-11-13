@@ -163,6 +163,31 @@
       </div>
     </div>
     <div class="field">
+      <label for="engine">번역 방식</label>
+      <select id="engine">
+        <option value="soniox">Soniox 내장 (가장 빠름, 직역에 가까움)</option>
+        <option value="claude">Claude (자연스러움, 문장 단위)</option>
+      </select>
+      <div class="hint">Claude는 한 문장이 끝나는 즉시 번역합니다. 영어 자막은 어느 쪽이든 실시간으로 나옵니다.</div>
+    </div>
+    <div id="claudeBox">
+      <div class="field">
+        <label for="claudeKey">Claude API 키</label>
+        <div class="row">
+          <input id="claudeKey" type="password" autocomplete="off" spellcheck="false" placeholder="Claude Console 에서 발급 (sk-ant-...)" style="flex:4 1 0">
+          <button id="showClaudeKey" class="btn" type="button" style="flex:1 1 0">보기</button>
+        </div>
+        <div class="hint">키는 이 브라우저에만 저장되고 Claude API로 직접 전송됩니다.</div>
+      </div>
+      <div class="field">
+        <label for="claudeModel">Claude 모델</label>
+        <select id="claudeModel">
+          <option value="claude-haiku-5-5">Haiku 5.5 (가장 빠름, 권장)</option>
+          <option value="claude-sonnet-5-5">Sonnet 5.5 (더 정확, 느리고 비쌈)</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
       <label for="terms">자주 나오는 용어 (선택)</label>
       <textarea id="terms" placeholder="회사명, 사람 이름, 프로젝트명 등을 줄바꿈이나 쉼표로 구분해 적어 주세요"></textarea>
       <div class="hint">등록한 단어는 더 정확하게 받아 적습니다.</div>
@@ -209,11 +234,13 @@ const SENT_END = /[.?!…。？！]["')\]”’]?\s*$/;
 const SPECIAL = /^<[a-z_]+>$/i;
 
 function createCore() {
-  return { blocks: [], breakNext: false, nf: { en: "", ko: "", speaker: null }, diar: false };
+  // mode: "inline" = Soniox 내장 번역, "llm" = 문장 단위로 외부 LLM(Claude)이 번역
+  return { blocks: [], breakNext: false, nf: { en: "", ko: "", speaker: null }, diar: false, mode: "inline" };
 }
 
 function newBlock(core, speaker) {
-  const b = { en: "", ko: "", speaker: speaker || null, needsTr: false, koDone: false, dirty: true, el: null };
+  const b = { en: "", ko: "", speaker: speaker || null, needsTr: false, koDone: false, dirty: true, el: null,
+              trSrc: "", trState: "", ac: null, lastChange: Date.now() };
   core.blocks.push(b);
   return b;
 }
@@ -230,6 +257,13 @@ function shouldBreak(core, txt, speaker) {
   if (core.breakNext) return true;
   if (core.diar && speaker && b.speaker && speaker !== b.speaker) return true;
   const startsWord = /^\s/.test(txt);
+  if (core.mode === "llm") {
+    // LLM 번역은 문장마다 한 줄. 긴 문장은 쉼표에서 끊어 번역이 빨리 시작되게 한다
+    if (startsWord && SENT_END.test(b.en)) return true;
+    if (startsWord && b.en.length > 140 && /[,;:]\s*$/.test(b.en)) return true;
+    if (startsWord && b.en.length > 260) return true;
+    return false;
+  }
   if (startsWord && SENT_END.test(b.en) && (b.ko.length > 0 || b.en.length > 240)) return true;
   if (startsWord && b.en.length > 400) return true;
   return false;
@@ -242,6 +276,7 @@ function appendOriginal(core, txt, speaker, translated) {
   if (!b.speaker && speaker) b.speaker = speaker;
   if (translated) b.needsTr = true;
   b.en += txt;
+  b.lastChange = Date.now();
   b.dirty = true;
 }
 
@@ -273,6 +308,7 @@ function processTokens(core, tokens) {
       continue;
     }
     const isTr = t.translation_status === "translation";
+    if (isTr && core.mode === "llm") continue;
     if (t.is_final) {
       if (isTr) appendTranslation(core, txt);
       else appendOriginal(core, txt, t.speaker || null, t.translation_status === "original");
@@ -283,6 +319,30 @@ function processTokens(core, tokens) {
       core.nf.en += txt;
     }
   }
+}
+
+// LLM 번역 모드에서 지금 번역을 요청해야 하는 블록 번호 목록
+function blocksToTranslate(core, now) {
+  const out = [];
+  if (core.mode !== "llm") return out;
+  const n = core.blocks.length;
+  for (let i = 0; i < n; i++) {
+    const b = core.blocks[i];
+    const src = b.en.trim();
+    if (!src || src === b.trSrc) continue;
+    let ready = i < n - 1;
+    if (!ready) {
+      const idle = now - b.lastChange;
+      const nf = core.nf.en;
+      if (core.breakNext) ready = true;
+      else if (SENT_END.test(b.en) && (!nf || /^\s/.test(nf))) ready = true;   // 문장이 끝남
+      else if (SENT_END.test(b.en) && idle > 250) ready = true;
+      else if (!nf && idle > 1200) { ready = true; core.breakNext = true; }      // 말이 멈춤
+      else if (idle > 2500) { ready = true; core.breakNext = true; }
+    }
+    if (ready) out.push(i);
+  }
+  return out;
 }
 
 function exportText(core) {
@@ -304,7 +364,8 @@ const WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 const STORE_KEY = "meeting-interpreter.settings.v1";
 const DEFAULTS = {
   apiKey: "", hint: "en", target: "ko", terms: "", fontSize: "18",
-  model: "stt-rt-v6", showOriginal: true, diar: false, source: "system"
+  model: "stt-rt-v6", showOriginal: true, diar: false, source: "system",
+  engine: "soniox", claudeKey: "", claudeModel: "claude-haiku-5-5"
 };
 
 function loadSettings() {
@@ -349,6 +410,7 @@ function applyDisplaySettings() {
   el.stage.style.setProperty("--fs", settings.fontSize + "px");
   el.transcript.classList.toggle("hide-en", !settings.showOriginal && settings.target !== "none");
   core.diar = !!settings.diar;
+  core.mode = settings.engine === "claude" && settings.target !== "none" ? "llm" : "inline";
   el.source.value = settings.source;
 }
 
@@ -394,7 +456,11 @@ function render() {
     const b = core.blocks[i];
     const isLast = i === n - 1;
     const tailEn = isLast && !ghostNeeded ? nf.en : "";
-    const tailKo = koTarget === b ? nf.ko : "";
+    let tailKo = koTarget === b ? nf.ko : "";
+    if (core.mode === "llm" && !b.ko) {
+      if (b.trState === "run") tailKo = "…";
+      else if (b.trState === "err") tailKo = "(번역 실패)";
+    }
     if (!b.el) { b.el = buildBlockEl(); el.transcript.append(b.el); b.dirty = true; }
     if (b.dirty || tailEn || tailKo || b.hadTail) {
       fillBlockEl(b.el, b.en, b.ko, b.speaker, tailEn, tailKo);
@@ -414,6 +480,13 @@ function render() {
   if (n || ghostNeeded) el.empty.style.display = "none";
   if (stick) el.stage.scrollTop = el.stage.scrollHeight;
   else el.jump.classList.add("show");
+}
+
+let renderQueued = false;
+function scheduleRender() {
+  if (renderQueued) return;
+  renderQueued = true;
+  requestAnimationFrame(() => { renderQueued = false; render(); });
 }
 
 el.stage.addEventListener("scroll", () => { if (nearBottom()) el.jump.classList.remove("show"); });
@@ -524,11 +597,12 @@ function buildConfig() {
     audio_format: "pcm_s16le",
     sample_rate: R.sampleRate,
     num_channels: 1,
-    enable_endpoint_detection: true
+    enable_endpoint_detection: true,
+    max_endpoint_delay_ms: 800
   };
   if (settings.hint && settings.hint !== "auto") cfg.language_hints = [settings.hint];
   if (settings.diar) cfg.enable_speaker_diarization = true;
-  if (settings.target && settings.target !== "none") {
+  if (settings.target && settings.target !== "none" && settings.engine !== "claude") {
     cfg.translation = { type: "one_way", target_language: settings.target };
   }
   const terms = (settings.terms || "").split(/[\n,]/).map((s) => s.trim()).filter(Boolean);
@@ -545,6 +619,123 @@ function errorText(code, msg) {
     case 400: return "설정 값이 맞지 않아 연결이 거부되었습니다. (" + (msg || "원인 미상") + ")";
     default: return "Soniox 오류 " + code + ": " + (msg || "");
   }
+}
+
+// ---------------------------------------------------------------------------
+// Claude 번역 (문장 단위, 스트리밍)
+// ---------------------------------------------------------------------------
+const CLAUDE_URL = "https://api.anthropic.com/v1/messages";
+const LANG_NAME = { ko: "Korean", ja: "Japanese", zh: "Simplified Chinese", en: "English" };
+const T = { lean: true, blocked: false, lastFirstMs: 0, lastTotalMs: 0, tick: null };
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function claudeSystemPrompt() {
+  const lang = LANG_NAME[settings.target] || "Korean";
+  let p = "You are a simultaneous interpreter in a live business meeting. Translate the speech inside <translate> into natural, concise spoken " + lang + ". " +
+    "Text inside <context> is what was said just before; use it only to resolve meaning and never translate it. " +
+    "Keep people's names, company names, product names and acronyms unchanged. " +
+    "If the text is an unfinished fragment, translate the fragment as it is without completing it. " +
+    "Output only the translation: no quotes, no labels, no notes, no source text.";
+  if (settings.target === "ko") p += " Use polite Korean (합니다/해요체) and natural Korean word order.";
+  const terms = (settings.terms || "").split(/[\n,]/).map((x) => x.trim()).filter(Boolean).slice(0, 200);
+  if (terms.length) p += " Terms that may appear (keep as written): " + terms.join(", ") + ".";
+  return p;
+}
+
+async function claudeStream(text, context, signal, onDelta, retried) {
+  const body = {
+    model: settings.claudeModel || "claude-haiku-5-5",
+    max_tokens: 600,
+    stream: true,
+    system: claudeSystemPrompt(),
+    messages: [{ role: "user", content: (context ? "<context>" + context + "</context>\n" : "") + "<translate>" + text + "</translate>" }]
+  };
+  if (T.lean) { body.thinking = { type: "disabled" }; body.output_config = { effort: "low" }; }
+  const res = await fetch(CLAUDE_URL, {
+    method: "POST", signal,
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": settings.claudeKey.trim(),
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    let j = null;
+    try { j = await res.json(); } catch (e) {}
+    const err = new Error((j && j.error && j.error.message) || ("HTTP " + res.status));
+    err.status = res.status;
+    if (res.status === 400 && T.lean) { T.lean = false; return claudeStream(text, context, signal, onDelta, retried); }
+    if ((res.status === 429 || res.status >= 500) && !retried) { await sleep(500); return claudeStream(text, context, signal, onDelta, true); }
+    throw err;
+  }
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let nl;
+    while ((nl = buf.indexOf("\n")) >= 0) {
+      const line = buf.slice(0, nl).trim();
+      buf = buf.slice(nl + 1);
+      if (!line.startsWith("data:")) continue;
+      let ev;
+      try { ev = JSON.parse(line.slice(5).trim()); } catch (e) { continue; }
+      if (ev.type === "content_block_delta" && ev.delta && ev.delta.type === "text_delta" && ev.delta.text) onDelta(ev.delta.text);
+      else if (ev.type === "error") { const er = new Error((ev.error && ev.error.message) || "stream error"); er.status = 500; throw er; }
+    }
+  }
+}
+
+function claudeErrorText(e) {
+  const m = (e && e.message) || "";
+  if (e && e.status === 401 && /CORS/i.test(m)) return "이 Claude 계정(조직)은 브라우저에서 직접 호출이 막혀 있습니다. 번역 방식을 Soniox 내장으로 바꿔 주세요.";
+  if (e && e.status === 401) return "Claude API 키가 올바르지 않습니다. 설정에서 키를 다시 확인해 주세요.";
+  if (e && e.status === 403) return "이 Claude API 키로는 사용할 수 없습니다. Claude Console에서 키 권한을 확인해 주세요.";
+  if (e && e.status === 404) return "선택한 Claude 모델을 이 키로 사용할 수 없습니다. 설정에서 다른 모델을 골라 주세요.";
+  if (e && e.status === 400 && /credit|balance|billing/i.test(m)) return "Claude API 크레딧이 부족합니다. Claude Console에서 잔액을 확인해 주세요.";
+  if (e && e.status === 429) return "Claude 요청 한도를 넘었습니다. 잠시 후 다시 번역됩니다.";
+  return "";
+}
+
+async function translateBlock(idx) {
+  const b = core.blocks[idx];
+  if (!b) return;
+  const src = b.en.trim();
+  b.trSrc = src;
+  if (b.ac) { try { b.ac.abort(); } catch (e) {} }
+  const ac = new AbortController();
+  b.ac = ac; b.trState = "run"; b.dirty = true;
+  const context = core.blocks.slice(Math.max(0, idx - 2), idx).map((x) => x.en.trim()).filter(Boolean).join(" ").slice(-400);
+  const t0 = performance.now();
+  let first = true;
+  try {
+    await claudeStream(src, context, ac.signal, (delta) => {
+      if (b.ac !== ac) return;
+      if (first) { b.ko = ""; first = false; T.lastFirstMs = performance.now() - t0; }
+      b.ko += delta; b.dirty = true; scheduleRender();
+    });
+    if (b.ac === ac) {
+      b.trState = "done"; b.ac = null; T.lastTotalMs = performance.now() - t0;
+      setConnState("Soniox 연결됨 · Claude 번역 정상 (첫 글자 " + (T.lastFirstMs / 1000).toFixed(1) + "초, 완료 " + (T.lastTotalMs / 1000).toFixed(1) + "초)");
+    }
+  } catch (e) {
+    if (e && e.name === "AbortError") return;
+    if (b.ac === ac) { b.trState = "err"; b.ac = null; }
+    const text = claudeErrorText(e);
+    if (e && (e.status === 401 || e.status === 403 || e.status === 404 || (e.status === 400 && text))) T.blocked = true;
+    if (text) showBanner(text);
+    setConnState("Claude 번역 오류: " + (text || (e && e.message) || "알 수 없는 오류"));
+  }
+  b.dirty = true; scheduleRender();
+}
+
+function pumpTranslations() {
+  if (core.mode !== "llm" || T.blocked) return;
+  for (const i of blocksToTranslate(core, Date.now())) translateBlock(i);
 }
 
 function openSocket() {
@@ -588,6 +779,7 @@ function openSocket() {
     if (msg.tokens && msg.tokens.length) {
       R.retries = 0;
       processTokens(core, msg.tokens);
+      pumpTranslations();
       render();
     }
     if (msg.finished) { try { ws.close(); } catch (e) {} }
@@ -627,7 +819,11 @@ function fmt(ms) {
 async function start() {
   if (R.running || R.starting) return;
   if (!settings.apiKey.trim()) { openSettingsDialog(); showBanner("먼저 설정에서 Soniox API 키를 입력해 주세요.", true); return; }
+  if (settings.engine === "claude" && settings.target !== "none" && !settings.claudeKey.trim()) {
+    openSettingsDialog(); showBanner("번역 방식이 Claude로 되어 있습니다. 설정에서 Claude API 키를 입력해 주세요.", true); return;
+  }
   R.starting = true; R.fatal = false; R.retries = 0; R.queue = [];
+  T.blocked = false;
   hideBanner();
   el.toggle.disabled = true;
   setStatus("wait", "소리 연결 중");
@@ -661,6 +857,7 @@ async function start() {
   el.source.disabled = true;
   R.startedAt = Date.now();
   R.tick = setInterval(() => { el.timer.textContent = fmt(Date.now() - R.startedAt); }, 500);
+  T.tick = setInterval(() => { pumpTranslations(); }, 200);
   try { if (navigator.wakeLock) R.wake = await navigator.wakeLock.request("screen"); } catch (e) {}
   openSocket();
 }
@@ -668,7 +865,7 @@ async function start() {
 function stop() {
   const wasRunning = R.running;
   R.running = false; R.starting = false;
-  clearTimeout(R.retryTimer); clearInterval(R.tick);
+  clearTimeout(R.retryTimer); clearInterval(R.tick); clearInterval(T.tick);
   stopAudio();
   const ws = R.ws;
   if (ws) {
@@ -681,11 +878,11 @@ function stop() {
           if (typeof ev.data !== "string") return;
           try {
             const msg = JSON.parse(ev.data);
-            if (msg.tokens && msg.tokens.length) { processTokens(core, msg.tokens); render(); }
+            if (msg.tokens && msg.tokens.length) { processTokens(core, msg.tokens); pumpTranslations(); render(); }
             if (msg.finished) { clearTimeout(R.closeTimer); ws.close(); }
           } catch (e) {}
         };
-        ws.onclose = () => { clearTimeout(R.closeTimer); core.nf = { en: "", ko: "", speaker: null }; core.breakNext = true; render(); };
+        ws.onclose = () => { clearTimeout(R.closeTimer); core.nf = { en: "", ko: "", speaker: null }; core.breakNext = true; pumpTranslations(); render(); };
       } else { ws.close(); }
     } catch (e) {}
   }
@@ -695,6 +892,7 @@ function stop() {
   el.source.disabled = false;
   if (wasRunning && !R.fatal) setStatus("", "정지됨");
   core.breakNext = true;
+  pumpTranslations();
 }
 
 // ---------------------------------------------------------------------------
@@ -752,6 +950,10 @@ function openSettingsDialog() {
   $("terms").value = settings.terms; $("fontSize").value = String(settings.fontSize);
   $("model").value = settings.model;
   $("showOriginal").checked = !!settings.showOriginal; $("diar").checked = !!settings.diar;
+  $("engine").value = settings.engine; $("claudeKey").value = settings.claudeKey;
+  $("claudeKey").type = "password"; $("showClaudeKey").textContent = "보기";
+  $("claudeModel").value = settings.claudeModel;
+  $("claudeBox").style.display = settings.engine === "claude" ? "" : "none";
   if (!el.dlg.open) el.dlg.showModal();
 }
 el.openSettings.addEventListener("click", openSettingsDialog);
@@ -760,12 +962,21 @@ $("showKey").addEventListener("click", () => {
   const k = $("apiKey"); const show = k.type === "password";
   k.type = show ? "text" : "password"; $("showKey").textContent = show ? "숨기기" : "보기";
 });
+$("engine").addEventListener("change", () => { $("claudeBox").style.display = $("engine").value === "claude" ? "" : "none"; });
+$("showClaudeKey").addEventListener("click", () => {
+  const k = $("claudeKey"); const show = k.type === "password";
+  k.type = show ? "text" : "password"; $("showClaudeKey").textContent = show ? "숨기기" : "보기";
+});
 $("saveSettings").addEventListener("click", () => {
   settings = Object.assign({}, settings, {
     apiKey: $("apiKey").value.trim(), hint: $("hint").value, target: $("target").value,
     terms: $("terms").value, fontSize: $("fontSize").value, model: $("model").value,
-    showOriginal: $("showOriginal").checked, diar: $("diar").checked
+    showOriginal: $("showOriginal").checked, diar: $("diar").checked,
+    engine: $("engine").value, claudeKey: $("claudeKey").value.trim(), claudeModel: $("claudeModel").value
   });
+  T.blocked = false; T.lean = true;
+  // 이미 번역이 달린 줄은 다시 번역하지 않는다
+  for (const blk of core.blocks) if (blk.ko) blk.trSrc = blk.en.trim();
   const ok = saveSettings(settings);
   applyDisplaySettings();
   for (const b of core.blocks) b.dirty = true;
