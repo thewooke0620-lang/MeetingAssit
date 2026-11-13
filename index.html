@@ -174,8 +174,9 @@
       <select id="engine">
         <option value="soniox">Soniox 내장 (가장 빠름, 직역에 가까움)</option>
         <option value="claude">Claude (자연스러움, 문장 단위)</option>
+        <option value="groq">Groq (응답이 빠른 AI 번역, 문장 단위)</option>
       </select>
-      <div class="hint">Claude는 한 문장이 끝나는 즉시 번역합니다. 영어 자막은 어느 쪽이든 실시간으로 나옵니다.</div>
+      <div class="hint">Claude와 Groq은 한 문장이 끝나는 즉시 번역합니다. 영어 자막은 어느 쪽이든 실시간으로 나옵니다. 번역 품질은 아래 비교 모드로 직접 견줘 볼 수 있습니다.</div>
     </div>
     <div id="claudeBox">
       <div class="field">
@@ -184,7 +185,7 @@
           <input id="claudeKey" type="password" autocomplete="off" spellcheck="false" placeholder="Claude Console 에서 발급 (sk-ant-...)" style="flex:4 1 0">
           <button id="showClaudeKey" class="btn" type="button" style="flex:1 1 0">보기</button>
         </div>
-        <div class="hint">키는 이 브라우저에만 저장되고 Claude API로 직접 전송됩니다.</div>
+        <div class="hint">키는 이 브라우저에만 저장되고 Claude API로 직접 전송됩니다. 번역 방식이 Groq이면 비워 둬도 됩니다.</div>
       </div>
       <div class="field">
         <label for="claudeModel">Claude 모델</label>
@@ -194,20 +195,40 @@
         </select>
       </div>
       <div class="field">
+        <label for="groqKey">Groq API 키 (선택)</label>
+        <div class="row">
+          <input id="groqKey" type="password" autocomplete="off" spellcheck="false" placeholder="console.groq.com 에서 발급 (gsk_...)" style="flex:4 1 0">
+          <button id="showGroqKey" class="btn" type="button" style="flex:1 1 0">보기</button>
+        </div>
+        <div class="hint">응답이 빠른 번역 엔진입니다. 키는 이 브라우저에만 저장되고 Groq API로 직접 전송됩니다. 키를 넣으면 회의 내용의 글자가 Groq으로도 전송됩니다.</div>
+      </div>
+      <div class="field">
+        <label for="groqModel">Groq 모델</label>
+        <select id="groqModel">
+          <option value="openai/gpt-oss-120b">GPT-OSS 120B (기본)</option>
+          <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+          <option value="openai/gpt-oss-20b">GPT-OSS 20B (작고 빠른 모델)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="check"><input id="draftFast" type="checkbox"> 미리 번역은 Groq에 맡기기 (Groq 키가 있을 때)</label>
+        <div class="hint">번역 방식이 Claude일 때, 말하는 도중의 미리 번역만 Groq이 맡습니다. 문장이 끝나면 Claude가 확정 번역으로 바꿉니다.</div>
+      </div>
+      <div class="field">
         <label class="check"><input id="preview" type="checkbox"> Soniox 즉시 번역을 먼저 표시 (가장 빠름)</label>
-        <div class="hint">말하는 순간 Soniox의 빠른 번역을 흐리게 먼저 보여 주고, Claude 번역이 도착하면 바꿉니다.</div>
+        <div class="hint">말하는 순간 Soniox의 빠른 번역을 흐리게 먼저 보여 주고, AI 번역이 도착하면 바꿉니다.</div>
       </div>
       <div class="field">
         <label class="check"><input id="draft" type="checkbox"> 말하는 도중에도 미리 번역 (더 빠름)</label>
-        <div class="hint">문장이 끝나기 전에 흐린 글씨로 먼저 번역을 보여 주고, 문장이 끝나면 확정 번역으로 바꿉니다. Claude 호출 횟수가 늘어납니다.</div>
+        <div class="hint">문장이 끝나기 전에 흐린 글씨로 먼저 번역을 보여 주고, 문장이 끝나면 확정 번역으로 바꿉니다. AI 호출 횟수가 늘어납니다.</div>
       </div>
       <div class="field">
         <label class="check"><input id="refine" type="checkbox"> 긴 문장은 끊어서 먼저 번역하고, 끝나면 다듬기</label>
-        <div class="hint">긴 문장을 쉼표에서 끊어 번역을 빨리 보여 주고, 문장이 끝나면 전체를 다시 번역해 한 줄로 자연스럽게 고칩니다. 긴 문장마다 Claude 호출이 한 번 늘어납니다.</div>
+        <div class="hint">긴 문장을 쉼표에서 끊어 번역을 빨리 보여 주고, 문장이 끝나면 전체를 다시 번역해 한 줄로 자연스럽게 고칩니다. 긴 문장마다 AI 호출이 한 번 늘어납니다.</div>
       </div>
       <div class="field">
         <label class="check"><input id="compare" type="checkbox"> 번역 비교 모드 (테스트용)</label>
-        <div class="hint">같은 문장을 Soniox와 다른 Claude 모델이 번역한 결과를 작은 글씨로 함께 보여 줍니다. 큰 글씨가 위에서 고른 모델입니다. 품질을 비교할 때만 켜 주세요. Claude 호출이 약 두 배로 늘어납니다.</div>
+        <div class="hint">같은 문장을 Soniox와 다른 AI 엔진이 번역한 결과를 작은 글씨로 함께 보여 줍니다. 큰 글씨가 위에서 고른 번역 방식입니다. Claude와 Groq 키가 둘 다 있으면 서로를 비교하고, 하나만 있으면 같은 회사의 다른 모델과 비교합니다. 품질을 비교할 때만 켜 주세요. AI 호출이 약 두 배로 늘어납니다.</div>
       </div>
     </div>
     <div class="field">
@@ -531,7 +552,8 @@ const DEFAULTS = {
   apiKey: "", hint: "en", target: "ko", terms: "", fontSize: "18",
   model: "stt-rt-v6", showOriginal: true, diar: true, source: "system", ver: 2,
   engine: "soniox", claudeKey: "", claudeModel: "claude-haiku-5-5", draft: true, preview: true,
-  brief: "", refine: true, compare: false
+  brief: "", refine: true, compare: false,
+  groqKey: "", groqModel: "openai/gpt-oss-120b", draftFast: true
 };
 
 function loadSettings() {
@@ -578,7 +600,7 @@ function applyDisplaySettings() {
   el.stage.style.setProperty("--fs", settings.fontSize + "px");
   el.transcript.classList.toggle("hide-en", !settings.showOriginal && settings.target !== "none");
   core.diar = !!settings.diar;
-  core.mode = settings.engine === "claude" && settings.target !== "none" ? "llm" : "inline";
+  core.mode = isLLM() && settings.target !== "none" ? "llm" : "inline";
   core.refine = settings.refine !== false;
   el.source.value = settings.source;
 }
@@ -838,7 +860,7 @@ function buildConfig() {
   if (!R.noEpDelay) cfg.max_endpoint_delay_ms = EP_DELAY_MS;
   if (settings.hint && settings.hint !== "auto") cfg.language_hints = [settings.hint];
   if (settings.diar) cfg.enable_speaker_diarization = true;
-  if (settings.target && settings.target !== "none" && (settings.engine !== "claude" || settings.preview !== false || settings.compare)) {
+  if (settings.target && settings.target !== "none" && (!isLLM() || settings.preview !== false || settings.compare)) {
     cfg.translation = { type: "one_way", target_language: settings.target };
   }
   const terms = parseTerms(settings.terms);
@@ -867,20 +889,70 @@ function errorText(code, msg) {
 }
 
 // ---------------------------------------------------------------------------
-// Claude 번역 (문장 단위, 스트리밍)
+// AI 번역: Claude 또는 Groq (문장 단위, 스트리밍)
 // ---------------------------------------------------------------------------
 const CLAUDE_URL = "https://api.anthropic.com/v1/messages";
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_DEFAULT = "openai/gpt-oss-120b";
 const LANG_NAME = { ko: "Korean", ja: "Japanese", zh: "Simplified Chinese", en: "English" };
 const DRAFT_GAP_MS = 350;      // 미리 번역 요청 사이 최소 간격
 const DRAFT_GROW_CHARS = 6;    // 문장이 이만큼 늘었을 때 다시 미리 번역
 const T = {
   lean: 2, blocked: false, lastFirstMs: 0, lastTotalMs: 0, tick: null,
   // 미리 번역(말하는 도중 번역) 상태
-  draft: { sent: "", ko: "", koFor: "", block: null, busy: false, ac: null, at: 0, promise: null },
+  draft: { sent: "", ko: "", koFor: "", block: null, busy: false, ac: null, at: 0, promise: null, by: "" },
   draftGap: DRAFT_GAP_MS, lastDraftMs: 0,
   // 속도 기록 (시작할 때마다 새로 쌓는다)
-  stats: {}, counts: { final: 0, draft: 0, refine: 0, alt: 0, reuse: 0 }, altBusy: 0
+  stats: {}, counts: { final: 0, draft: 0, refine: 0, alt: 0, reuse: 0 }, altBusy: 0,
+  // off: 이번 회의에서 쓸 수 없게 된 보조 엔진 / groqPause: 한도에 걸려 잠시 쉬는 시각 / groqLean: 추론 최소화 설정 사용
+  off: {}, groqPause: 0, groqLean: true, altOff: false
 };
+
+// ---------------------------------------------------------------------------
+// 번역 엔진 고르기. spec = { p: "claude" | "groq", model }
+// ---------------------------------------------------------------------------
+function isLLM() { return settings.engine === "claude" || settings.engine === "groq"; }
+function hasKey(p) { return !!((p === "groq" ? settings.groqKey : settings.claudeKey) || "").trim(); }
+function specKey(spec) { return spec.p + ":" + spec.model; }
+function specName(spec) { return MODEL_SHORT[spec.model] || spec.model; }
+function providerName(p) { return p === "groq" ? "Groq" : "Claude"; }
+
+// 확정 번역을 맡는 엔진
+function mainSpec() {
+  return settings.engine === "groq"
+    ? { p: "groq", model: settings.groqModel || GROQ_DEFAULT }
+    : { p: "claude", model: settings.claudeModel || "claude-haiku-5-5" };
+}
+
+// 말하는 도중의 미리 번역을 맡는 엔진. Claude 방식이라도 Groq 키가 있으면 더 빠른 Groq에 맡길 수 있다
+function draftSpec() {
+  if (settings.engine === "claude" && settings.draftFast !== false && hasKey("groq") && !T.off.groq && performance.now() >= T.groqPause) {
+    return { p: "groq", model: settings.groqModel || GROQ_DEFAULT };
+  }
+  return mainSpec();
+}
+
+// 비교 모드에서 나란히 보여 줄 엔진: 다른 회사 엔진이 있으면 그것, 없으면 같은 회사의 다른 모델
+function altSpec() {
+  if (T.altOff) return null;
+  if (settings.engine === "groq") {
+    if (hasKey("claude") && !T.off.claude) return { p: "claude", model: settings.claudeModel || "claude-haiku-5-5" };
+    return { p: "groq", model: settings.groqModel === "llama-3.3-70b-versatile" ? GROQ_DEFAULT : "llama-3.3-70b-versatile" };
+  }
+  if (hasKey("groq") && !T.off.groq) return { p: "groq", model: settings.groqModel || GROQ_DEFAULT };
+  return { p: "claude", model: settings.claudeModel === "claude-sonnet-5-5" ? "claude-haiku-5-5" : "claude-sonnet-5-5" };
+}
+
+function llmStream(spec, text, context, signal, onDelta, retried) {
+  return spec.p === "groq"
+    ? groqStream(text, context, signal, onDelta, retried, spec.model)
+    : claudeStream(text, context, signal, onDelta, retried, spec.model);
+}
+
+// 다시 시도해도 소용없는 오류(키, 권한, 모델, 잔액)인지
+function isFatal(e, text) {
+  return !!e && (e.status === 401 || e.status === 403 || e.status === 404 || (e.status === 400 && !!text));
+}
 
 // ---------------------------------------------------------------------------
 // 속도 기록
@@ -890,7 +962,8 @@ const STAT_ROWS = [
   ["wait", "문장 끝 → 번역 요청"], ["first", "확정 번역 첫 글자"], ["done", "확정 번역 완료"],
   ["rdone", "다듬기 완료"], ["afirst", "비교 모델 첫 글자"], ["adone", "비교 모델 완료"]
 ];
-const MODEL_SHORT = { "claude-haiku-5-5": "Haiku", "claude-sonnet-5-5": "Sonnet" };
+const MODEL_SHORT = { "claude-haiku-5-5": "Haiku", "claude-sonnet-5-5": "Sonnet",
+  "openai/gpt-oss-120b": "GPT-OSS 120B", "openai/gpt-oss-20b": "GPT-OSS 20B", "llama-3.3-70b-versatile": "Llama 3.3 70B" };
 
 function stat(key, ms) {
   if (!(ms >= 0)) return;
@@ -916,10 +989,11 @@ function statSummary() {
     const q = (p) => s[Math.min(s.length - 1, Math.floor(p * s.length))];
     rows.push(label + ": 평균 " + sec(avg) + " · 보통 " + sec(q(0.5)) + " · 느릴 때 " + sec(q(0.9)) + " (" + s.length + "건)");
   }
-  if (!rows.length) return "아직 기록이 없습니다. 번역 방식을 Claude로 두고 회의를 시작하면 쌓입니다.";
+  if (!rows.length) return "아직 기록이 없습니다. 번역 방식을 Claude나 Groq으로 두고 회의를 시작하면 쌓입니다.";
   const c = T.counts, onOff = (v) => (v ? "켬" : "끔");
-  rows.push("Claude 호출: 확정 " + c.final + "건 · 미리 번역 " + c.draft + "건 · 다듬기 " + c.refine + "건 · 비교 " + c.alt + "건 (미리 번역을 그대로 쓴 문장 " + c.reuse + "건)");
-  rows.push("설정: " + (MODEL_SHORT[settings.claudeModel] || settings.claudeModel) + " · 즉시 번역 " + onOff(settings.preview !== false) +
+  rows.push("AI 호출: 확정 " + c.final + "건 · 미리 번역 " + c.draft + "건 · 다듬기 " + c.refine + "건 · 비교 " + c.alt + "건 (미리 번역을 그대로 쓴 문장 " + c.reuse + "건)");
+  const ms = mainSpec(), ds = draftSpec();
+  rows.push("설정: 확정 " + specName(ms) + (specKey(ds) !== specKey(ms) ? " · 미리 번역 엔진 " + specName(ds) : "") + " · 즉시 번역 " + onOff(settings.preview !== false) +
     " · 미리 번역 " + onOff(settings.draft !== false) + " · 다듬기 " + onOff(settings.refine !== false) + " · 비교 " + onOff(!!settings.compare));
   return rows.join("\n");
 }
@@ -935,20 +1009,28 @@ function sameText(a, b) {
   return !!a && !!b && norm(a) === norm(b);
 }
 
-// 시작할 때 Claude 연결을 미리 열어 둔다 (첫 문장 번역이 늦게 뜨는 것을 줄임). 키 오류도 미리 알려 준다
-function warmClaude() {
-  if (core.mode !== "llm" || !settings.claudeKey.trim()) return;
-  claudeStream("Hello.", "", undefined, () => {}, true).catch((e) => {
-    const text = claudeErrorText(e);
-    if (e && (e.status === 401 || e.status === 403 || e.status === 404 || (e.status === 400 && text))) T.blocked = true;
-    if (text) showBanner(text);
-  });
+// 시작할 때 번역 엔진과의 연결을 미리 열어 둔다 (첫 문장 번역이 늦게 뜨는 것을 줄임). 키 오류도 미리 알려 준다
+function warmEngines() {
+  if (core.mode !== "llm") return;
+  const main = mainSpec(), draft = draftSpec();
+  const specs = specKey(main) === specKey(draft) ? [main] : [main, draft];
+  for (const spec of specs) {
+    if (!hasKey(spec.p)) continue;
+    llmStream(spec, "Hello.", "", undefined, () => {}, true).catch((e) => {
+      const text = llmErrorText(e);
+      if (isFatal(e, text)) {
+        if (spec.p === main.p) T.blocked = true;
+        else T.off[spec.p] = true;                  // 보조 엔진만 끄고 확정 엔진으로 계속한다
+      }
+      if (text) showBanner(spec.p === main.p ? text : text + " 미리 번역은 " + providerName(main.p) + "로 계속합니다.");
+    });
+  }
 }
 
 function resetDraft() {
   const d = T.draft;
   if (d.ac) { try { d.ac.abort(); } catch (e) {} }
-  T.draft = { sent: "", ko: "", koFor: "", block: null, busy: false, ac: null, at: 0, promise: null };
+  T.draft = { sent: "", ko: "", koFor: "", block: null, busy: false, ac: null, at: 0, promise: null, by: "" };
 }
 
 function showLatency() {
@@ -957,7 +1039,7 @@ function showLatency() {
   if (T.lastFirstMs) parts.push("확정 " + (T.lastFirstMs / 1000).toFixed(1) + "초");
   if (T.lean < 2) parts.push("느린 설정");
   const node = document.getElementById("lat");
-  if (node) { node.textContent = parts.length ? "Claude " + parts.join(" · ") : ""; node.style.display = parts.length ? "" : "none"; }
+  if (node) { node.textContent = parts.length ? providerName(mainSpec().p) + " " + parts.join(" · ") : ""; node.style.display = parts.length ? "" : "none"; }
   if (el.dlg.open) renderStats();
 }
 
@@ -1000,7 +1082,8 @@ async function pumpDraft() {
   if (sameSentence && cur.text.length - d.sent.length < DRAFT_GROW_CHARS) return;   // 한 단어 정도 늘었을 때만
   if (now - d.at < T.draftGap) return;
   const ac = new AbortController();
-  d.busy = true; d.ac = ac; d.at = now; d.sent = cur.text; d.block = cur.block;
+  const spec = draftSpec();
+  d.busy = true; d.ac = ac; d.at = now; d.sent = cur.text; d.block = cur.block; d.by = specKey(spec);
   const idx = cur.block ? core.blocks.indexOf(cur.block) : core.blocks.length;
   const context = contextFor(idx, true);
   let out = "", first = true;
@@ -1008,7 +1091,7 @@ async function pumpDraft() {
   T.counts.draft++;
   try {
     // 글자가 오는 대로 바로 보여 준다. 앞서 보여 준 미리 번역이 있으면 새 번역이 그만큼 길어졌을 때 바꾼다 (깜빡임 방지)
-    d.promise = claudeStream(cur.text, context, ac.signal, (delta) => {
+    d.promise = llmStream(spec, cur.text, context, ac.signal, (delta) => {
       if (first) { first = false; T.lastDraftMs = performance.now() - now; stat("dfirst", T.lastDraftMs); }
       out += delta;
       if (T.draft === d && d.ac === ac && (!prevKo || out.length >= prevKo.length)) { d.ko = out; scheduleRender(); }
@@ -1022,8 +1105,17 @@ async function pumpDraft() {
     }
   } catch (e) {
     if (e && e.name !== "AbortError") {
-      if (e.status === 429) T.draftGap = 3000;                 // 한도에 걸리면 미리 번역 간격을 넓힌다
-      else if (e.status === 401 || e.status === 403 || e.status === 404) { /* 확정 번역 쪽에서 안내 */ }
+      const aux = spec.p !== mainSpec().p;                       // 미리 번역만 맡은 보조 엔진인지
+      if (e.status === 429) {
+        if (aux) T.groqPause = performance.now() + 20000;        // 보조 엔진이 한도에 걸리면 20초 동안 확정 엔진이 대신한다
+        else T.draftGap = 3000;                                  // 한도에 걸리면 미리 번역 간격을 넓힌다
+      } else if (aux) {
+        const text = llmErrorText(e);
+        if (isFatal(e, text) || !e.status) {
+          T.off[spec.p] = true;
+          showBanner((text || providerName(spec.p) + "에 연결하지 못했습니다.") + " 미리 번역은 " + providerName(mainSpec().p) + "로 계속합니다.");
+        }
+      }
     }
   } finally {
     if (T.draft === d && d.ac === ac) { d.busy = false; d.ac = null; }
@@ -1076,7 +1168,7 @@ async function claudeStream(text, context, signal, onDelta, retried, model) {
     let j = null;
     try { j = await res.json(); } catch (e) {}
     const err = new Error((j && j.error && j.error.message) || ("HTTP " + res.status));
-    err.status = res.status;
+    err.status = res.status; err.provider = "claude";
     if (res.status === 400 && T.lean > 0 && /thinking|effort|output_config/i.test(err.message)) {
       T.lean -= 1; return claudeStream(text, context, signal, onDelta, retried, model);
     }
@@ -1103,6 +1195,75 @@ async function claudeStream(text, context, signal, onDelta, retried, model) {
   }
 }
 
+// Groq (OpenAI 호환 방식). 같은 지시문과 같은 입력 형식을 쓴다
+async function groqStream(text, context, signal, onDelta, retried, model) {
+  const m = model || settings.groqModel || GROQ_DEFAULT;
+  const body = {
+    model: m, stream: true, temperature: 0.2, max_completion_tokens: 800,
+    messages: [
+      { role: "system", content: claudeSystemPrompt() },
+      { role: "user", content: (context ? "<context>\n" + context + "\n</context>\n" : "") + "<translate>" + text + "</translate>" }
+    ]
+  };
+  // 추론형 모델(gpt-oss)은 생각을 최소로 하고, 생각 내용은 받지 않는다
+  if (/gpt-oss/.test(m) && T.groqLean) { body.reasoning_effort = "low"; body.include_reasoning = false; }
+  let res;
+  try {
+    res = await fetch(GROQ_URL, {
+      method: "POST", signal,
+      headers: { "content-type": "application/json", "authorization": "Bearer " + settings.groqKey.trim() },
+      body: JSON.stringify(body)
+    });
+  } catch (e) {
+    if (e && e.name !== "AbortError") { try { e.provider = "groq"; } catch (_) {} }
+    throw e;
+  }
+  if (!res.ok) {
+    let j = null;
+    try { j = await res.json(); } catch (e) {}
+    const err = new Error((j && j.error && j.error.message) || ("HTTP " + res.status));
+    err.status = res.status; err.provider = "groq";
+    if (res.status === 400 && T.groqLean && /reasoning/i.test(err.message)) {
+      T.groqLean = false; return groqStream(text, context, signal, onDelta, retried, model);
+    }
+    if ((res.status === 429 || res.status >= 500) && !retried) { await sleep(500); return groqStream(text, context, signal, onDelta, true, model); }
+    throw err;
+  }
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let nl;
+    while ((nl = buf.indexOf("\n")) >= 0) {
+      const line = buf.slice(0, nl).trim();
+      buf = buf.slice(nl + 1);
+      if (!line.startsWith("data:")) continue;
+      const data = line.slice(5).trim();
+      if (data === "[DONE]") return;
+      let ev;
+      try { ev = JSON.parse(data); } catch (e) { continue; }
+      if (ev.error) { const er = new Error(ev.error.message || "stream error"); er.status = 500; er.provider = "groq"; throw er; }
+      const piece = ev.choices && ev.choices[0] && ev.choices[0].delta && ev.choices[0].delta.content;
+      if (piece) onDelta(piece);
+    }
+  }
+}
+
+function llmErrorText(e) {
+  if (!e || e.provider !== "groq") return claudeErrorText(e);
+  const m = e.message || "";
+  if (e.status === 401) return "Groq API 키가 올바르지 않습니다. 설정에서 키를 다시 확인해 주세요.";
+  if (e.status === 403) return "이 Groq API 키로는 사용할 수 없습니다. Groq Console에서 키 권한을 확인해 주세요.";
+  if (e.status === 404 || (e.status === 400 && /model/i.test(m))) return "선택한 Groq 모델을 사용할 수 없습니다. 설정에서 다른 모델을 골라 주세요.";
+  if (e.status === 400) return "Groq가 요청을 거부했습니다. (" + (m || "원인 미상") + ")";
+  if (e.status === 429) return "Groq 요청 한도를 넘었습니다. 잠시 후 다시 번역됩니다. 자주 나오면 Groq Console에서 사용 한도를 확인해 주세요.";
+  if (!e.status) return "Groq에 연결하지 못했습니다. 인터넷 연결을 확인해 주세요.";
+  return "";
+}
+
 function claudeErrorText(e) {
   const m = (e && e.message) || "";
   if (e && e.status === 401 && /CORS/i.test(m)) return "이 Claude 계정(조직)은 브라우저에서 직접 호출이 막혀 있습니다. 번역 방식을 Soniox 내장으로 바꿔 주세요.";
@@ -1126,7 +1287,9 @@ async function translateBlock(idx) {
   const held = b.swap ? b.ko : "";
   // 방금 같은 문장을 미리 번역했거나 번역 중이면 다시 요청하지 않고 그 결과를 쓴다
   const d = T.draft;
-  if (!held && sameText(d.sent, src) && (d.busy || sameText(d.koFor, src))) {
+  // (미리 번역을 다른 엔진이 맡았다면 확정 엔진으로 다시 번역한다)
+  const main = mainSpec();
+  if (!held && d.by === specKey(main) && sameText(d.sent, src) && (d.busy || sameText(d.koFor, src))) {
     if (d.busy && d.promise) { try { await d.promise; } catch (e) {} await sleep(0); }
     if (b.ac !== ac) return;
     if (T.draft === d && sameText(d.koFor, src) && d.ko) {
@@ -1146,7 +1309,7 @@ async function translateBlock(idx) {
   if (held) T.counts.refine++; else { T.counts.final++; stat("wait", Date.now() - b.lastChange); }
   let first = true, out = "";
   try {
-    await claudeStream(src, context, ac.signal, (delta) => {
+    await llmStream(main, src, context, ac.signal, (delta) => {
       if (b.ac !== ac) return;
       if (first) {
         first = false;
@@ -1163,17 +1326,17 @@ async function translateBlock(idx) {
       const total = performance.now() - t0;
       if (held) stat("rdone", total); else { T.lastTotalMs = total; stat("done", total); }
       showLatency();
-      setConnState("Soniox 연결됨 · Claude 번역 정상 (첫 글자 " + (T.lastFirstMs / 1000).toFixed(1) + "초, 완료 " + (T.lastTotalMs / 1000).toFixed(1) + "초" +
+      setConnState("Soniox 연결됨 · " + specName(main) + " 번역 정상 (첫 글자 " + (T.lastFirstMs / 1000).toFixed(1) + "초, 완료 " + (T.lastTotalMs / 1000).toFixed(1) + "초" +
         (settings.draft && T.lastDraftMs ? ", 미리 번역 " + (T.lastDraftMs / 1000).toFixed(1) + "초" : "") + ")");
     }
   } catch (e) {
     if (e && e.name === "AbortError") return;
     // 다듬기가 실패하면 조각 번역을 그대로 확정한다
     if (b.ac === ac) { b.trState = held ? "done" : "err"; b.swap = false; b.ac = null; }
-    const text = claudeErrorText(e);
-    if (e && (e.status === 401 || e.status === 403 || e.status === 404 || (e.status === 400 && text))) T.blocked = true;
+    const text = llmErrorText(e);
+    if (isFatal(e, text)) T.blocked = true;
     if (text) showBanner(text);
-    setConnState("Claude 번역 오류: " + (text || (e && e.message) || "알 수 없는 오류"));
+    setConnState(providerName(main.p) + " 번역 오류: " + (text || (e && e.message) || "알 수 없는 오류"));
   }
   b.dirty = true; scheduleRender();
 }
@@ -1196,14 +1359,12 @@ function applyMerges() {
 }
 
 // ---------------------------------------------------------------------------
-// 번역 비교 모드 (테스트용): 같은 문장을 다른 Claude 모델로도 번역해 나란히 보여 준다
+// 번역 비교 모드 (테스트용): 같은 문장을 다른 엔진으로도 번역해 나란히 보여 준다
 // ---------------------------------------------------------------------------
-function altModel() {
-  return settings.claudeModel === "claude-sonnet-5-5" ? "claude-haiku-5-5" : "claude-sonnet-5-5";
-}
-
 function pumpCompare() {
   if (!settings.compare || T.altBusy >= 2) return;
+  const spec = altSpec();
+  if (!spec || !hasKey(spec.p)) return;
   const n = core.blocks.length;
   for (let i = 0; i < n && T.altBusy < 2; i++) {
     const b = core.blocks[i];
@@ -1212,29 +1373,30 @@ function pumpCompare() {
     const next = core.blocks[i + 1];
     if (b.cont || (next && next.cont)) continue;              // 곧 합쳐질 조각은 건너뛴다
     if (i === n - 1 && !SENT_END.test(b.en)) continue;        // 아직 말하는 중인 문장도 건너뛴다
-    translateAlt(i);
+    translateAlt(i, spec);
   }
 }
 
-async function translateAlt(idx) {
+async function translateAlt(idx, spec) {
   const b = core.blocks[idx];
   const src = b.en.trim();
-  const model = altModel();
   const ac = new AbortController();
-  b.altSrc = src; b.alt = ""; b.altLabel = MODEL_SHORT[model] || model; b.altState = "run"; b.altMs = 0; b.altAc = ac; b.dirty = true;
+  b.altSrc = src; b.alt = ""; b.altLabel = specName(spec); b.altState = "run"; b.altMs = 0; b.altAc = ac; b.dirty = true;
   T.altBusy++; T.counts.alt++;
   const t0 = performance.now();
   let first = true;
   try {
     // 비교가 공정하도록 앞 문장의 번역(다른 모델이 만든 것)은 주지 않는다
-    await claudeStream(src, contextFor(idx, false), ac.signal, (delta) => {
+    await llmStream(spec, src, contextFor(idx, false), ac.signal, (delta) => {
       if (b.altAc !== ac) return;
       if (first) { first = false; b.altMs = performance.now() - t0; stat("afirst", b.altMs); }
       b.alt += delta; b.dirty = true; scheduleRender();
-    }, false, model);
+    }, false);
     if (b.altAc === ac) { b.altState = "done"; stat("adone", performance.now() - t0); }
   } catch (e) {
     if (b.altAc === ac) b.altState = e && e.name === "AbortError" ? "" : "err";
+    // 키나 모델 문제면 이번 회의에서는 비교 번역을 더 요청하지 않는다
+    if (e && e.name !== "AbortError" && (isFatal(e, llmErrorText(e)) || !e.status)) T.altOff = true;
   } finally {
     T.altBusy--;
     if (b.altAc === ac) b.altAc = null;
@@ -1347,9 +1509,13 @@ async function start() {
   if (settings.engine === "claude" && settings.target !== "none" && !settings.claudeKey.trim()) {
     openSettingsDialog(); showBanner("번역 방식이 Claude로 되어 있습니다. 설정에서 Claude API 키를 입력해 주세요.", true); return;
   }
+  if (settings.engine === "groq" && settings.target !== "none" && !(settings.groqKey || "").trim()) {
+    openSettingsDialog(); showBanner("번역 방식이 Groq으로 되어 있습니다. 설정에서 Groq API 키를 입력해 주세요.", true); return;
+  }
   R.starting = true; R.fatal = false; R.retries = 0; R.queue = [];
-  T.blocked = false; T.draftGap = DRAFT_GAP_MS; resetDraft(); resetStats(); showLatency();
-  warmClaude();
+  T.blocked = false; T.off = {}; T.altOff = false; T.groqPause = 0; T.groqLean = true;
+  T.draftGap = DRAFT_GAP_MS; resetDraft(); resetStats(); showLatency();
+  warmEngines();
   hideBanner();
   el.toggle.disabled = true;
   setStatus("wait", "소리 연결 중");
@@ -1482,7 +1648,9 @@ function openSettingsDialog() {
   $("claudeModel").value = settings.claudeModel; $("draft").checked = settings.draft !== false; $("preview").checked = settings.preview !== false;
   $("refine").checked = settings.refine !== false; $("compare").checked = !!settings.compare;
   $("brief").value = settings.brief || "";
-  $("claudeBox").style.display = settings.engine === "claude" ? "" : "none";
+  $("groqKey").value = settings.groqKey || ""; $("groqKey").type = "password"; $("showGroqKey").textContent = "보기";
+  $("groqModel").value = settings.groqModel || GROQ_DEFAULT; $("draftFast").checked = settings.draftFast !== false;
+  $("claudeBox").style.display = settings.engine !== "soniox" ? "" : "none";
   $("copyStats").textContent = "기록 복사";
   renderStats();
   if (!el.dlg.open) el.dlg.showModal();
@@ -1505,7 +1673,11 @@ $("showKey").addEventListener("click", () => {
   const k = $("apiKey"); const show = k.type === "password";
   k.type = show ? "text" : "password"; $("showKey").textContent = show ? "숨기기" : "보기";
 });
-$("engine").addEventListener("change", () => { $("claudeBox").style.display = $("engine").value === "claude" ? "" : "none"; });
+$("engine").addEventListener("change", () => { $("claudeBox").style.display = $("engine").value !== "soniox" ? "" : "none"; });
+$("showGroqKey").addEventListener("click", () => {
+  const k = $("groqKey"); const show = k.type === "password";
+  k.type = show ? "text" : "password"; $("showGroqKey").textContent = show ? "숨기기" : "보기";
+});
 $("showClaudeKey").addEventListener("click", () => {
   const k = $("claudeKey"); const show = k.type === "password";
   k.type = show ? "text" : "password"; $("showClaudeKey").textContent = show ? "숨기기" : "보기";
@@ -1517,9 +1689,10 @@ $("saveSettings").addEventListener("click", () => {
     showOriginal: $("showOriginal").checked, diar: $("diar").checked,
     engine: $("engine").value, claudeKey: $("claudeKey").value.trim(), claudeModel: $("claudeModel").value,
     draft: $("draft").checked, preview: $("preview").checked,
-    refine: $("refine").checked, compare: $("compare").checked, brief: $("brief").value.trim()
+    refine: $("refine").checked, compare: $("compare").checked, brief: $("brief").value.trim(),
+    groqKey: $("groqKey").value.trim(), groqModel: $("groqModel").value, draftFast: $("draftFast").checked
   });
-  T.blocked = false; T.lean = 2;
+  T.blocked = false; T.lean = 2; T.off = {}; T.altOff = false;
   // 이미 번역이 달린 줄은 다시 번역하지 않는다
   for (const blk of core.blocks) if (blk.ko) blk.trSrc = blk.en.trim();
   const ok = saveSettings(settings);
