@@ -700,6 +700,7 @@ const R = {
   retries: 0, retryTimer: null, tick: null, startedAt: 0, fatal: false, wake: null, closeTimer: null
 };
 const FATAL_CODES = [400, 401, 402, 403, 429];
+const EP_DELAY_MS = 1000;
 
 function buildConfig() {
   const cfg = {
@@ -709,6 +710,8 @@ function buildConfig() {
     num_channels: 1,
     enable_endpoint_detection: true
   };
+  // 말이 끝난 뒤 문장 확정까지 기다리는 최대 시간 (기본값보다 짧게). 거부되면 빼고 다시 연결한다
+  if (!R.noEpDelay) cfg.max_endpoint_delay_ms = EP_DELAY_MS;
   if (settings.hint && settings.hint !== "auto") cfg.language_hints = [settings.hint];
   if (settings.diar) cfg.enable_speaker_diarization = true;
   if (settings.target && settings.target !== "none" && (settings.engine !== "claude" || settings.preview !== false)) {
@@ -735,12 +738,30 @@ function errorText(code, msg) {
 // ---------------------------------------------------------------------------
 const CLAUDE_URL = "https://api.anthropic.com/v1/messages";
 const LANG_NAME = { ko: "Korean", ja: "Japanese", zh: "Simplified Chinese", en: "English" };
+const DRAFT_GAP_MS = 350;      // 미리 번역 요청 사이 최소 간격
+const DRAFT_GROW_CHARS = 6;    // 문장이 이만큼 늘었을 때 다시 미리 번역
 const T = {
   lean: 2, blocked: false, lastFirstMs: 0, lastTotalMs: 0, tick: null,
   // 미리 번역(말하는 도중 번역) 상태
   draft: { sent: "", ko: "", koFor: "", block: null, busy: false, ac: null, at: 0, promise: null },
-  draftGap: 500, lastDraftMs: 0
+  draftGap: DRAFT_GAP_MS, lastDraftMs: 0
 };
+
+// 문장 비교용: 끝의 문장부호·공백·대소문자 차이는 같은 문장으로 본다
+function sameText(a, b) {
+  const norm = (s) => (s || "").toLowerCase().replace(/\s+/g, " ").replace(/[\s.?!…,;:"'”’)\]]+$/, "").trim();
+  return !!a && !!b && norm(a) === norm(b);
+}
+
+// 시작할 때 Claude 연결을 미리 열어 둔다 (첫 문장 번역이 늦게 뜨는 것을 줄임). 키 오류도 미리 알려 준다
+function warmClaude() {
+  if (core.mode !== "llm" || !settings.claudeKey.trim()) return;
+  claudeStream("Hello.", "", undefined, () => {}, true).catch((e) => {
+    const text = claudeErrorText(e);
+    if (e && (e.status === 401 || e.status === 403 || e.status === 404 || (e.status === 400 && text))) T.blocked = true;
+    if (text) showBanner(text);
+  });
+}
 
 function resetDraft() {
   const d = T.draft;
@@ -776,15 +797,20 @@ async function pumpDraft() {
   const sameSentence = d.sent && cur.text.slice(0, 12) === d.sent.slice(0, 12);
   if (!sameSentence && d.sent) { d.ko = ""; d.sent = ""; }
   if (cur.text === d.sent) return;
-  if (sameSentence && cur.text.length - d.sent.length < 8) return;   // 두 단어 정도 늘었을 때만
+  if (sameSentence && cur.text.length - d.sent.length < DRAFT_GROW_CHARS) return;   // 한 단어 정도 늘었을 때만
   if (now - d.at < T.draftGap) return;
   const ac = new AbortController();
   d.busy = true; d.ac = ac; d.at = now; d.sent = cur.text; d.block = cur.block;
   const idx = cur.block ? core.blocks.indexOf(cur.block) : core.blocks.length;
   const context = core.blocks.slice(Math.max(0, idx - 2), idx).map((x) => x.en.trim()).filter(Boolean).join(" ").slice(-400);
   let out = "";
+  const prevKo = d.ko;
   try {
-    d.promise = claudeStream(cur.text, context, ac.signal, (delta) => { out += delta; }, true);
+    // 글자가 오는 대로 바로 보여 준다. 앞서 보여 준 미리 번역이 있으면 새 번역이 그만큼 길어졌을 때 바꾼다 (깜빡임 방지)
+    d.promise = claudeStream(cur.text, context, ac.signal, (delta) => {
+      out += delta;
+      if (T.draft === d && d.ac === ac && (!prevKo || out.length >= prevKo.length)) { d.ko = out; scheduleRender(); }
+    }, true);
     await d.promise;
     if (T.draft === d && d.ac === ac) {
       d.ko = out.trim(); d.koFor = d.sent; T.lastDraftMs = performance.now() - now;
@@ -888,10 +914,10 @@ async function translateBlock(idx) {
   b.ac = ac; b.trState = "run"; b.dirty = true;
   // 방금 같은 문장을 미리 번역했거나 번역 중이면 다시 요청하지 않고 그 결과를 쓴다
   const d = T.draft;
-  if (d.sent === src && (d.busy || d.koFor === src)) {
+  if (sameText(d.sent, src) && (d.busy || sameText(d.koFor, src))) {
     if (d.busy && d.promise) { try { await d.promise; } catch (e) {} await sleep(0); }
     if (b.ac !== ac) return;
-    if (T.draft === d && d.koFor === src && d.ko) {
+    if (T.draft === d && sameText(d.koFor, src) && d.ko) {
       b.ko = d.ko; b.draftKo = ""; b.trState = "done"; b.ac = null; b.dirty = true;
       resetDraft(); scheduleRender();
       return;
@@ -961,6 +987,12 @@ function openSocket() {
     let msg;
     try { msg = JSON.parse(ev.data); } catch (e) { return; }
     if (msg.error_code) {
+      // 이 모델이 확정 대기 시간 설정을 받지 않으면 그 설정만 빼고 다시 연결한다
+      if (msg.error_code === 400 && !R.noEpDelay && /endpoint/i.test(msg.error_message || "")) {
+        R.noEpDelay = true;
+        try { ws.close(); } catch (e) {}
+        return;
+      }
       const text = errorText(msg.error_code, msg.error_message);
       setConnState("오류: " + text);
       if (FATAL_CODES.includes(msg.error_code)) {
@@ -1017,7 +1049,8 @@ async function start() {
     openSettingsDialog(); showBanner("번역 방식이 Claude로 되어 있습니다. 설정에서 Claude API 키를 입력해 주세요.", true); return;
   }
   R.starting = true; R.fatal = false; R.retries = 0; R.queue = [];
-  T.blocked = false; T.draftGap = 500; resetDraft();
+  T.blocked = false; T.draftGap = DRAFT_GAP_MS; resetDraft();
+  warmClaude();
   hideBanner();
   el.toggle.disabled = true;
   setStatus("wait", "소리 연결 중");
