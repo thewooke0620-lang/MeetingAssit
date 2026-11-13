@@ -98,6 +98,7 @@
   <span class="title">회의 통역 도우미</span>
   <span id="status" class="pill">대기</span>
   <span id="timer" class="timer">00:00</span>
+  <span id="lat" class="pill" style="display:none"></span>
   <span class="spacer"></span>
   <select id="source" class="btn" title="소리 입력">
     <option value="system">PC 소리 (회의)</option>
@@ -188,6 +189,10 @@
         </select>
       </div>
       <div class="field">
+        <label class="check"><input id="preview" type="checkbox"> Soniox 즉시 번역을 먼저 표시 (가장 빠름)</label>
+        <div class="hint">말하는 순간 Soniox의 빠른 번역을 흐리게 먼저 보여 주고, Claude 번역이 도착하면 바꿉니다.</div>
+      </div>
+      <div class="field">
         <label class="check"><input id="draft" type="checkbox"> 말하는 도중에도 미리 번역 (더 빠름)</label>
         <div class="hint">문장이 끝나기 전에 흐린 글씨로 먼저 번역을 보여 주고, 문장이 끝나면 확정 번역으로 바꿉니다. Claude 호출 횟수가 늘어납니다.</div>
       </div>
@@ -246,7 +251,7 @@ function createCore() {
 
 function newBlock(core, speaker) {
   const b = { en: "", ko: "", speaker: speaker || null, needsTr: false, koDone: false, dirty: true, el: null,
-              trSrc: "", trState: "", ac: null, lastChange: Date.now() };
+              trSrc: "", trState: "", ac: null, lastChange: Date.now(), mt: "", mtDone: false };
   core.blocks.push(b);
   return b;
 }
@@ -315,6 +320,24 @@ function appendTranslation(core, txt) {
   b.dirty = true;
 }
 
+// LLM 모드: Soniox 즉시 번역을 붙일 줄. 앞줄의 즉시 번역이 덜 끝났으면 앞줄에 붙인다
+function previewTarget(core) {
+  const n = core.blocks.length;
+  if (!n) return null;
+  const cur = core.blocks[n - 1];
+  const prev = n > 1 ? core.blocks[n - 2] : null;
+  if (prev && !prev.mtDone && cur.mt === "") return prev;
+  return cur;
+}
+
+function appendPreview(core, txt) {
+  const b = previewTarget(core);
+  if (!b) return;
+  b.mt += txt;
+  b.mtDone = SENT_END.test(b.mt);
+  b.dirty = true;
+}
+
 // Soniox 응답 한 건의 tokens 배열을 처리
 function processTokens(core, tokens) {
   core.nf = { en: "", ko: "", speaker: null };
@@ -330,7 +353,11 @@ function processTokens(core, tokens) {
       continue;
     }
     const isTr = t.translation_status === "translation";
-    if (isTr && core.mode === "llm") continue;
+    if (isTr && core.mode === "llm") {
+      // 즉시 번역(미리 보기용). 확정 번역(ko)과 섞지 않는다
+      if (t.is_final) appendPreview(core, txt); else core.nf.ko += txt;
+      continue;
+    }
     if (t.is_final) {
       if (isTr) appendTranslation(core, txt);
       else appendOriginal(core, txt, t.speaker || null, t.translation_status === "original");
@@ -405,7 +432,7 @@ const STORE_KEY = "meeting-interpreter.settings.v1";
 const DEFAULTS = {
   apiKey: "", hint: "en", target: "ko", terms: "", fontSize: "18",
   model: "stt-rt-v6", showOriginal: true, diar: true, source: "system", ver: 2,
-  engine: "soniox", claudeKey: "", claudeModel: "claude-haiku-5-5", draft: true
+  engine: "soniox", claudeKey: "", claudeModel: "claude-haiku-5-5", draft: true, preview: true
 };
 
 function loadSettings() {
@@ -501,7 +528,12 @@ function render() {
   const n = core.blocks.length;
   const nf = core.nf;
   const ghostNeeded = !!nf.en && shouldBreak(core, nf.en, nf.speaker);
-  let koTarget = nf.ko ? (n ? translationTarget(core) : null) : null;
+  const llm = core.mode === "llm";
+  const usePreview = llm && settings.preview !== false;
+  const last = n ? core.blocks[n - 1] : null;
+  // LLM 모드: 임시 즉시 번역(nf.ko)을 마지막 줄에 붙일지, 새 줄(ghost)에 붙일지
+  const nfKoToGhost = llm && ghostNeeded && (!last || last.mtDone || !!last.ko);
+  let koTarget = !llm && nf.ko ? (n ? translationTarget(core) : null) : null;
   // 새 문장이 시작됐고 앞 블록 번역이 이미 끝났다면, 임시 번역도 새 줄에 표시
   if (koTarget && ghostNeeded && koTarget === core.blocks[n - 1] && (koTarget.koDone || !koTarget.needsTr)) koTarget = null;
 
@@ -510,9 +542,11 @@ function render() {
     const isLast = i === n - 1;
     const tailEn = isLast && !ghostNeeded ? nf.en : "";
     let tailKo = koTarget === b ? nf.ko : "";
-    if (core.mode === "llm" && !b.ko) {
+    if (llm && !b.ko) {
       const dk = b.draftKo || draftFor(b);
+      const mt = usePreview ? (b.mt + (isLast && !nfKoToGhost ? nf.ko : "")) : "";
       if (dk) tailKo = dk;
+      else if (mt.trim()) tailKo = mt;
       else if (b.trState === "run") tailKo = "…";
       else if (b.trState === "err") tailKo = "(번역 실패)";
     }
@@ -526,9 +560,11 @@ function render() {
     }
   }
 
-  if (ghostNeeded || (nf.ko && !koTarget)) {
+  if (ghostNeeded || (!llm && nf.ko && !koTarget)) {
     if (!ghostEl) ghostEl = buildBlockEl();
-    const ghostKo = core.mode === "llm" ? (T.draft.block === null ? T.draft.ko : "") : (!koTarget ? nf.ko : "");
+    const ghostKo = llm
+      ? ((T.draft.block === null && T.draft.ko) || (usePreview && nfKoToGhost ? nf.ko : ""))
+      : (!koTarget ? nf.ko : "");
     const ghostSpk = !n || core.blocks[n - 1].speaker !== nf.speaker;
     fillBlockEl(ghostEl, "", "", nf.speaker, ghostNeeded ? nf.en : "", ghostKo, ghostSpk);
     el.transcript.append(ghostEl);
@@ -675,7 +711,7 @@ function buildConfig() {
   };
   if (settings.hint && settings.hint !== "auto") cfg.language_hints = [settings.hint];
   if (settings.diar) cfg.enable_speaker_diarization = true;
-  if (settings.target && settings.target !== "none" && settings.engine !== "claude") {
+  if (settings.target && settings.target !== "none" && (settings.engine !== "claude" || settings.preview !== false)) {
     cfg.translation = { type: "one_way", target_language: settings.target };
   }
   const terms = (settings.terms || "").split(/[\n,]/).map((s) => s.trim()).filter(Boolean);
@@ -700,16 +736,25 @@ function errorText(code, msg) {
 const CLAUDE_URL = "https://api.anthropic.com/v1/messages";
 const LANG_NAME = { ko: "Korean", ja: "Japanese", zh: "Simplified Chinese", en: "English" };
 const T = {
-  lean: true, blocked: false, lastFirstMs: 0, lastTotalMs: 0, tick: null,
+  lean: 2, blocked: false, lastFirstMs: 0, lastTotalMs: 0, tick: null,
   // 미리 번역(말하는 도중 번역) 상태
-  draft: { sent: "", ko: "", block: null, busy: false, ac: null, at: 0 },
+  draft: { sent: "", ko: "", koFor: "", block: null, busy: false, ac: null, at: 0, promise: null },
   draftGap: 500, lastDraftMs: 0
 };
 
 function resetDraft() {
   const d = T.draft;
   if (d.ac) { try { d.ac.abort(); } catch (e) {} }
-  T.draft = { sent: "", ko: "", block: null, busy: false, ac: null, at: 0 };
+  T.draft = { sent: "", ko: "", koFor: "", block: null, busy: false, ac: null, at: 0, promise: null };
+}
+
+function showLatency() {
+  const parts = [];
+  if (T.lastDraftMs) parts.push("미리 " + (T.lastDraftMs / 1000).toFixed(1) + "초");
+  if (T.lastFirstMs) parts.push("확정 " + (T.lastFirstMs / 1000).toFixed(1) + "초");
+  if (T.lean < 2) parts.push("느린 설정");
+  const node = document.getElementById("lat");
+  if (node) { node.textContent = parts.length ? "Claude " + parts.join(" · ") : ""; node.style.display = parts.length ? "" : "none"; }
 }
 
 // 이 줄에 보여 줄 미리 번역이 있으면 돌려준다
@@ -739,9 +784,11 @@ async function pumpDraft() {
   const context = core.blocks.slice(Math.max(0, idx - 2), idx).map((x) => x.en.trim()).filter(Boolean).join(" ").slice(-400);
   let out = "";
   try {
-    await claudeStream(cur.text, context, ac.signal, (delta) => { out += delta; }, true);
+    d.promise = claudeStream(cur.text, context, ac.signal, (delta) => { out += delta; }, true);
+    await d.promise;
     if (T.draft === d && d.ac === ac) {
-      d.ko = out.trim(); T.lastDraftMs = performance.now() - now;
+      d.ko = out.trim(); d.koFor = d.sent; T.lastDraftMs = performance.now() - now;
+      showLatency();
       scheduleRender();
     }
   } catch (e) {
@@ -776,7 +823,9 @@ async function claudeStream(text, context, signal, onDelta, retried) {
     system: claudeSystemPrompt(),
     messages: [{ role: "user", content: (context ? "<context>" + context + "</context>\n" : "") + "<translate>" + text + "</translate>" }]
   };
-  if (T.lean) { body.thinking = { type: "disabled" }; body.output_config = { effort: "low" }; }
+  // lean 2: 생각 끔 + 최소 노력 / 1: 최소 노력만 / 0: 기본값
+  if (T.lean >= 2) body.thinking = { type: "disabled" };
+  if (T.lean >= 1) body.output_config = { effort: "low" };
   const res = await fetch(CLAUDE_URL, {
     method: "POST", signal,
     headers: {
@@ -792,7 +841,9 @@ async function claudeStream(text, context, signal, onDelta, retried) {
     try { j = await res.json(); } catch (e) {}
     const err = new Error((j && j.error && j.error.message) || ("HTTP " + res.status));
     err.status = res.status;
-    if (res.status === 400 && T.lean) { T.lean = false; return claudeStream(text, context, signal, onDelta, retried); }
+    if (res.status === 400 && T.lean > 0 && /thinking|effort|output_config/i.test(err.message)) {
+      T.lean -= 1; return claudeStream(text, context, signal, onDelta, retried);
+    }
     if ((res.status === 429 || res.status >= 500) && !retried) { await sleep(500); return claudeStream(text, context, signal, onDelta, true); }
     throw err;
   }
@@ -834,10 +885,21 @@ async function translateBlock(idx) {
   b.trSrc = src;
   if (b.ac) { try { b.ac.abort(); } catch (e) {} }
   const ac = new AbortController();
+  b.ac = ac; b.trState = "run"; b.dirty = true;
+  // 방금 같은 문장을 미리 번역했거나 번역 중이면 다시 요청하지 않고 그 결과를 쓴다
+  const d = T.draft;
+  if (d.sent === src && (d.busy || d.koFor === src)) {
+    if (d.busy && d.promise) { try { await d.promise; } catch (e) {} await sleep(0); }
+    if (b.ac !== ac) return;
+    if (T.draft === d && d.koFor === src && d.ko) {
+      b.ko = d.ko; b.draftKo = ""; b.trState = "done"; b.ac = null; b.dirty = true;
+      resetDraft(); scheduleRender();
+      return;
+    }
+  }
   const carried = draftFor(b);
   if (carried) b.draftKo = carried;
   if (carried || T.draft.block === b) resetDraft();
-  b.ac = ac; b.trState = "run"; b.dirty = true;
   const context = core.blocks.slice(Math.max(0, idx - 2), idx).map((x) => x.en.trim()).filter(Boolean).join(" ").slice(-400);
   const t0 = performance.now();
   let first = true;
@@ -849,6 +911,7 @@ async function translateBlock(idx) {
     });
     if (b.ac === ac) {
       b.trState = "done"; b.ac = null; T.lastTotalMs = performance.now() - t0;
+      showLatency();
       setConnState("Soniox 연결됨 · Claude 번역 정상 (첫 글자 " + (T.lastFirstMs / 1000).toFixed(1) + "초, 완료 " + (T.lastTotalMs / 1000).toFixed(1) + "초" +
         (settings.draft && T.lastDraftMs ? ", 미리 번역 " + (T.lastDraftMs / 1000).toFixed(1) + "초" : "") + ")");
     }
@@ -1084,7 +1147,7 @@ function openSettingsDialog() {
   $("showOriginal").checked = !!settings.showOriginal; $("diar").checked = !!settings.diar;
   $("engine").value = settings.engine; $("claudeKey").value = settings.claudeKey;
   $("claudeKey").type = "password"; $("showClaudeKey").textContent = "보기";
-  $("claudeModel").value = settings.claudeModel; $("draft").checked = settings.draft !== false;
+  $("claudeModel").value = settings.claudeModel; $("draft").checked = settings.draft !== false; $("preview").checked = settings.preview !== false;
   $("claudeBox").style.display = settings.engine === "claude" ? "" : "none";
   if (!el.dlg.open) el.dlg.showModal();
 }
@@ -1105,9 +1168,9 @@ $("saveSettings").addEventListener("click", () => {
     terms: $("terms").value, fontSize: $("fontSize").value, model: $("model").value,
     showOriginal: $("showOriginal").checked, diar: $("diar").checked,
     engine: $("engine").value, claudeKey: $("claudeKey").value.trim(), claudeModel: $("claudeModel").value,
-    draft: $("draft").checked
+    draft: $("draft").checked, preview: $("preview").checked
   });
-  T.blocked = false; T.lean = true;
+  T.blocked = false; T.lean = 2;
   // 이미 번역이 달린 줄은 다시 번역하지 않는다
   for (const blk of core.blocks) if (blk.ko) blk.trSrc = blk.en.trim();
   const ok = saveSettings(settings);
