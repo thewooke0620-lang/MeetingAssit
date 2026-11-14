@@ -291,6 +291,11 @@
     <div class="field">
       <label>연결 상태</label>
       <div id="connState">아직 연결한 적이 없습니다.</div>
+      <div class="row" style="margin-top:6px; align-items:center">
+        <button id="testKeys" class="btn" type="button">연결 시험</button>
+        <span class="hint" style="margin:0">회의 전에 눌러 보세요. 입력한 키로 Soniox, Claude, Groq에 짧게 접속해 쓸 수 있는지 확인합니다. (요금은 거의 들지 않습니다)</span>
+      </div>
+      <pre id="testOut" class="stat" style="display:none; margin-top:6px"></pre>
     </div>
     <div class="row">
       <div class="field">
@@ -2205,6 +2210,73 @@ function setSaveState(kind) {
 $("saveState").addEventListener("click", () => { if (SV.kind === "fail" || SV.kind === "off") el.save.click(); });
 document.addEventListener("visibilitychange", () => { if (document.hidden) saveMeeting(); });
 
+// ---- 연결 시험: 회의 전에 키·모델·잔액·접속 문제를 미리 확인한다 ----
+// 설정 창에 지금 적혀 있는 값으로 시험한다 (저장하지 않아도 된다)
+function testSoniox(key) {
+  return new Promise((resolve) => {
+    const t0 = performance.now();
+    let ws, done = false;
+    const end = (ok, text) => { if (done) return; done = true; clearTimeout(timer); try { ws && ws.close(); } catch (e) {} resolve({ ok, text, ms: performance.now() - t0 }); };
+    const timer = setTimeout(() => end(false, "10초 안에 응답이 없습니다. 인터넷 연결이나 회사 보안 설정(웹소켓 차단)을 확인해 주세요."), 10000);
+    try { ws = new WebSocket(WS_URL, ["soniox-api-key", key]); }
+    catch (e) { end(false, "연결을 만들 수 없습니다. 키에 공백이나 특수문자가 섞이지 않았는지 확인해 주세요."); return; }
+    ws.onopen = () => {
+      try {
+        ws.send(JSON.stringify({ model: settings.model || "stt-rt-v6", audio_format: "pcm_s16le", sample_rate: 16000, num_channels: 1 }));
+        ws.send("");
+      } catch (e) {}
+    };
+    ws.onmessage = (ev) => {
+      let msg = null;
+      try { msg = JSON.parse(ev.data); } catch (e) { return; }
+      if (msg.error_code) end(false, errorText(msg.error_code, msg.error_message));
+      else if (msg.finished) end(true, "");
+    };
+    ws.onclose = () => end(false, "접속이 끊겼습니다. 키가 올바른지, 인터넷이 되는지 확인해 주세요.");
+  });
+}
+
+async function testLLM(spec) {
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), 15000);
+  const t0 = performance.now();
+  try {
+    await llmStream(spec, "Hello.", "", ac.signal, () => {}, true);
+    return { ok: true, ms: performance.now() - t0 };
+  } catch (e) {
+    if (e && e.name === "AbortError") return { ok: false, text: "15초 안에 응답이 없습니다. 인터넷 연결을 확인하거나 잠시 뒤 다시 시험해 주세요." };
+    return { ok: false, text: llmErrorText(e) || ("오류 " + ((e && e.message) || "원인 미상")) };
+  } finally { clearTimeout(timer); }
+}
+
+$("testKeys").addEventListener("click", async () => {
+  const out = $("testOut"), btn = $("testKeys");
+  if (R.running) { out.style.display = ""; out.textContent = "회의 중에는 시험할 수 없습니다. 정지한 뒤 눌러 주세요."; return; }
+  const v = { apiKey: $("apiKey").value.trim(), claudeKey: $("claudeKey").value.trim(), claudeModel: $("claudeModel").value,
+              groqKey: $("groqKey").value.trim(), groqModel: $("groqModel").value };
+  const lines = [];
+  const show = () => { out.style.display = ""; out.textContent = lines.join("\n"); };
+  const sec = (ms) => (ms / 1000).toFixed(1) + "초";
+  btn.disabled = true;
+  lines.push("Soniox: 시험하는 중…"); show();
+  const so = v.apiKey ? await testSoniox(v.apiKey) : null;
+  lines[0] = "Soniox: " + (!so ? "키가 없습니다. 자막을 쓰려면 꼭 필요합니다." : so.ok ? "정상 (" + sec(so.ms) + ")" : "문제 있음 — " + so.text);
+  // AI 시험은 지금 적힌 키·모델로 한다. 끝나면 원래 설정으로 되돌린다
+  const keep = { claudeKey: settings.claudeKey, claudeModel: settings.claudeModel, groqKey: settings.groqKey, groqModel: settings.groqModel };
+  Object.assign(settings, { claudeKey: v.claudeKey, claudeModel: v.claudeModel, groqKey: v.groqKey, groqModel: v.groqModel });
+  try {
+    for (const [p, key, model] of [["claude", v.claudeKey, v.claudeModel], ["groq", v.groqKey, v.groqModel || GROQ_DEFAULT]]) {
+      const name = providerName(p) + " (" + (MODEL_SHORT[model] || model) + ")";
+      if (!key) { lines.push(providerName(p) + ": 키 없음 (선택 사항)"); show(); continue; }
+      lines.push(name + ": 시험하는 중…"); show();
+      const r = await testLLM({ p, model });
+      lines[lines.length - 1] = name + ": " + (r.ok ? "정상 (응답 " + sec(r.ms) + ")" : "문제 있음 — " + r.text);
+      show();
+    }
+  } finally { Object.assign(settings, keep); btn.disabled = false; }
+  show();
+});
+
 // ---- 회의 후 정리: 제목, 요약, 결정 사항, 할 일, 묶음에 쌓을 내용 ----
 const digestBusy = new Set(), digestTried = new Set();
 const DIGEST_FAIL = "정리를 만들지 못했습니다. 잠시 뒤 '다시 정리'를 눌러 주세요.";
@@ -2218,26 +2290,67 @@ function helperSpec() {
 }
 
 // 한 번 묻고 답을 통째로 받는다 (번역과 달리 글자 단위로 받지 않는다)
-async function llmAsk(spec, system, user, maxTokens) {
-  if (spec.p === "groq") {
-    const body = { model: spec.model, temperature: 0.3, max_completion_tokens: maxTokens + 600,
-      messages: [{ role: "system", content: system }, { role: "user", content: user }] };
-    if (/gpt-oss/.test(spec.model) && T.groqLean) { body.reasoning_effort = "low"; body.include_reasoning = false; }
-    const res = await fetch(GROQ_URL, { method: "POST",
-      headers: { "content-type": "application/json", "authorization": "Bearer " + settings.groqKey.trim() }, body: JSON.stringify(body) });
-    if (!res.ok) { const e = new Error("HTTP " + res.status); e.status = res.status; throw e; }
-    const j = await res.json();
-    return (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || "";
+// 시간 제한(LLM_ASK_TIMEOUT_MS)을 넘으면 그만두고, 시간 초과·연결 실패·한도·서버 오류면 한 번 더 시도한다
+const LLM_ASK_TIMEOUT_MS = window.TEST_ASK_TIMEOUT || 90000;   // TEST_ASK_TIMEOUT 은 테스트에서만 쓴다
+async function llmAsk(spec, system, user, maxTokens, opts) {
+  opts = opts || {};
+  const tries = opts.tries || 2;
+  let last = null;
+  for (let i = 0; i < tries; i++) {
+    if (i) await sleep(1500 * i);
+    try { return await llmAskOnce(spec, system, user, maxTokens, opts.timeout || LLM_ASK_TIMEOUT_MS); }
+    catch (e) {
+      last = e;
+      const again = e.timeout || !e.status || e.status === 429 || e.status >= 500;
+      if (!again) break;
+    }
   }
-  const body = { model: spec.model, max_tokens: maxTokens, system, messages: [{ role: "user", content: user }] };
-  if (T.lean >= 2) body.thinking = { type: "disabled" };
-  if (T.lean >= 1) body.output_config = { effort: "low" };
-  const res = await fetch(CLAUDE_URL, { method: "POST",
-    headers: { "content-type": "application/json", "x-api-key": settings.claudeKey.trim(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-    body: JSON.stringify(body) });
-  if (!res.ok) { const e = new Error("HTTP " + res.status); e.status = res.status; throw e; }
-  const j = await res.json();
-  return (j.content || []).filter((c) => c.type === "text").map((c) => c.text).join("");
+  throw last;
+}
+
+async function llmAskOnce(spec, system, user, maxTokens, timeout) {
+  const ac = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; ac.abort(); }, timeout);
+  try {
+    let url, headers, body;
+    if (spec.p === "groq") {
+      body = { model: spec.model, temperature: 0.3, max_completion_tokens: maxTokens + 600,
+        messages: [{ role: "system", content: system }, { role: "user", content: user }] };
+      if (/gpt-oss/.test(spec.model) && T.groqLean) { body.reasoning_effort = "low"; body.include_reasoning = false; }
+      url = GROQ_URL; headers = { "content-type": "application/json", "authorization": "Bearer " + settings.groqKey.trim() };
+    } else {
+      body = { model: spec.model, max_tokens: maxTokens, system, messages: [{ role: "user", content: user }] };
+      if (T.lean >= 2) body.thinking = { type: "disabled" };
+      if (T.lean >= 1) body.output_config = { effort: "low" };
+      url = CLAUDE_URL;
+      headers = { "content-type": "application/json", "x-api-key": settings.claudeKey.trim(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" };
+    }
+    const res = await fetch(url, { method: "POST", signal: ac.signal, headers, body: JSON.stringify(body) });
+    if (!res.ok) {
+      let j = null;
+      try { j = await res.json(); } catch (e) {}
+      const e = new Error((j && j.error && j.error.message) || ("HTTP " + res.status));
+      e.status = res.status; e.provider = spec.p;
+      throw e;
+    }
+    const j = await res.json();
+    if (spec.p === "groq") return (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || "";
+    return (j.content || []).filter((c) => c.type === "text").map((c) => c.text).join("");
+  } catch (e) {
+    if (timedOut) { const t = new Error("시간 초과"); t.timeout = true; t.provider = spec.p; throw t; }
+    if (e && !e.provider) { try { e.provider = spec.p; } catch (_) {} }
+    throw e;
+  } finally { clearTimeout(timer); }
+}
+
+// 회의 정리가 실패한 까닭을 쉬운 말로
+function askFailText(e) {
+  if (e && e.timeout) return "정리를 만드는 데 너무 오래 걸려 그만두었습니다 (" + Math.round(LLM_ASK_TIMEOUT_MS / 1000) + "초). 잠시 뒤 '다시 정리'를 눌러 주세요. 회의 기록은 그대로 저장되어 있습니다.";
+  if (e && !e.status && e.name === "TypeError") return "AI 서비스에 연결하지 못했습니다. 인터넷 연결을 확인하고 '다시 정리'를 눌러 주세요. 회의 기록은 그대로 저장되어 있습니다.";
+  const t = e && e.status ? llmErrorText(e) : "";
+  if (e && e.status >= 500) return "AI 서비스가 잠시 혼잡합니다. 잠시 뒤 '다시 정리'를 눌러 주세요. 회의 기록은 그대로 저장되어 있습니다.";
+  return (t ? t.replace(/잠시 후 다시 번역됩니다\.?/, "잠시 뒤 '다시 정리'를 눌러 주세요.") + " " : DIGEST_FAIL + " ") + "회의 기록은 그대로 저장되어 있습니다.";
 }
 
 function cleanTitle(raw) {
@@ -2318,7 +2431,7 @@ async function autoDigest(id, opts) {
   opts = opts || {};
   if (!Store.ok || !id || digestBusy.has(id)) return null;
   digestBusy.add(id);
-  let result = null, failed = false;
+  let result = null, failed = false, why = null;
   try {
     const m = await Store.get("meetings", id);
     if (!m || !m.lines || !m.lines.length) return null;
@@ -2330,7 +2443,7 @@ async function autoDigest(id, opts) {
     let made = null;
     if (ai) {
       refreshMeetingViews();                 // "정리하는 중" 표시
-      try { made = await makeDigest(m, packOf(m)); } catch (e) { failed = true; }
+      try { made = await makeDigest(m, packOf(m)); } catch (e) { failed = true; why = e; }
     }
     result = await Store.update("meetings", id, (cur) => {
       if (!cur) return null;
@@ -2346,13 +2459,14 @@ async function autoDigest(id, opts) {
     if (result && id === R.meetingId && !R.running) {
       const p = packs.find((x) => x.id === result.packId);
       setConnState("회의 기록을 '" + (p ? p.name : "") + "' 묶음에 저장했습니다: " + result.title + " (" + result.lines.length + "줄)." +
+        (result.pending ? " 마지막 " + result.pending + "줄은 번역이 끝나기 전에 저장했습니다. 영어 원문은 모두 저장했습니다." : "") +
         (made ? " 위의 '회의 정리'에서 요약을 볼 수 있습니다." : ""));
     }
   } catch (e) { failed = true;
   } finally { digestBusy.delete(id); }
   if (viewM && viewM.id === id) {
     if (result) viewM = result;
-    viewNote = failed ? DIGEST_FAIL : "";
+    viewNote = failed ? (why ? askFailText(why) : DIGEST_FAIL) : "";
   }
   refreshMeetingViews();
   return result;
@@ -2396,7 +2510,7 @@ async function buildViewDigest(redo) {
     const made = await makeDigest(m, packOf(m));
     m.digest = Object.assign({}, made.digest, { lines: m.lines.length, at: Date.now() });
     if (made.title) m.title = made.title;
-  } catch (e) { if (viewM === m) viewNote = DIGEST_FAIL; }
+  } catch (e) { if (viewM === m) viewNote = askFailText(e); }
   viewBusy = false;
   if (viewM === m) renderMeeting();
 }

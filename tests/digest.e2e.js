@@ -129,7 +129,8 @@ run('DIGEST TESTS', async (b) => {
   await openSettings(p); m = await meets(p);
   assert(/^번역\[We reviewed the\] \|/.test(m[0]) && !/정리 있음/.test(m[0]), m[0]);
   await p.evaluate(() => { window.MOCK.digestStatus = 200; window.MOCK.digest = 'Sorry, I cannot do that.'; });
-  await p.click('#meetList .mrow button:has-text("열기")'); await p.waitForTimeout(600);
+  // 목록을 열 때 시작된 정리가 한 번 더 시도하느라(1.5초 뒤) 조금 더 걸린다
+  await p.click('#meetList .mrow button:has-text("열기")'); await p.waitForTimeout(2200);
   assert((await viewText(p)).includes("정리를 만들지 못했습니다"));
   await p.evaluate(() => { window.MOCK.digest = '```json\n{"title":"가격 조정안 협의","summary":["가격 조정안을 협의했다."],"decisions":[],"todos":[],"terms":[],"facts":[],"questions":[]}\n```'; });
   await p.click('#mvRedo'); await p.waitForTimeout(600);

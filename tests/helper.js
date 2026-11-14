@@ -31,7 +31,12 @@ function pageMock(st) {
     const rec = { kind, p: groq ? 'groq' : 'claude', model: body.model, system, user, aborted: false };
     window.REQ.push(rec);
     if (kind === 'digest') {
-      await wait(120);
+      // 실제 fetch 처럼 중간에 그만두면(abort) 바로 끝난다
+      await new Promise((res, rej) => {
+        const t = setTimeout(res, window.MOCK.digestDelay || 120);
+        if (opt.signal) opt.signal.addEventListener('abort', () => { clearTimeout(t); rej(Object.assign(new Error('aborted'), { name: 'AbortError' })); });
+      });
+      if (window.MOCK.digestFailOnce) { window.MOCK.digestFailOnce--; return { ok: false, status: 529, json: async () => ({ error: { message: 'Overloaded' } }) }; }
       if (window.MOCK.digestStatus !== 200) return { ok: false, status: window.MOCK.digestStatus, json: async () => ({ error: { message: 'mock error' } }) };
       const n = user.split('<transcript>')[1].split('</transcript>')[0].trim().split('\n').length;
       const d = window.MOCK.digest || {
@@ -45,11 +50,12 @@ function pageMock(st) {
       const text = typeof d === 'string' ? d : JSON.stringify(d);
       return { ok: true, status: 200, json: async () => (groq ? { choices: [{ message: { content: text } }] } : { content: [{ type: 'text', text }] }) };
     }
+    if (kind === 'translate' && window.MOCK.trStatus) return { ok: false, status: window.MOCK.trStatus, json: async () => ({ error: { message: window.MOCK.trMessage || 'mock error' } }) };
     if (kind !== 'translate' && window.MOCK.assistStatus !== 200) return { ok: false, status: window.MOCK.assistStatus, json: async () => ({ error: { message: 'mock error' } }) };
     let out, first, step;
     if (kind === 'translate') {
       const txt = user.match(/<translate>([\s\S]*)<\/translate>/)[1];
-      out = '번역[' + txt.trim().split(/\s+/).slice(0, 3).join(' ') + ']'; first = 60; step = 10;
+      out = '번역[' + txt.trim().split(/\s+/).slice(0, 3).join(' ') + ']'; first = window.MOCK.trDelay || 60; step = 10;
     } else {
       out = window.MOCK.assist || (kind === 'assist-ko'
         ? 'EN: Could we revisit the price?\nKO: 가격을 다시 논의할 수 있을까요?\nEN: Would it be possible to revisit the pricing?\nKO: 가격을 다시 검토해 주실 수 있을까요?'

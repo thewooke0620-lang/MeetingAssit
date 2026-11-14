@@ -68,4 +68,22 @@ core = api.createCore(); core.mode = 'llm';
 feed(core, "We agree with that."); Object.assign(core.blocks[0], { ko: '동의합니다.', mt: '우리는 동의한다.', alt: '그 점에 동의합니다.', altLabel: 'Sonnet' });
 assert.strictEqual(api.exportText(core, {}), "[화자 1] We agree with that.\n동의합니다.");
 assert.strictEqual(api.exportText(core, {}, true), "[화자 1] We agree with that.\n동의합니다.\n  [Soniox] 우리는 동의한다.\n  [Sonnet] 그 점에 동의합니다.");
+
+// 연결 복구: 재시도 간격, 소리 모아 두기 한도, 끊길 때 남은 말 살리기, 남은 번역 세기
+const rc = new Function(src + '; return { retryDelay, newQueue, pushChunk, salvageNf, pendingTranslations };')();
+assert.deepStrictEqual([1, 2, 3, 4, 5, 6, 9].map(rc.retryDelay), [500, 1000, 2000, 4000, 8000, 10000, 10000]);
+const q = rc.newQueue();
+let lost = 0;
+for (let i = 0; i < 350; i++) lost += rc.pushChunk(q, i, 100, 30000);
+assert.strictEqual(q.total, 30000); assert.strictEqual(lost, 5000); assert.strictEqual(q.items[0], 50);
+core = api.createCore(); core.mode = 'llm';
+feed(core, "We reviewed the draft.");
+api.processTokens(core, [{ text: ' The escrow', is_final: false, speaker: '1' }]);
+assert.strictEqual(rc.salvageNf(core), true); assert.strictEqual(core.nf.en, '');
+assert(core.blocks.map((b) => b.en).join('').includes('The escrow'));
+assert.strictEqual(rc.pendingTranslations(core), core.blocks.length);
+core.blocks.forEach((b) => { b.trSrc = b.en.trim(); b.trState = 'done'; });
+assert.strictEqual(rc.pendingTranslations(core), 0);
+core.blocks[0].trState = 'run'; assert.strictEqual(rc.pendingTranslations(core), 1);
+core.mode = 'inline'; assert.strictEqual(rc.pendingTranslations(core), 0);
 console.log('CORE TESTS PASSED');
