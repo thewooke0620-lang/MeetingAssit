@@ -101,7 +101,11 @@
   .meetlist { border: 1px solid var(--line); border-radius: 8px; max-height: 190px; overflow-y: auto; font-size: 13px; }
   .meetlist .mrow { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--line); }
   .meetlist .mrow:last-child { border-bottom: 0; }
-  .meetlist .mrow .minfo { flex: 1 1 auto; min-width: 0; }
+  .meetlist .mrow { flex-wrap: wrap; }
+  .meetlist .mrow .minfo { flex: 1 1 12em; min-width: 0; }
+  .meetlist .mtitle { font-weight: 600; font-size: 13.5px; }
+  .meetlist .mtitle.pending { font-weight: 400; color: var(--muted); }
+  .meetlist .mmeta { color: var(--muted); font-size: 12px; margin-top: 1px; }
   .meetlist .none { padding: 10px; color: var(--muted); }
   .btn.sm { padding: 3px 9px; font-size: 12px; flex: 0 0 auto; }
   .stat { margin: 0; white-space: pre-wrap; font: inherit; font-size: 12.5px; line-height: 1.7; padding: 8px 10px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); }
@@ -181,6 +185,7 @@
       <div class="field packonly">
         <label>이 묶음의 지난 회의</label>
         <div id="meetList" class="meetlist"></div>
+        <div class="hint">정지하면 회의 내용을 보고 제목을 자동으로 붙입니다. 제목은 "제목 수정"으로 고칠 수 있습니다.</div>
       </div>
       <div class="field packonly">
         <label>백업</label>
@@ -1710,7 +1715,7 @@ function stop() {
   if (wasRunning) {
     // 바로 한 번 저장하고, 늦게 도착하는 마지막 번역까지 담기도록 잠시 뒤 한 번 더 저장한다
     saveMeeting();
-    setTimeout(() => { saveMeeting(true); }, 4000);
+    setTimeout(() => { saveMeeting(true).then(() => autoTitle(R.meetingId)); }, 4000);
   }
 }
 
@@ -1724,7 +1729,9 @@ el.source.addEventListener("change", () => { settings.source = el.source.value; 
 el.clear.addEventListener("click", async () => {
   const kept = Store.ok && settings.autoSave !== false && !R.noSave;
   if (core.blocks.length && !window.confirm(kept ? "화면의 기록을 모두 지울까요?\n(지금까지의 기록은 회의 묶음에 저장해 둡니다.)" : "화면의 기록을 모두 지울까요?")) return;
+  const prevMeeting = R.meetingId;
   await saveMeeting();
+  if (prevMeeting) autoTitle(prevMeeting);       // 정지 없이 지운 회의에도 제목을 붙인다
   R.meetingId = null; R.meetingStart = 0; R.meetingSecs = 0; R.noSave = false;
   if (R.running) R.startedAt = Date.now();
   core.blocks = []; core.nf = { en: "", ko: "", speaker: null }; core.breakNext = false; resetDraft();
@@ -1799,7 +1806,23 @@ const Store = {
   all(store) { return this.run(store, "readonly", (s) => s.getAll()); },
   put(store, value) { return this.run(store, "readwrite", (s) => s.put(value)); },
   del(store, id) { return this.run(store, "readwrite", (s) => s.delete(id)); },
-  meetingsOf(packId) { return this.run("meetings", "readonly", (s) => s.index("packId").getAll(packId)); }
+  meetingsOf(packId) { return this.run("meetings", "readonly", (s) => s.index("packId").getAll(packId)); },
+  get(store, id) { return this.run(store, "readonly", (s) => s.get(id)); },
+  // 한 건을 읽어 고친 뒤 다시 쓴다. 한 번의 처리로 묶여 있어서 자동 저장과 제목 붙이기가 겹쳐도 서로 덮어쓰지 않는다
+  // fn 이 null 을 돌려주면 쓰지 않는다
+  update(store, id, fn) {
+    return new Promise((resolve, reject) => {
+      try {
+        const tx = this.db.transaction(store, "readwrite");
+        const s = tx.objectStore(store);
+        let next = null;
+        const g = s.get(id);
+        g.onsuccess = () => { next = fn(g.result) || null; if (next) s.put(next); };
+        tx.oncomplete = () => resolve(next);
+        tx.onerror = tx.onabort = () => reject(tx.error || new Error("저장 실패"));
+      } catch (e) { reject(e); }
+    });
+  }
 };
 
 let packs = [];                 // { id, name, brief, terms, createdAt, updatedAt }
@@ -1869,17 +1892,114 @@ async function saveMeeting(announce) {
   if (!lines.length) return false;
   if (!R.meetingId) { R.meetingId = newId(); R.meetingStart = R.startedAt || Date.now(); }
   const secs = Math.round(R.meetingSecs + (R.running && R.startedAt ? (Date.now() - R.startedAt) / 1000 : 0));
+  const id = R.meetingId;
+  let saved = null;
   try {
-    await Store.put("meetings", { id: R.meetingId, packId: settings.packId, startedAt: R.meetingStart, endedAt: Date.now(), secs, lines });
+    // 이미 붙은 제목은 그대로 두고 내용만 바꾼다
+    saved = await Store.update("meetings", id, (old) => Object.assign({}, old || {},
+      { id, packId: settings.packId, startedAt: R.meetingStart, endedAt: Date.now(), secs, lines }));
   } catch (e) {
     if (announce) setConnState("회의 기록을 저장하지 못했습니다. 위의 저장 버튼으로 파일로 받아 두세요.");
     return false;
   }
-  if (announce && !R.running) setConnState("회의 기록을 '" + currentPack().name + "' 묶음에 저장했습니다 (" + lines.length + "줄).");
+  if (announce && !R.running) setConnState("회의 기록을 '" + currentPack().name + "' 묶음에 저장했습니다" + (saved && saved.title ? ": " + saved.title : "") + " (" + lines.length + "줄).");
   if (el.dlg.open) renderMeetList();
   return true;
 }
 document.addEventListener("visibilitychange", () => { if (document.hidden) saveMeeting(); });
+
+// ---- 회의 제목 자동 작성 ----
+const titleBusy = new Set(), titleTried = new Set();
+
+// 제목을 지을 엔진: 지금 쓰는 번역 엔진, 없으면 키가 있는 쪽
+function titleSpec() {
+  if (isLLM() && hasKey(mainSpec().p)) return mainSpec();
+  if (hasKey("claude")) return { p: "claude", model: "claude-haiku-5-5" };
+  if (hasKey("groq")) return { p: "groq", model: settings.groqModel || GROQ_DEFAULT };
+  return null;
+}
+
+// 한 번 묻고 답을 통째로 받는다 (제목처럼 짧은 글용. 번역과 달리 글자 단위로 받지 않는다)
+async function llmAsk(spec, system, user, maxTokens) {
+  if (spec.p === "groq") {
+    const body = { model: spec.model, temperature: 0.3, max_completion_tokens: maxTokens + 600,
+      messages: [{ role: "system", content: system }, { role: "user", content: user }] };
+    if (/gpt-oss/.test(spec.model) && T.groqLean) { body.reasoning_effort = "low"; body.include_reasoning = false; }
+    const res = await fetch(GROQ_URL, { method: "POST",
+      headers: { "content-type": "application/json", "authorization": "Bearer " + settings.groqKey.trim() }, body: JSON.stringify(body) });
+    if (!res.ok) { const e = new Error("HTTP " + res.status); e.status = res.status; throw e; }
+    const j = await res.json();
+    return (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || "";
+  }
+  const body = { model: spec.model, max_tokens: maxTokens, system, messages: [{ role: "user", content: user }] };
+  if (T.lean >= 2) body.thinking = { type: "disabled" };
+  if (T.lean >= 1) body.output_config = { effort: "low" };
+  const res = await fetch(CLAUDE_URL, { method: "POST",
+    headers: { "content-type": "application/json", "x-api-key": settings.claudeKey.trim(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+    body: JSON.stringify(body) });
+  if (!res.ok) { const e = new Error("HTTP " + res.status); e.status = res.status; throw e; }
+  const j = await res.json();
+  return (j.content || []).filter((c) => c.type === "text").map((c) => c.text).join("");
+}
+
+function cleanTitle(raw) {
+  const first = (raw || "").split("\n").map((x) => x.trim()).filter(Boolean)[0] || "";
+  return first.replace(/^(제목|title)\s*[:：]\s*/i, "").replace(/^["'“‘「『\s]+|["'”’」』.\s]+$/g, "").slice(0, 40);
+}
+
+// AI 를 쓸 수 없을 때의 제목: 첫 문장의 앞부분
+function simpleTitle(lines) {
+  const t = ((lines[0] && (lines[0].ko || lines[0].en)) || "회의").replace(/\s+/g, " ").trim();
+  return t.length > 24 ? t.slice(0, 24) + "…" : t;
+}
+
+// 회의 내용을 읽고 제목을 짓는다. { title, ai } 를 돌려준다
+async function makeTitle(m, pack) {
+  const spec = titleSpec();
+  if (spec) {
+    try {
+      let body = m.lines.map((l) => (l.who ? l.who + ": " : "") + (l.en || l.ko)).join("\n");
+      if (body.length > 6000) body = body.slice(0, 3500) + "\n…\n" + body.slice(-2500);   // 긴 회의는 앞과 뒤만 본다
+      const system = "You write titles for saved meeting records. Read the transcript and reply with one Korean title of at most 30 characters " +
+        "that tells this meeting apart from other meetings in the same series: name the main topic and, if clear, the key issue or decision. " +
+        "No date, no quotes, no ending punctuation, no explanation. Reply with the title only.";
+      const user = (pack ? "Meeting series: " + pack.name + (pack.brief ? "\nBackground: " + pack.brief : "") + "\n\n" : "") +
+        "<transcript>\n" + body + "\n</transcript>";
+      const title = cleanTitle(await llmAsk(spec, system, user, 100));
+      if (title) return { title, ai: true };
+    } catch (e) {}
+  }
+  return { title: simpleTitle(m.lines), ai: false };
+}
+
+// 저장된 회의에 제목을 붙인다. 손으로 고친 제목은 건드리지 않고, 제목을 지은 뒤 내용이 늘었으면 다시 짓는다
+async function autoTitle(id) {
+  if (!Store.ok || !id || titleBusy.has(id)) return;
+  titleBusy.add(id);
+  try {
+    const m = await Store.get("meetings", id);
+    if (!m || m.titleManual || !m.lines || !m.lines.length) return;
+    if (m.title && m.titleLines === m.lines.length) return;
+    const n = m.lines.length;
+    const made = await makeTitle(m, packs.find((p) => p.id === m.packId) || null);
+    // AI 없이 지은 임시 제목은 titleLines 를 -1 로 두어, 나중에 키가 생기면 다시 짓게 한다
+    const saved = await Store.update("meetings", id, (cur) => (cur && !cur.titleManual
+      ? Object.assign({}, cur, { title: made.title, titleLines: made.ai ? n : -1 }) : null));
+    if (saved && id === R.meetingId && !R.running) {
+      const p = packs.find((x) => x.id === saved.packId);
+      setConnState("회의 기록을 '" + (p ? p.name : "") + "' 묶음에 저장했습니다: " + saved.title + " (" + saved.lines.length + "줄).");
+    }
+    if (el.dlg.open) renderMeetList();
+  } catch (e) {
+  } finally { titleBusy.delete(id); }
+}
+
+// 내려받는 파일: 회의록처럼 제목·일시·묶음을 맨 위에 적는다
+function meetingFile(m, pack) {
+  const mins = Math.max(1, Math.round((m.secs || 0) / 60));
+  const head = [m.title || "회의 기록", "일시: " + stamp(m.startedAt) + " (" + mins + "분)", pack ? "묶음: " + pack.name : ""].filter(Boolean);
+  return head.join("\n") + "\n\n" + meetingText(m);
+}
 
 // ---- 설정 창의 묶음 화면 ----
 function dlgPack() { return dlgPacks.find((p) => p.id === dlgSel) || null; }
@@ -1941,24 +2061,47 @@ async function renderMeetList() {
   list.sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0));
   box.textContent = "";
   if (!list.length) { const n = document.createElement("div"); n.className = "none"; n.textContent = "아직 저장된 회의가 없습니다."; box.append(n); return; }
+  const safeName = (x) => x.replace(/[\\/:*?"<>|]/g, "_").slice(0, 40);
+  let toTitle = 0;
   for (const m of list) {
+    const live = m.id === R.meetingId && R.running;
+    // 제목이 없거나 내용이 늘어난 기록은 한 번씩 제목을 지어 준다 (진행 중인 회의는 정지한 뒤에)
+    const stale = !m.titleManual && (!m.title || m.titleLines !== (m.lines ? m.lines.length : 0));
+    if (stale && !live && !titleTried.has(m.id) && toTitle < 3) { titleTried.add(m.id); toTitle++; autoTitle(m.id); }
     const row = document.createElement("div"); row.className = "mrow";
-    const info = document.createElement("span"); info.className = "minfo";
+    const info = document.createElement("div"); info.className = "minfo";
+    const title = document.createElement("div"); title.className = "mtitle" + (m.title ? "" : " pending");
+    title.textContent = m.title || (live ? "(진행 중)" : titleBusy.has(m.id) ? "(제목 짓는 중…)" : "(제목 없음)");
+    const meta = document.createElement("div"); meta.className = "mmeta";
     const mins = Math.max(1, Math.round((m.secs || 0) / 60));
-    info.textContent = stamp(m.startedAt) + " · " + mins + "분 · " + (m.lines ? m.lines.length : 0) + "줄" + (m.id === R.meetingId ? " · 지금 화면의 회의" : "");
+    meta.textContent = stamp(m.startedAt) + " · " + mins + "분 · " + (m.lines ? m.lines.length : 0) + "줄" + (m.id === R.meetingId ? " · 지금 화면의 회의" : "");
+    info.append(title, meta);
+    const ed = document.createElement("button"); ed.type = "button"; ed.className = "btn sm"; ed.textContent = "제목 수정";
+    ed.addEventListener("click", async () => {
+      let t;
+      try { t = window.prompt("회의 제목을 입력해 주세요. 비워 두면 내용을 보고 자동으로 다시 짓습니다.", m.title || ""); } catch (e) { return; }
+      if (t === null) return;
+      t = t.trim().slice(0, 60);
+      try {
+        await Store.update("meetings", m.id, (cur) => (cur ? Object.assign({}, cur, { title: t, titleManual: !!t, titleLines: t ? cur.titleLines : 0 }) : null));
+      } catch (e) {}
+      if (!t) titleTried.delete(m.id);
+      renderMeetList();
+    });
     const dl = document.createElement("button"); dl.type = "button"; dl.className = "btn sm"; dl.textContent = "내려받기";
     dl.addEventListener("click", () => {
       const p = dlgPack();
-      downloadFile("회의기록_" + (p ? p.name.replace(/[\\/:*?"<>|]/g, "_") + "_" : "") + stamp(m.startedAt, true) + ".txt", "﻿" + meetingText(m));
+      const name = "회의기록_" + (p ? safeName(p.name) + "_" : "") + stamp(m.startedAt, true) + (m.title ? "_" + safeName(m.title) : "") + ".txt";
+      downloadFile(name, String.fromCharCode(0xFEFF) + meetingFile(m, p));
     });
     const rm = document.createElement("button"); rm.type = "button"; rm.className = "btn sm"; rm.textContent = "삭제";
     rm.addEventListener("click", async () => {
-      if (!window.confirm(stamp(m.startedAt) + " 회의 기록을 삭제할까요? 되돌릴 수 없습니다.")) return;
+      if (!window.confirm(stamp(m.startedAt) + (m.title ? " '" + m.title + "'" : "") + " 회의 기록을 삭제할까요? 되돌릴 수 없습니다.")) return;
       if (m.id === R.meetingId) { R.noSave = true; R.meetingId = null; }   // 지금 화면의 회의를 지웠으면, 화면을 지우기 전까지 다시 저장하지 않는다
       try { await Store.del("meetings", m.id); } catch (e) {}
       renderMeetList();
     });
-    row.append(info, dl, rm);
+    row.append(info, ed, dl, rm);
     box.append(row);
   }
 }
@@ -2030,7 +2173,8 @@ $("packFile").addEventListener("change", async () => {
     for (const m of Array.isArray(data.meetings) ? data.meetings : []) {
       if (!m || typeof m.id !== "string" || !m.id || !known.has(m.packId) || !Array.isArray(m.lines)) continue;
       const lines = m.lines.slice(0, 20000).map((l) => ({ who: str(l && l.who, 60), en: str(l && l.en, 5000), ko: str(l && l.ko, 5000) }));
-      await Store.put("meetings", { id: str(m.id, 40), packId: m.packId, startedAt: num(m.startedAt), endedAt: num(m.endedAt), secs: typeof m.secs === "number" ? m.secs : 0, lines });
+      await Store.put("meetings", { id: str(m.id, 40), packId: m.packId, startedAt: num(m.startedAt), endedAt: num(m.endedAt), secs: typeof m.secs === "number" ? m.secs : 0, lines,
+        title: str(m.title, 60), titleManual: m.titleManual === true, titleLines: typeof m.titleLines === "number" ? m.titleLines : 0 });
       nm++;
     }
     packs = await Store.all("packs");
