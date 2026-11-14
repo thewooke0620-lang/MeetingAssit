@@ -67,7 +67,9 @@ const save = async (p) => { await p.click('#saveSettings'); await p.waitForTimeo
   assert(m.length === 1 && /2줄/.test(m[0]) && /지금 화면의 회의/.test(m[0]));
 
   // 4) 내려받기 내용
-  let [dl] = await Promise.all([p.waitForEvent('download'), p.click('#meetList .mrow button:has-text("내려받기")')]);
+  await p.click('#meetList .mrow button:has-text("열기")'); await p.waitForTimeout(300);
+  let [dl] = await Promise.all([p.waitForEvent('download'), p.click('#mvDownload')]);
+  await p.click('#mvClose');
   const txt = fs.readFileSync(await dl.path(), 'utf8');
   console.log('4 파일명:', dl.suggestedFilename(), '\n' + txt.replace(/^﻿/, ''));
   assert(/\[화자 1\] We reviewed the draft agreement over the weekend\.\n번역\[We reviewed the\]/.test(txt));

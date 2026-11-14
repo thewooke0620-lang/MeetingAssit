@@ -108,6 +108,42 @@
   .meetlist .mmeta { color: var(--muted); font-size: 12px; margin-top: 1px; }
   .meetlist .none { padding: 10px; color: var(--muted); }
   .btn.sm { padding: 3px 9px; font-size: 12px; flex: 0 0 auto; }
+  /* 답변 제안 */
+  .assist { flex: 0 0 auto; border-top: 1px solid var(--line); background: var(--panel); padding: 8px 12px 10px; }
+  .assist.closed .as-body, .assist.closed .as-form { display: none; }
+  .as-head { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .as-state { color: var(--warn); font-size: 12px; }
+  .as-body { max-height: 32vh; overflow-y: auto; margin: 8px 0; display: flex; flex-direction: column; gap: 6px; }
+  .as-empty { color: var(--muted); font-size: 13px; line-height: 1.5; }
+  .as-q { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .as-qko { font-size: 13px; color: var(--muted); margin-top: -3px; }
+  .as-tag { display: inline-block; margin-right: 8px; padding: 1px 8px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); font-size: 11px; font-weight: 700; color: var(--accent); }
+  .as-opt { text-align: left; border: 1px solid var(--line); background: var(--panel2); border-radius: 10px; padding: 8px 12px; cursor: pointer; }
+  .as-opt:hover { border-color: var(--accent); }
+  .as-opt.copied { border-color: var(--ok); }
+  .as-en { font-size: 15px; line-height: 1.45; }
+  .as-ko { font-size: 12.5px; color: var(--muted); margin-top: 3px; line-height: 1.45; }
+  .as-form { display: flex; gap: 8px; }
+  .as-form input { flex: 1 1 auto; min-width: 0; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 14px; }
+  /* 회의 보기 창 */
+  #meetDlg { width: min(640px, 94vw); }
+  #meetDlg .dlg-foot { flex-wrap: wrap; }
+  .mvnote { margin: 10px 0; padding: 8px 10px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+  .mvnote.warn { color: #ffc9c9; border-color: #4a2a2a; }
+  .mvh { margin: 16px 0 6px; font-size: 14px; }
+  .mvlist { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.6; }
+  .mvgroup { margin: 10px 0 4px; font-size: 12px; font-weight: 700; color: var(--accent); }
+  .mvpick { display: flex; align-items: flex-start; gap: 8px; padding: 4px 0; font-size: 13.5px; line-height: 1.5; cursor: pointer; }
+  .mvpick input { width: 16px; height: 16px; margin-top: 3px; flex: 0 0 auto; }
+  .mvpick.has { color: var(--muted); cursor: default; }
+  .mvsub { display: block; font-size: 12px; color: var(--muted); }
+  .mvaddrow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 10px 0 4px; }
+  .mvlog { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 10px; }
+  .mvlog summary { cursor: pointer; font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+  .mvline { padding: 6px 0; border-bottom: 1px solid #1c2028; font-size: 13.5px; line-height: 1.5; }
+  .mvwho { display: inline-block; font-size: 11px; font-weight: 700; color: var(--accent); margin-bottom: 2px; }
+  .mvko { color: #c3cad6; }
+  .mmeta { color: var(--muted); font-size: 12px; }
   .stat { margin: 0; white-space: pre-wrap; font: inherit; font-size: 12.5px; line-height: 1.7; padding: 8px 10px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); }
   #connState { font-size: 13px; padding: 8px 10px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); }
 </style>
@@ -127,6 +163,7 @@
   </select>
   <button id="toggle" class="btn primary">시작</button>
   <button id="pip" class="btn" title="회의 창 위에 띄우는 작은 창">작은 창</button>
+  <button id="digestBtn" class="btn" title="지금 화면의 회의를 요약하고 정리합니다">회의 정리</button>
   <button id="save" class="btn" title="기록을 텍스트 파일로 저장">저장</button>
   <button id="clear" class="btn" title="화면의 기록 지우기">지우기</button>
   <button id="openSettings" class="btn">설정</button>
@@ -150,6 +187,31 @@
     <button id="jump">최신으로 ↓</button>
   </div>
 </div>
+
+<div id="assist" class="assist" style="display:none">
+  <div class="as-head">
+    <b>답변 제안</b><span id="asState" class="as-state"></span>
+    <span class="spacer"></span>
+    <button id="asNow" class="btn sm" type="button" title="방금 들린 말에 할 수 있는 답변을 제안합니다">지금 제안</button>
+    <button id="asHide" class="btn sm" type="button">접기</button>
+  </div>
+  <div id="asBody" class="as-body"></div>
+  <form id="asForm" class="as-form">
+    <input id="asInput" type="text" autocomplete="off" maxlength="300" placeholder="하고 싶은 말을 한국어로 적고 Enter (영어 표현으로 바꿔 줍니다)">
+    <button class="btn" type="submit">영어로</button>
+  </form>
+</div>
+
+<dialog id="meetDlg">
+  <div class="dlg-head"><span id="mvTitle">회의 기록</span></div>
+  <div class="dlg-body" id="mvBody"></div>
+  <div class="dlg-foot">
+    <button id="mvRename" class="btn" type="button">제목 수정</button>
+    <button id="mvRedo" class="btn" type="button">다시 정리</button>
+    <button id="mvDownload" class="btn" type="button">내려받기</button>
+    <button id="mvClose" class="btn primary" type="button">닫기</button>
+  </div>
+</dialog>
 
 <dialog id="settings">
   <div class="dlg-head">설정</div>
@@ -179,13 +241,27 @@
         <div class="hint">등록한 단어는 더 정확하게 받아 적습니다. <b>영어 = 한국어</b>로 적으면 번역할 때 항상 그 표현을 씁니다. 회사명이나 사람 이름처럼 그대로 둘 단어는 영어만 적어 주세요.</div>
       </div>
       <div class="field packonly">
+        <label for="packFacts">쌓인 내용 (선택)</label>
+        <textarea id="packFacts" placeholder="이 묶음의 회의에서 기억해 둘 내용을 한 줄에 하나씩 적습니다.&#10;예) 납기는 발주 후 6주&#10;예) 상대는 연 5% 인상 상한을 요구함"></textarea>
+        <div class="hint">답변 제안에 쓰입니다. 회의가 끝난 뒤 '회의 정리'에서 고른 항목이 여기에 추가되고, 직접 고칠 수도 있습니다.</div>
+      </div>
+      <div class="field packonly">
+        <label for="packQa">자주 받는 질문과 내 답변 (선택)</label>
+        <textarea id="packQa" placeholder="Q: What is your delivery lead time?&#10;A: 발주 후 6주입니다. 급한 건은 4주까지 협의 가능합니다."></textarea>
+        <div class="hint">비슷한 질문이 나오면 이 답변을 바탕으로 영어 답변을 제안합니다. 답은 한국어로 적어도 됩니다.</div>
+      </div>
+      <div class="field packonly">
         <label class="check"><input id="autoSave" type="checkbox"> 회의 기록을 고른 묶음에 자동 저장</label>
         <div class="hint">회의 중에는 30초마다, 그리고 정지할 때 영어 원문과 번역이 이 브라우저에 저장됩니다. 소리는 저장하지 않습니다. 남기면 안 되는 회의는 꺼 주세요.</div>
       </div>
       <div class="field packonly">
+        <label class="check"><input id="autoDigest" type="checkbox"> 정지하면 제목과 회의 정리를 자동으로 작성</label>
+        <div class="hint">회의 내용 전체를 AI(Claude 또는 Groq)에 한 번 보내 제목, 요약, 결정 사항, 할 일, 새 용어, 받은 질문을 뽑습니다. 꺼 두면 '열기'나 '회의 정리'를 누를 때만 만듭니다. 번역 방식이 Soniox 내장이어도 저장해 둔 키가 있으면 그 키를 씁니다.</div>
+      </div>
+      <div class="field packonly">
         <label>이 묶음의 지난 회의</label>
         <div id="meetList" class="meetlist"></div>
-        <div class="hint">정지하면 회의 내용을 보고 제목을 자동으로 붙입니다. 제목은 "제목 수정"으로 고칠 수 있습니다.</div>
+        <div class="hint">'열기'를 누르면 요약과 전체 기록을 보고, 제목을 고치거나 파일로 내려받을 수 있습니다.</div>
       </div>
       <div class="field packonly">
         <label>백업</label>
@@ -194,6 +270,7 @@
           <button id="packImport" class="btn" type="button">가져오기</button>
           <input id="packFile" type="file" accept=".json,application/json" hidden>
         </div>
+        <div class="hint" id="backupInfo"></div>
         <div class="hint" id="packMsg">묶음과 회의 기록은 이 브라우저에만 저장됩니다. 브라우저 기록을 지우거나 다른 컴퓨터를 쓰면 보이지 않으니, 가끔 내보내기로 파일에 보관해 주세요. API 키는 백업 파일에 들어가지 않습니다.</div>
       </div>
       <div class="field nostoreonly">
@@ -273,6 +350,10 @@
         </select>
       </div>
       <div class="field">
+        <label class="check"><input id="stable" type="checkbox"> 번역이 덜 바뀌게 (안정 모드)</label>
+        <div class="hint">한 줄의 번역이 Soniox 번역에서 확정 번역으로 한 번만 바뀝니다. 말하는 도중의 미리 번역과 긴 문장 다듬기를 쓰지 않아서 화면이 차분해지고 AI 호출도 줄어듭니다. 대신 AI 번역은 문장이 끝난 뒤에 뜹니다.</div>
+      </div>
+      <div class="field">
         <label class="check"><input id="draftFast" type="checkbox"> 미리 번역은 Groq에 맡기기 (Groq 키가 있을 때)</label>
         <div class="hint">번역 방식이 Claude일 때, 말하는 도중의 미리 번역만 Groq이 맡습니다. 문장이 끝나면 Claude가 확정 번역으로 바꿉니다.</div>
       </div>
@@ -321,6 +402,21 @@
     <div class="field">
       <label class="check"><input id="micClean" type="checkbox"> 마이크 잡음·울림 제거</label>
       <div class="hint">마이크 입력일 때만 적용됩니다. 꺼 두면 주변 소리를 그대로 들어서, 같은 폰이나 PC의 스피커에서 나는 소리(유튜브, 회의 앱)도 인식합니다. 켜면 그 소리는 지워지고 가까이서 말하는 목소리만 또렷하게 받습니다. 바꾼 뒤에는 정지하고 다시 시작해 주세요.</div>
+    </div>
+    <div class="packbox">
+      <div class="field">
+        <label class="check"><input id="assistOn" type="checkbox"> 답변 제안 사용</label>
+        <div class="hint">화면 아래에 답변 제안 칸이 생깁니다. Claude나 Groq API 키가 있어야 합니다. 키 입력란은 번역 방식을 Claude나 Groq으로 두면 보입니다. 번역 방식이 Soniox 내장이어도 저장해 둔 키가 있으면 그 키로 제안합니다.</div>
+      </div>
+      <div class="field">
+        <label class="check"><input id="assistAuto" type="checkbox"> 질문이 들리면 자동으로 제안</label>
+        <div class="hint">물음표로 끝나는 말이 들릴 때마다 AI를 한 번 부릅니다. 꺼 두면 '지금 제안'을 누를 때만 제안합니다.</div>
+      </div>
+      <div class="field">
+        <label for="me">내 정보 (선택)</label>
+        <textarea id="me" maxlength="1500" placeholder="예) 구매팀 과장. 공급 계약 실무 담당. 가격 결정 권한은 팀장에게 있음."></textarea>
+        <div class="hint">소속, 역할, 권한을 적어 두면 내 입장에 맞는 답변을 제안합니다. 모든 묶음에 공통으로 쓰입니다.</div>
+      </div>
     </div>
     <div class="field" id="statField">
       <label>번역 속도 기록 (시작부터 지금까지)</label>
@@ -636,7 +732,9 @@ const DEFAULTS = {
   engine: "soniox", claudeKey: "", claudeModel: "claude-haiku-5-5", draft: true, preview: true,
   brief: "", refine: true, compare: false,
   groqKey: "", groqModel: "openai/gpt-oss-120b", draftFast: true,
-  packId: "", autoSave: true, micClean: false
+  packId: "", autoSave: true, micClean: false,
+  stable: false, lastBackupAt: 0, backupNagAt: 0,
+  assist: true, assistAuto: true, assistOpen: true, me: "", autoDigest: true
 };
 
 function loadSettings() {
@@ -684,7 +782,7 @@ function applyDisplaySettings() {
   el.transcript.classList.toggle("hide-en", !settings.showOriginal && settings.target !== "none");
   core.diar = !!settings.diar;
   core.mode = isLLM() && settings.target !== "none" ? "llm" : "inline";
-  core.refine = settings.refine !== false;
+  core.refine = settings.refine !== false && !settings.stable;   // 안정 모드에서는 끊어 번역·다듬기를 쓰지 않는다
   el.source.value = settings.source;
 }
 
@@ -994,7 +1092,7 @@ const T = {
   draft: { sent: "", ko: "", koFor: "", block: null, busy: false, ac: null, at: 0, promise: null, by: "" },
   draftGap: DRAFT_GAP_MS, lastDraftMs: 0,
   // 속도 기록 (시작할 때마다 새로 쌓는다)
-  stats: {}, counts: { final: 0, draft: 0, refine: 0, alt: 0, reuse: 0 }, altBusy: 0,
+  stats: {}, counts: { final: 0, draft: 0, refine: 0, alt: 0, reuse: 0, assist: 0 }, altBusy: 0,
   // off: 이번 회의에서 쓸 수 없게 된 보조 엔진 / groqPause: 한도에 걸려 잠시 쉬는 시각 / groqLean: 추론 최소화 설정 사용
   off: {}, groqPause: 0, groqLean: true, altOff: false
 };
@@ -1003,6 +1101,8 @@ const T = {
 // 번역 엔진 고르기. spec = { p: "claude" | "groq", model }
 // ---------------------------------------------------------------------------
 function isLLM() { return settings.engine === "claude" || settings.engine === "groq"; }
+// 말하는 도중의 미리 번역을 쓰는지. 안정 모드에서는 쓰지 않는다 (한 줄이 한 번만 바뀌게)
+function draftOn() { return settings.draft !== false && !settings.stable; }
 function hasKey(p) { return !!((p === "groq" ? settings.groqKey : settings.claudeKey) || "").trim(); }
 function specKey(spec) { return spec.p + ":" + spec.model; }
 function specName(spec) { return MODEL_SHORT[spec.model] || spec.model; }
@@ -1034,10 +1134,11 @@ function altSpec() {
   return { p: "claude", model: settings.claudeModel === "claude-sonnet-5-5" ? "claude-haiku-5-5" : "claude-sonnet-5-5" };
 }
 
-function llmStream(spec, text, context, signal, onDelta, retried) {
+// raw = { system, user, max } 를 주면 번역 지시문 대신 그 내용으로 묻는다 (답변 제안처럼 글자 단위로 받는 다른 일에 쓴다)
+function llmStream(spec, text, context, signal, onDelta, retried, raw) {
   return spec.p === "groq"
-    ? groqStream(text, context, signal, onDelta, retried, spec.model)
-    : claudeStream(text, context, signal, onDelta, retried, spec.model);
+    ? groqStream(text, context, signal, onDelta, retried, spec.model, raw)
+    : claudeStream(text, context, signal, onDelta, retried, spec.model, raw);
 }
 
 // 다시 시도해도 소용없는 오류(키, 권한, 모델, 잔액)인지
@@ -1064,7 +1165,7 @@ function stat(key, ms) {
 }
 
 function resetStats() {
-  T.stats = {}; T.counts = { final: 0, draft: 0, refine: 0, alt: 0, reuse: 0 };
+  T.stats = {}; T.counts = { final: 0, draft: 0, refine: 0, alt: 0, reuse: 0, assist: 0 };
   T.lastFirstMs = 0; T.lastTotalMs = 0; T.lastDraftMs = 0;
 }
 
@@ -1094,10 +1195,10 @@ function statSummary() {
   if (!rows.length) return "아직 기록이 없습니다. 회의를 시작하면 쌓입니다.";
   if (core.mode !== "llm") return rows.join("\n");
   const c = T.counts, onOff = (v) => (v ? "켬" : "끔");
-  rows.push("AI 호출: 확정 " + c.final + "건 · 미리 번역 " + c.draft + "건 · 다듬기 " + c.refine + "건 · 비교 " + c.alt + "건 (미리 번역을 그대로 쓴 문장 " + c.reuse + "건)");
+  rows.push("AI 호출: 확정 " + c.final + "건 · 미리 번역 " + c.draft + "건 · 다듬기 " + c.refine + "건 · 비교 " + c.alt + "건 · 답변 제안 " + c.assist + "건 (미리 번역을 그대로 쓴 문장 " + c.reuse + "건)");
   const ms = mainSpec(), ds = draftSpec();
   rows.push("설정: 확정 " + specName(ms) + (specKey(ds) !== specKey(ms) ? " · 미리 번역 엔진 " + specName(ds) : "") + " · 즉시 번역 " + onOff(settings.preview !== false) +
-    " · 미리 번역 " + onOff(settings.draft !== false) + " · 다듬기 " + onOff(settings.refine !== false) + " · 비교 " + onOff(!!settings.compare));
+    " · 미리 번역 " + onOff(draftOn()) + " · 다듬기 " + onOff(core.refine) + " · 비교 " + onOff(!!settings.compare) + (settings.stable ? " · 안정 모드 켬" : ""));
   return rows.join("\n");
 }
 
@@ -1173,7 +1274,7 @@ function contextFor(idx, withKo) {
 }
 
 async function pumpDraft() {
-  if (core.mode !== "llm" || T.blocked || !settings.draft || !R.running) return;
+  if (core.mode !== "llm" || T.blocked || !draftOn() || !R.running) return;
   const d = T.draft;
   if (d.busy) return;
   const cur = currentPartial(core);
@@ -1246,13 +1347,13 @@ function claudeSystemPrompt() {
   return p;
 }
 
-async function claudeStream(text, context, signal, onDelta, retried, model) {
+async function claudeStream(text, context, signal, onDelta, retried, model, raw) {
   const body = {
     model: model || settings.claudeModel || "claude-haiku-5-5",
-    max_tokens: 600,
+    max_tokens: raw ? raw.max : 600,
     stream: true,
-    system: claudeSystemPrompt(),
-    messages: [{ role: "user", content: (context ? "<context>\n" + context + "\n</context>\n" : "") + "<translate>" + text + "</translate>" }]
+    system: raw ? raw.system : claudeSystemPrompt(),
+    messages: [{ role: "user", content: raw ? raw.user : (context ? "<context>\n" + context + "\n</context>\n" : "") + "<translate>" + text + "</translate>" }]
   };
   // lean 2: 생각 끔 + 최소 노력 / 1: 최소 노력만 / 0: 기본값
   if (T.lean >= 2) body.thinking = { type: "disabled" };
@@ -1273,9 +1374,9 @@ async function claudeStream(text, context, signal, onDelta, retried, model) {
     const err = new Error((j && j.error && j.error.message) || ("HTTP " + res.status));
     err.status = res.status; err.provider = "claude";
     if (res.status === 400 && T.lean > 0 && /thinking|effort|output_config/i.test(err.message)) {
-      T.lean -= 1; return claudeStream(text, context, signal, onDelta, retried, model);
+      T.lean -= 1; return claudeStream(text, context, signal, onDelta, retried, model, raw);
     }
-    if ((res.status === 429 || res.status >= 500) && !retried) { await sleep(500); return claudeStream(text, context, signal, onDelta, true, model); }
+    if ((res.status === 429 || res.status >= 500) && !retried) { await sleep(500); return claudeStream(text, context, signal, onDelta, true, model, raw); }
     throw err;
   }
   const reader = res.body.getReader();
@@ -1299,13 +1400,13 @@ async function claudeStream(text, context, signal, onDelta, retried, model) {
 }
 
 // Groq (OpenAI 호환 방식). 같은 지시문과 같은 입력 형식을 쓴다
-async function groqStream(text, context, signal, onDelta, retried, model) {
+async function groqStream(text, context, signal, onDelta, retried, model, raw) {
   const m = model || settings.groqModel || GROQ_DEFAULT;
   const body = {
-    model: m, stream: true, temperature: 0.2, max_completion_tokens: 800,
+    model: m, stream: true, temperature: raw ? 0.4 : 0.2, max_completion_tokens: raw ? raw.max + 600 : 800,
     messages: [
-      { role: "system", content: claudeSystemPrompt() },
-      { role: "user", content: (context ? "<context>\n" + context + "\n</context>\n" : "") + "<translate>" + text + "</translate>" }
+      { role: "system", content: raw ? raw.system : claudeSystemPrompt() },
+      { role: "user", content: raw ? raw.user : (context ? "<context>\n" + context + "\n</context>\n" : "") + "<translate>" + text + "</translate>" }
     ]
   };
   // 추론형 모델(gpt-oss)은 생각을 최소로 하고, 생각 내용은 받지 않는다
@@ -1327,9 +1428,9 @@ async function groqStream(text, context, signal, onDelta, retried, model) {
     const err = new Error((j && j.error && j.error.message) || ("HTTP " + res.status));
     err.status = res.status; err.provider = "groq";
     if (res.status === 400 && T.groqLean && /reasoning/i.test(err.message)) {
-      T.groqLean = false; return groqStream(text, context, signal, onDelta, retried, model);
+      T.groqLean = false; return groqStream(text, context, signal, onDelta, retried, model, raw);
     }
-    if ((res.status === 429 || res.status >= 500) && !retried) { await sleep(500); return groqStream(text, context, signal, onDelta, true, model); }
+    if ((res.status === 429 || res.status >= 500) && !retried) { await sleep(500); return groqStream(text, context, signal, onDelta, true, model, raw); }
     throw err;
   }
   const reader = res.body.getReader();
@@ -1434,7 +1535,7 @@ async function translateBlock(idx) {
       engineSample(b, main, b.waitMs + total);
       showLatency();
       setConnState("Soniox 연결됨 · " + specName(main) + " 번역 정상 (첫 글자 " + (T.lastFirstMs / 1000).toFixed(1) + "초, 완료 " + (T.lastTotalMs / 1000).toFixed(1) + "초" +
-        (settings.draft && T.lastDraftMs ? ", 미리 번역 " + (T.lastDraftMs / 1000).toFixed(1) + "초" : "") + ")");
+        (draftOn() && T.lastDraftMs ? ", 미리 번역 " + (T.lastDraftMs / 1000).toFixed(1) + "초" : "") + ")");
     }
   } catch (e) {
     if (e && e.name === "AbortError") return;
@@ -1596,7 +1697,7 @@ function openSocket() {
       R.retries = 0;
       processTokens(core, msg.tokens);
       pumpTranslations();
-      pumpSonioxStats();
+      pumpExtras();
       render();
     }
     if (msg.finished) { try { ws.close(); } catch (e) {} }
@@ -1679,7 +1780,7 @@ async function start() {
   el.source.disabled = true;
   R.startedAt = Date.now();
   R.tick = setInterval(() => { el.timer.textContent = fmt(Date.now() - R.startedAt); }, 500);
-  T.tick = setInterval(() => { pumpTranslations(); pumpSonioxStats(); }, 200);
+  T.tick = setInterval(() => { pumpTranslations(); pumpExtras(); }, 200);
   clearInterval(R.saveTick);
   R.saveTick = setInterval(() => { saveMeeting(); }, 30000);
   try { if (navigator.wakeLock) R.wake = await navigator.wakeLock.request("screen"); } catch (e) {}
@@ -1703,7 +1804,7 @@ function stop() {
           if (typeof ev.data !== "string") return;
           try {
             const msg = JSON.parse(ev.data);
-            if (msg.tokens && msg.tokens.length) { processTokens(core, msg.tokens); pumpTranslations(); pumpSonioxStats(); render(); }
+            if (msg.tokens && msg.tokens.length) { processTokens(core, msg.tokens); pumpTranslations(); pumpExtras(); render(); }
             if (msg.finished) { clearTimeout(R.closeTimer); ws.close(); }
           } catch (e) {}
         };
@@ -1722,7 +1823,7 @@ function stop() {
   if (wasRunning) {
     // 바로 한 번 저장하고, 늦게 도착하는 마지막 번역까지 담기도록 잠시 뒤 한 번 더 저장한다
     saveMeeting();
-    setTimeout(() => { saveMeeting(true).then(() => autoTitle(R.meetingId)); }, 4000);
+    setTimeout(() => { saveMeeting(true).then(() => autoDigest(R.meetingId)).then(() => checkBackup()); }, 4000);
   }
 }
 
@@ -1738,7 +1839,9 @@ el.clear.addEventListener("click", async () => {
   if (core.blocks.length && !window.confirm(kept ? "화면의 기록을 모두 지울까요?\n(지금까지의 기록은 회의 묶음에 저장해 둡니다.)" : "화면의 기록을 모두 지울까요?")) return;
   const prevMeeting = R.meetingId;
   await saveMeeting();
-  if (prevMeeting) autoTitle(prevMeeting);       // 정지 없이 지운 회의에도 제목을 붙인다
+  if (prevMeeting) autoDigest(prevMeeting);      // 정지 없이 지운 회의에도 제목과 정리를 붙인다
+  if (AS.ac) { try { AS.ac.abort(); } catch (e) {} AS.ac = null; }
+  AS.cur = null; if (assistOn()) renderAssist();
   R.meetingId = null; R.meetingStart = 0; R.meetingSecs = 0; R.noSave = false;
   if (R.running) R.startedAt = Date.now();
   core.blocks = []; core.nf = { en: "", ko: "", speaker: null }; core.breakNext = false; resetDraft();
@@ -1864,7 +1967,7 @@ async function initPacks() {
     await Store.open();
     packs = await Store.all("packs");
     if (!packs.length) {
-      const p = { id: newId(), name: "기본", brief: settings.brief || "", terms: settings.terms || "", createdAt: Date.now(), updatedAt: Date.now() };
+      const p = { id: newId(), name: "기본", brief: settings.brief || "", terms: settings.terms || "", facts: "", qa: "", createdAt: Date.now(), updatedAt: Date.now() };
       await Store.put("packs", p);
       packs = [p];
     }
@@ -1876,6 +1979,7 @@ async function initPacks() {
   saveSettings(settings);
   updatePackPill();
   if (el.dlg.open) openPackUI();
+  checkBackup();
 }
 
 // ---- 회의 기록 자동 저장 ----
@@ -1915,18 +2019,19 @@ async function saveMeeting(announce) {
 }
 document.addEventListener("visibilitychange", () => { if (document.hidden) saveMeeting(); });
 
-// ---- 회의 제목 자동 작성 ----
-const titleBusy = new Set(), titleTried = new Set();
+// ---- 회의 후 정리: 제목, 요약, 결정 사항, 할 일, 묶음에 쌓을 내용 ----
+const digestBusy = new Set(), digestTried = new Set();
+const DIGEST_FAIL = "정리를 만들지 못했습니다. 잠시 뒤 '다시 정리'를 눌러 주세요.";
 
-// 제목을 지을 엔진: 지금 쓰는 번역 엔진, 없으면 키가 있는 쪽
-function titleSpec() {
+// 번역 말고 다른 일(제목, 정리, 답변 제안)을 맡길 엔진: 지금 쓰는 번역 엔진, 없으면 키가 있는 쪽
+function helperSpec() {
   if (isLLM() && hasKey(mainSpec().p)) return mainSpec();
   if (hasKey("claude")) return { p: "claude", model: "claude-haiku-5-5" };
   if (hasKey("groq")) return { p: "groq", model: settings.groqModel || GROQ_DEFAULT };
   return null;
 }
 
-// 한 번 묻고 답을 통째로 받는다 (제목처럼 짧은 글용. 번역과 달리 글자 단위로 받지 않는다)
+// 한 번 묻고 답을 통째로 받는다 (번역과 달리 글자 단위로 받지 않는다)
 async function llmAsk(spec, system, user, maxTokens) {
   if (spec.p === "groq") {
     const body = { model: spec.model, temperature: 0.3, max_completion_tokens: maxTokens + 600,
@@ -1960,53 +2065,464 @@ function simpleTitle(lines) {
   return t.length > 24 ? t.slice(0, 24) + "…" : t;
 }
 
-// 회의 내용을 읽고 제목을 짓는다. { title, ai } 를 돌려준다
-async function makeTitle(m, pack) {
-  const spec = titleSpec();
-  if (spec) {
-    try {
-      let body = m.lines.map((l) => (l.who ? l.who + ": " : "") + (l.en || l.ko)).join("\n");
-      if (body.length > 6000) body = body.slice(0, 3500) + "\n…\n" + body.slice(-2500);   // 긴 회의는 앞과 뒤만 본다
-      const system = "You write titles for saved meeting records. Read the transcript and reply with one Korean title of at most 30 characters " +
-        "that tells this meeting apart from other meetings in the same series: name the main topic and, if clear, the key issue or decision. " +
-        "No date, no quotes, no ending punctuation, no explanation. Reply with the title only.";
-      const user = (pack ? "Meeting series: " + pack.name + (pack.brief ? "\nBackground: " + pack.brief : "") + "\n\n" : "") +
-        "<transcript>\n" + body + "\n</transcript>";
-      const title = cleanTitle(await llmAsk(spec, system, user, 100));
-      if (title) return { title, ai: true };
-    } catch (e) {}
-  }
-  return { title: simpleTitle(m.lines), ai: false };
+function packOf(m) { return packs.find((p) => p.id === (m && m.packId)) || currentPack(); }
+
+const DIGEST_SYSTEM =
+  "You prepare the record of a business meeting for a Korean professional. Read the transcript and reply with one JSON object only (no markdown, no text around it) with exactly these keys:\n" +
+  "title: a Korean title of at most 30 characters that tells this meeting apart from other meetings in the same series (main topic and, if clear, the key issue or decision; no date).\n" +
+  "summary: array of 2 to 6 Korean sentences covering what was discussed.\n" +
+  "decisions: array of Korean sentences, one per thing that was decided or agreed. Empty array if none.\n" +
+  "todos: array of Korean sentences, one per follow-up action, with who and by when if stated. Empty array if none.\n" +
+  "terms: array of up to 15 objects {\"en\", \"ko\"}: domain terms, abbreviations, and names of companies, products or people that appeared and matter for translating future meetings. " +
+  "ko is the Korean wording to use; for names that should stay in English, ko is an empty string. Skip everyday words and anything already in the existing glossary.\n" +
+  "facts: array of up to 10 short Korean sentences with concrete things worth remembering for the next meeting in this series (numbers, dates, conditions, each side's position).\n" +
+  "questions: array of up to 10 objects {\"en\", \"ko\", \"answer\"}: questions the other side asked. en is the question in English as asked, ko is its Korean meaning, " +
+  "answer is the answer given in the meeting, in English, if the transcript contains it, otherwise an empty string.\n" +
+  "Use only what is in the transcript. Do not invent anything.";
+
+// AI 에 보낼 회의 내용. 아주 긴 회의는 앞과 뒤를 남기고 가운데를 줄인다
+function transcriptForAI(lines, max) {
+  let body = lines.map((l) => (l.who ? l.who + ": " : "") + (l.en || l.ko)).join("\n");
+  if (body.length > max) body = body.slice(0, Math.floor(max * 0.6)) + "\n…\n" + body.slice(-Math.floor(max * 0.4));
+  return body;
 }
 
-// 저장된 회의에 제목을 붙인다. 손으로 고친 제목은 건드리지 않고, 제목을 지은 뒤 내용이 늘었으면 다시 짓는다
-async function autoTitle(id) {
-  if (!Store.ok || !id || titleBusy.has(id)) return;
-  titleBusy.add(id);
+// AI 가 돌려준 글에서 정리 내용을 꺼낸다. 형식이 맞지 않으면 null
+function parseDigest(raw) {
+  const a = (raw || "").indexOf("{"), b = (raw || "").lastIndexOf("}");
+  if (a < 0 || b <= a) return null;
+  let j;
+  try { j = JSON.parse(raw.slice(a, b + 1)); } catch (e) { return null; }
+  if (!j || typeof j !== "object") return null;
+  const S = (v, len) => (typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, len) : "");
+  const list = (v, n, len) => (Array.isArray(v) ? v : []).map((x) => S(x, len)).filter(Boolean).slice(0, n);
+  const noComma = (x) => x.replace(/[,=\n]/g, " ").replace(/\s+/g, " ").trim();   // 용어집 형식(쉼표, =)과 겹치지 않게
+  return {
+    title: cleanTitle(S(j.title, 80)),
+    summary: list(j.summary, 8, 400), decisions: list(j.decisions, 12, 300), todos: list(j.todos, 12, 300),
+    terms: (Array.isArray(j.terms) ? j.terms : []).map((t) => ({ en: noComma(S(t && t.en, 80)), ko: noComma(S(t && t.ko, 80)) })).filter((t) => t.en).slice(0, 20),
+    facts: list(j.facts, 12, 300),
+    questions: (Array.isArray(j.questions) ? j.questions : [])
+      .map((q) => ({ en: S(q && q.en, 400), ko: S(q && q.ko, 400), answer: S(q && q.answer, 600) })).filter((q) => q.en || q.ko).slice(0, 12)
+  };
+}
+
+// 회의 내용을 읽고 { title, digest } 를 만든다. 실패하면 오류를 던진다
+async function makeDigest(m, pack) {
+  const spec = helperSpec();
+  if (!spec) throw new Error("no engine");
+  const glossary = pack ? parseTerms(pack.terms).map((t) => t.src).join(", ") : "";
+  const user = (pack ? "Meeting series: " + pack.name + (pack.brief ? "\nBackground: " + pack.brief : "") + (glossary ? "\nExisting glossary: " + glossary : "") + "\n\n" : "") +
+    "<transcript>\n" + transcriptForAI(m.lines, 100000) + "\n</transcript>";
+  const d = parseDigest(await llmAsk(spec, DIGEST_SYSTEM, user, 3000));
+  if (!d) throw new Error("bad format");
+  const title = d.title;
+  delete d.title;
+  return { title, digest: d };
+}
+
+function refreshMeetingViews() {
+  if (el.dlg.open) renderMeetList();
+  if ($("meetDlg").open) renderMeeting();
+}
+
+// 저장된 회의에 제목과 정리를 붙인다. 손으로 고친 제목은 건드리지 않고, 내용이 늘었으면 다시 만든다
+// opts.explicit: 사용자가 직접 요청함 (자동 정리를 꺼 두었어도 만든다) / opts.redo: 이미 있어도 다시 만든다
+async function autoDigest(id, opts) {
+  opts = opts || {};
+  if (!Store.ok || !id || digestBusy.has(id)) return null;
+  digestBusy.add(id);
+  let result = null, failed = false;
   try {
     const m = await Store.get("meetings", id);
-    if (!m || m.titleManual || !m.lines || !m.lines.length) return;
-    if (m.title && m.titleLines === m.lines.length) return;
+    if (!m || !m.lines || !m.lines.length) return null;
     const n = m.lines.length;
-    const made = await makeTitle(m, packs.find((p) => p.id === m.packId) || null);
-    // AI 없이 지은 임시 제목은 titleLines 를 -1 로 두어, 나중에 키가 생기면 다시 짓게 한다
-    const saved = await Store.update("meetings", id, (cur) => (cur && !cur.titleManual
-      ? Object.assign({}, cur, { title: made.title, titleLines: made.ai ? n : -1 }) : null));
-    if (saved && id === R.meetingId && !R.running) {
-      const p = packs.find((x) => x.id === saved.packId);
-      setConnState("회의 기록을 '" + (p ? p.name : "") + "' 묶음에 저장했습니다: " + saved.title + " (" + saved.lines.length + "줄).");
+    const ai = !!helperSpec() && (opts.explicit || settings.autoDigest !== false);
+    const needTitle = !m.titleManual && (!m.title || m.titleLines !== n);
+    const needDigest = ai && (opts.redo || !m.digest || m.digest.lines !== n);
+    if (!needTitle && !needDigest) return m;
+    let made = null;
+    if (ai) {
+      refreshMeetingViews();                 // "정리하는 중" 표시
+      try { made = await makeDigest(m, packOf(m)); } catch (e) { failed = true; }
     }
-    if (el.dlg.open) renderMeetList();
-  } catch (e) {
-  } finally { titleBusy.delete(id); }
+    result = await Store.update("meetings", id, (cur) => {
+      if (!cur) return null;
+      const next = Object.assign({}, cur);
+      if (made) {
+        next.digest = Object.assign({}, made.digest, { lines: n, at: Date.now() });
+        if (!cur.titleManual && made.title) { next.title = made.title; next.titleLines = n; }
+      }
+      // AI 없이 붙인 임시 제목은 titleLines 를 -1 로 두어, 나중에 키가 생기면 다시 짓게 한다
+      if (!next.titleManual && !next.title) { next.title = simpleTitle(cur.lines); next.titleLines = -1; }
+      return next;
+    });
+    if (result && id === R.meetingId && !R.running) {
+      const p = packs.find((x) => x.id === result.packId);
+      setConnState("회의 기록을 '" + (p ? p.name : "") + "' 묶음에 저장했습니다: " + result.title + " (" + result.lines.length + "줄)." +
+        (made ? " 위의 '회의 정리'에서 요약을 볼 수 있습니다." : ""));
+    }
+  } catch (e) { failed = true;
+  } finally { digestBusy.delete(id); }
+  if (viewM && viewM.id === id) {
+    if (result) viewM = result;
+    viewNote = failed ? DIGEST_FAIL : "";
+  }
+  refreshMeetingViews();
+  return result;
 }
 
-// 내려받는 파일: 회의록처럼 제목·일시·묶음을 맨 위에 적는다
+// 내려받는 파일: 회의록처럼 제목·일시·묶음, 그리고 정리가 있으면 요약·결정 사항·할 일을 위에 적는다
 function meetingFile(m, pack) {
   const mins = Math.max(1, Math.round((m.secs || 0) / 60));
-  const head = [m.title || "회의 기록", "일시: " + stamp(m.startedAt) + " (" + mins + "분)", pack ? "묶음: " + pack.name : ""].filter(Boolean);
-  return head.join("\n") + "\n\n" + meetingText(m);
+  const out = [m.title || "회의 기록", "일시: " + stamp(m.startedAt) + " (" + mins + "분)"];
+  if (pack) out.push("묶음: " + pack.name);
+  const d = m.digest;
+  const sec = (name, items) => { if (items && items.length) { out.push("", "[" + name + "]"); for (const x of items) out.push("- " + x); } };
+  if (d) { sec("요약", d.summary); sec("결정 사항", d.decisions); sec("할 일", d.todos); }
+  out.push("", d ? "[전체 기록]" : "", meetingText(m));
+  return out.join("\n").replace(/\n{3,}/g, "\n\n");
 }
+
+// ---- 회의 보기 창 ----
+let viewM = null, viewNote = "", viewAddMsg = "", viewBusy = false;
+function mk(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+
+function openMeeting(m) {
+  viewM = m; viewNote = ""; viewAddMsg = "";
+  renderMeeting();
+  if (!$("meetDlg").open) $("meetDlg").showModal();
+  // 정리가 없거나 그 뒤로 내용이 늘었으면 만든다 (열어 본 것이 곧 요청이다)
+  if (helperSpec() && (!m.digest || m.digest.lines !== m.lines.length)) buildViewDigest(false);
+}
+
+async function buildViewDigest(redo) {
+  const m = viewM;
+  if (!m) return;
+  if (!helperSpec()) { viewNote = "Claude나 Groq API 키를 설정에 넣으면 요약과 정리를 만들 수 있습니다."; renderMeeting(); return; }
+  viewAddMsg = "";
+  if (m.id) { await autoDigest(m.id, { explicit: true, redo }); return; }
+  // 저장하지 않는 회의: 화면에서만 정리한다
+  viewBusy = true; viewNote = ""; renderMeeting();
+  try {
+    const made = await makeDigest(m, packOf(m));
+    m.digest = Object.assign({}, made.digest, { lines: m.lines.length, at: Date.now() });
+    if (made.title) m.title = made.title;
+  } catch (e) { if (viewM === m) viewNote = DIGEST_FAIL; }
+  viewBusy = false;
+  if (viewM === m) renderMeeting();
+}
+
+// 정리에서 뽑힌 항목 가운데 묶음에 이미 있는 것을 가려낸다
+function harvestItems(d, pack) {
+  const have = new Set(parseTerms(pack.terms).map((t) => t.src.toLowerCase()));
+  const facts = pack.facts || "", qa = pack.qa || "";
+  const items = [];
+  d.terms.forEach((t, i) => items.push({ kind: "term", i, group: "새 용어", label: t.ko ? t.en + " = " + t.ko : t.en, has: have.has(t.en.toLowerCase()) }));
+  d.facts.forEach((f, i) => items.push({ kind: "fact", i, group: "기억해 둘 내용", label: f, has: facts.indexOf(f) >= 0 }));
+  d.questions.forEach((q, i) => items.push({ kind: "q", i, group: "받은 질문", label: (q.en || q.ko) + (q.en && q.ko ? " (" + q.ko + ")" : ""),
+    sub: q.answer ? "그때 한 답: " + q.answer : "답은 묶음의 '자주 받는 질문과 내 답변'에서 적어 주세요", has: qa.indexOf(q.en || q.ko) >= 0 }));
+  return items;
+}
+
+function renderMeeting() {
+  const m = viewM;
+  if (!m) return;
+  const pack = packOf(m);
+  const busy = m.id ? digestBusy.has(m.id) : viewBusy;
+  const d = m.digest;
+  $("mvTitle").textContent = m.title || "회의 기록";
+  const body = $("mvBody");
+  const keepScroll = body.scrollTop;
+  body.textContent = "";
+  const mins = Math.max(1, Math.round((m.secs || 0) / 60));
+  body.append(mk("div", "mmeta", stamp(m.startedAt) + " · " + mins + "분 · " + m.lines.length + "줄" + (pack ? " · 묶음: " + pack.name : "") + (m.id ? "" : " · 저장하지 않는 회의")));
+  if (busy) body.append(mk("div", "mvnote", "회의 내용을 읽고 정리하는 중입니다…"));
+  else if (viewNote) body.append(mk("div", "mvnote warn", viewNote));
+  else if (!d) body.append(mk("div", "mvnote", helperSpec() ? "아직 정리가 없습니다. 아래 '정리 만들기'를 눌러 주세요." : "Claude나 Groq API 키를 설정에 넣으면 요약과 정리를 만들 수 있습니다."));
+  else if (d.lines !== m.lines.length) body.append(mk("div", "mvnote", "이 정리를 만든 뒤 회의 내용이 늘었습니다. '다시 정리'를 누르면 새로 만듭니다."));
+  if (d) {
+    const section = (name, items, empty) => {
+      if (!items.length && !empty) return;
+      body.append(mk("h4", "mvh", name));
+      if (!items.length) { body.append(mk("div", "mmeta", empty)); return; }
+      const ul = mk("ul", "mvlist");
+      for (const x of items) ul.append(mk("li", "", x));
+      body.append(ul);
+    };
+    section("요약", d.summary, "요약할 내용이 없습니다.");
+    section("결정 사항", d.decisions, "없음");
+    section("할 일", d.todos, "없음");
+    const items = pack && Store.ok ? harvestItems(d, pack) : [];
+    if (items.length) {
+      body.append(mk("h4", "mvh", "묶음에 쌓을 내용"));
+      body.append(mk("div", "mmeta", "고른 항목을 '" + pack.name + "' 묶음에 추가하면 다음 회의의 번역과 답변 제안에 쓰입니다. 틀린 항목은 체크를 빼 주세요."));
+      const boxes = [];
+      let group = "";
+      for (const it of items) {
+        if (it.group !== group) { group = it.group; body.append(mk("div", "mvgroup", group)); }
+        const row = mk("label", "mvpick" + (it.has ? " has" : ""));
+        const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !it.has; cb.disabled = it.has;
+        cb.dataset.kind = it.kind; cb.dataset.i = String(it.i);
+        boxes.push(cb);
+        const txt = mk("span", "");
+        txt.append(mk("span", "", it.label + (it.has ? " · 이미 있음" : "")));
+        if (it.sub) txt.append(mk("span", "mvsub", it.sub));
+        row.append(cb, txt);
+        body.append(row);
+      }
+      const add = mk("button", "btn", "고른 항목을 묶음에 추가"); add.type = "button"; add.id = "mvAdd";
+      add.disabled = items.every((it) => it.has);
+      add.addEventListener("click", () => addDigestToPack(boxes));
+      const line = mk("div", "mvaddrow"); line.append(add, mk("span", "mmeta", viewAddMsg));
+      body.append(line);
+    }
+  }
+  const det = mk("details", "mvlog");
+  det.append(mk("summary", "", "전체 기록 (" + m.lines.length + "줄)"));
+  for (const l of m.lines) {
+    const row = mk("div", "mvline");
+    if (l.who) row.append(mk("span", "mvwho", l.who));
+    if (l.en) row.append(mk("div", "mven", l.en));
+    if (l.ko) row.append(mk("div", "mvko", l.ko));
+    det.append(row);
+  }
+  det.open = !d;
+  body.append(det);
+  body.scrollTop = keepScroll;
+  $("mvRedo").textContent = d ? "다시 정리" : "정리 만들기";
+  $("mvRedo").disabled = busy || !helperSpec();
+  $("mvRename").style.display = m.id ? "" : "none";
+}
+
+// 묶음 한 건을 고쳐서 저장한다. 설정 창이 열려 있으면 그쪽에서 고치던 사본에도 똑같이 반영한다 (저장할 때 덮어써지지 않게)
+async function patchPack(packId, fn) {
+  const p = packs.find((x) => x.id === packId);
+  if (!p) return false;
+  const inDlg = el.dlg.open && Store.ok;
+  if (inDlg) stashPackFields();
+  fn(p); p.updatedAt = Date.now();
+  const d = inDlg ? dlgPacks.find((x) => x.id === packId) : null;
+  if (d) { fn(d); d.updatedAt = p.updatedAt; if (dlgSel === packId) loadPackFields(); }
+  if (packId === settings.packId) { settings.terms = p.terms || ""; settings.brief = p.brief || ""; saveSettings(settings); }
+  try { await Store.put("packs", Object.assign({}, p)); } catch (e) { return false; }
+  return true;
+}
+
+async function addDigestToPack(boxes) {
+  const m = viewM, d = m && m.digest, pack = m && packOf(m);
+  if (!d || !pack) return;
+  const pick = { term: [], fact: [], q: [] };
+  for (const c of boxes) if (c.checked && !c.disabled) pick[c.dataset.kind].push(Number(c.dataset.i));
+  const total = pick.term.length + pick.fact.length + pick.q.length;
+  if (!total) { viewAddMsg = "추가할 항목을 골라 주세요."; renderMeeting(); return; }
+  const addLine = (text, line) => (text && text.trim() ? text.replace(/\s+$/, "") + "\n" + line : line);
+  const ok = await patchPack(pack.id, (p) => {
+    const have = new Set(parseTerms(p.terms).map((t) => t.src.toLowerCase()));
+    for (const i of pick.term) {
+      const t = d.terms[i];
+      if (!t || have.has(t.en.toLowerCase())) continue;
+      have.add(t.en.toLowerCase());
+      p.terms = addLine(p.terms, t.ko ? t.en + " = " + t.ko : t.en);
+    }
+    for (const i of pick.fact) {
+      const f = d.facts[i];
+      if (f && (p.facts || "").indexOf(f) < 0) p.facts = addLine(p.facts, f);
+    }
+    for (const i of pick.q) {
+      const q = d.questions[i];
+      if (!q || (p.qa || "").indexOf(q.en || q.ko) >= 0) continue;
+      const block = "Q: " + (q.en || q.ko) + (q.en && q.ko ? " (" + q.ko + ")" : "") + "\nA: " + (q.answer || "");
+      p.qa = p.qa && p.qa.trim() ? p.qa.replace(/\s+$/, "") + "\n\n" + block : block;
+    }
+  });
+  viewAddMsg = ok
+    ? "용어 " + pick.term.length + "개, 내용 " + pick.fact.length + "개, 질문 " + pick.q.length + "개를 추가했습니다. 설정의 회의 묶음에서 고칠 수 있습니다."
+    : "추가하지 못했습니다.";
+  renderMeeting();
+}
+
+$("mvClose").addEventListener("click", () => $("meetDlg").close());
+$("mvRedo").addEventListener("click", () => buildViewDigest(true));
+$("mvDownload").addEventListener("click", () => {
+  const m = viewM;
+  if (!m) return;
+  const pack = packOf(m), safe = (x) => x.replace(/[\\/:*?"<>|]/g, "_").slice(0, 40);
+  downloadFile("회의기록_" + (pack ? safe(pack.name) + "_" : "") + stamp(m.startedAt, true) + (m.title ? "_" + safe(m.title) : "") + ".txt",
+    String.fromCharCode(0xFEFF) + meetingFile(m, pack));
+});
+$("mvRename").addEventListener("click", async () => {
+  const m = viewM;
+  if (!m || !m.id) return;
+  let t;
+  try { t = window.prompt("회의 제목을 입력해 주세요. 비워 두면 내용을 보고 자동으로 다시 짓습니다.", m.title || ""); } catch (e) { return; }
+  if (t === null) return;
+  t = t.trim().slice(0, 60);
+  let saved = null;
+  try {
+    saved = await Store.update("meetings", m.id, (cur) => (cur ? Object.assign({}, cur, { title: t, titleManual: !!t, titleLines: t ? cur.titleLines : 0 }) : null));
+  } catch (e) {}
+  if (saved && viewM && viewM.id === saved.id) viewM = saved;
+  if (!t) { digestTried.delete(m.id); await autoDigest(m.id, { explicit: true, redo: true }); }
+  refreshMeetingViews();
+});
+
+// 위쪽 "회의 정리" 버튼: 지금 화면의 회의를 저장하고 정리 창을 연다
+$("digestBtn").addEventListener("click", async () => {
+  const lines = meetingLines();
+  if (!lines.length) { showBanner("정리할 회의 내용이 아직 없습니다. 회의를 시작해 말이 들어온 뒤에 눌러 주세요.", true); return; }
+  let m = null;
+  if (await saveMeeting()) { try { m = await Store.get("meetings", R.meetingId); } catch (e) {} }
+  if (!m) {
+    const secs = Math.round(R.meetingSecs + (R.running && R.startedAt ? (Date.now() - R.startedAt) / 1000 : 0));
+    m = { id: null, packId: settings.packId, startedAt: R.meetingStart || R.startedAt || Date.now(), secs, lines, title: "" };
+  }
+  openMeeting(m);
+});
+
+// ---------------------------------------------------------------------------
+// 답변 제안: 상대의 질문에 할 수 있는 영어 답변을 제안하고, 한국어로 적은 말을 영어 표현으로 바꿔 준다
+// ---------------------------------------------------------------------------
+const AS = { ac: null, cur: null };   // 답변 제안 상태
+const ASSIST_Q =
+  "You help a Korean professional answer in English during a live business meeting. The other side just said what is in <question>. " +
+  "Write what the user could say next. Give exactly 2 options: the first short and safe, the second fuller. " +
+  "Use <me>, <background>, <facts> and <saved_answers> when they are relevant, and prefer a saved answer when the question matches one. " +
+  "Never invent facts, numbers, dates or commitments: where the needed information is missing, say you will check and get back, or leave a placeholder in square brackets. " +
+  "Keep each option to one to three natural spoken sentences. Output this format and nothing else:\nEN: <English to say>\nKO: <Korean meaning>\nEN: <English to say>\nKO: <Korean meaning>";
+const ASSIST_KO =
+  "You help a Korean professional speak in a live business meeting held in English. Turn the Korean in <korean> into natural spoken business English that fits the conversation. " +
+  "Give exactly 2 options: the first plain and concise, the second more polite or formal. Keep the meaning and do not add new content. " +
+  "Output this format and nothing else:\nEN: <English to say>\nKO: <short Korean meaning of that English>\nEN: <English to say>\nKO: <short Korean meaning of that English>";
+
+function assistOn() { return settings.assist !== false && !!helperSpec(); }
+
+function updateAssistUI() {
+  const on = assistOn();
+  $("assist").style.display = on ? "" : "none";
+  $("assist").classList.toggle("closed", settings.assistOpen === false);
+  $("asHide").textContent = settings.assistOpen === false ? "펼치기" : "접기";
+  if (on) renderAssist();
+}
+
+// 제안에 참고로 줄 내용: 내 정보, 묶음의 배경·쌓인 내용·저장한 답변, 최근 대화
+function assistContext(end) {
+  const pack = currentPack();
+  const cut = (v, n) => (v || "").trim().slice(0, n);
+  const parts = [];
+  const me = cut(settings.me, 1500);
+  if (me) parts.push("<me>\n" + me + "\n</me>");
+  const brief = cut(pack ? pack.brief : settings.brief, BRIEF_MAX);
+  if (pack || brief) parts.push("<background>\n" + (pack ? "Meeting series: " + pack.name + "\n" : "") + brief + "\n</background>");
+  const facts = cut(pack && pack.facts, 4000);
+  if (facts) parts.push("<facts>\n" + facts + "\n</facts>");
+  const qa = cut(pack && pack.qa, 6000);
+  if (qa) parts.push("<saved_answers>\n" + qa + "\n</saved_answers>");
+  const lines = [];
+  for (let i = Math.max(0, end - 10); i < end; i++) {
+    const b = core.blocks[i], en = b.en.trim();
+    if (en) lines.push((b.speaker ? speakerLabel(b.speaker) + ": " : "") + en);
+  }
+  if (lines.length) parts.push("<conversation>\n" + lines.join("\n").slice(-3000) + "\n</conversation>");
+  return parts.join("\n");
+}
+
+// kind: "q" = 상대가 한 말에 대한 답 / "ko" = 내가 한국어로 적은 말을 영어로
+async function suggest(kind, text, block) {
+  const spec = helperSpec();
+  if (!spec || !text) return;
+  if (AS.ac) { try { AS.ac.abort(); } catch (e) {} }       // 새 요청이 오면 앞의 것은 그만둔다
+  const ac = new AbortController();
+  const cur = { kind, text, block: block || null, out: "", state: "run", err: "" };
+  AS.ac = ac; AS.cur = cur; T.counts.assist++;
+  renderAssist();
+  const idx = block ? core.blocks.indexOf(block) : -1;
+  const user = assistContext(idx >= 0 ? idx : core.blocks.length) + "\n" + (kind === "ko" ? "<korean>" + text + "</korean>" : "<question>" + text + "</question>");
+  try {
+    await llmStream(spec, "", "", ac.signal, (delta) => { if (AS.ac !== ac) return; cur.out += delta; renderAssist(); }, false,
+      { system: kind === "ko" ? ASSIST_KO : ASSIST_Q, user, max: 500 });
+    if (AS.ac === ac) cur.state = "done";
+  } catch (e) {
+    if (e && e.name === "AbortError") return;
+    if (AS.ac === ac) { cur.state = "err"; cur.err = llmErrorText(e) || "답변 제안을 만들지 못했습니다. 잠시 뒤 다시 눌러 주세요."; }
+  }
+  if (AS.ac === ac) { AS.ac = null; renderAssist(); }
+}
+
+// "EN: ... / KO: ..." 형식의 글을 제안 목록으로 바꾼다 (글자가 오는 도중에도 쓸 수 있게 느슨하게 읽는다)
+function parseOptions(out) {
+  const opts = [];
+  let cur = null, field = "en";
+  for (const raw of (out || "").split("\n")) {
+    const line = raw.trim();
+    if (!line) continue;
+    let m;
+    if ((m = line.match(/^(?:\d+[.)]\s*)?EN\s*[:：]\s*(.*)$/i))) { cur = { en: m[1], ko: "" }; opts.push(cur); field = "en"; }
+    else if ((m = line.match(/^KO\s*[:：]\s*(.*)$/i))) { if (!cur) { cur = { en: "", ko: "" }; opts.push(cur); } cur.ko = m[1]; field = "ko"; }
+    else if (cur) cur[field] += " " + line;
+    else { cur = { en: line, ko: "" }; opts.push(cur); field = "en"; }
+  }
+  return opts;
+}
+
+function renderAssist() {
+  const body = $("asBody"), cur = AS.cur;
+  $("asState").textContent = cur && cur.state === "run" ? "작성 중…" : "";
+  body.textContent = "";
+  if (!cur) {
+    body.append(mk("div", "as-empty", "상대가 질문하면 영어로 할 수 있는 답변을 여기에 제안합니다. 아래 칸에 한국어로 적으면 영어 표현으로 바꿔 줍니다."));
+    return;
+  }
+  const head = mk("div", "as-q");
+  head.append(mk("span", "as-tag", cur.kind === "ko" ? "내 말" : "들린 말"), cur.text);
+  body.append(head);
+  if (cur.kind !== "ko" && cur.block && cur.block.ko && cur.block.ko.trim()) body.append(mk("div", "as-qko", cur.block.ko.trim()));
+  if (cur.state === "err") { body.append(mk("div", "as-empty", cur.err)); return; }
+  for (const o of parseOptions(cur.out)) {
+    const card = mk("button", "as-opt"); card.type = "button"; card.title = "눌러서 영어 문장 복사";
+    card.append(mk("div", "as-en", o.en), mk("div", "as-ko", o.ko));
+    card.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(o.en); card.classList.add("copied"); setTimeout(() => card.classList.remove("copied"), 1200); } catch (e) {}
+    });
+    body.append(card);
+  }
+}
+
+// 방금 끝난 문장이 질문이면 답변을 제안한다
+function pumpAssist() {
+  if (!R.running || settings.assistAuto === false || !assistOn()) return;
+  const n = core.blocks.length, now = Date.now();
+  for (let i = Math.max(0, n - 3); i < n; i++) {
+    const b = core.blocks[i], src = b.en.trim();
+    if (!src || b.asSrc === src) continue;
+    if (!/\?["'”’)\]]*$/.test(src) || lastSentenceWords(src) < 3) continue;   // 물음표로 끝나는 말만. "Right?" 같은 짧은 추임새는 뺀다
+    const next = core.blocks[i + 1];
+    if (b.cont || (next && next.cont)) continue;                         // 아직 합쳐지지 않은 긴 문장의 조각
+    if (i === n - 1 && core.nf.en && !/^\s/.test(core.nf.en)) continue;  // 아직 같은 단어를 말하는 중
+    b.asSrc = src;
+    if (now - b.lastChange > 15000) continue;                            // 한참 지난 질문은 건너뛴다
+    suggest("q", src, b);
+  }
+}
+
+function pumpExtras() { pumpSonioxStats(); pumpAssist(); }
+
+$("asHide").addEventListener("click", () => { settings.assistOpen = settings.assistOpen === false; saveSettings(settings); updateAssistUI(); });
+$("asNow").addEventListener("click", () => {
+  for (let i = core.blocks.length - 1; i >= 0; i--) {
+    const b = core.blocks[i], src = b.en.trim();
+    if (src) { b.asSrc = src; suggest("q", src, b); return; }
+  }
+  AS.cur = { kind: "q", text: "", block: null, out: "", state: "err", err: "아직 들린 말이 없습니다." };
+  renderAssist();
+});
+$("asForm").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const text = $("asInput").value.trim();
+  if (!text) return;
+  suggest("ko", text, null);
+  $("asInput").select();
+});
 
 // ---- 설정 창의 묶음 화면 ----
 function dlgPack() { return dlgPacks.find((p) => p.id === dlgSel) || null; }
@@ -2017,7 +2533,7 @@ function openPackUI() {
   if (!Store.ok) return;
   dlgPacks = packs.map((p) => Object.assign({}, p));
   dlgSel = currentPack() ? settings.packId : (dlgPacks[0] ? dlgPacks[0].id : "");
-  fillPackSelect(); loadPackFields(); renderMeetList();
+  fillPackSelect(); loadPackFields(); renderMeetList(); renderBackupInfo();
 }
 
 function fillPackSelect() {
@@ -2031,6 +2547,7 @@ function loadPackFields() {
   const p = dlgPack();
   if (!p) return;
   $("packName").value = p.name; $("brief").value = p.brief || ""; $("terms").value = p.terms || "";
+  $("packFacts").value = p.facts || ""; $("packQa").value = p.qa || "";
 }
 
 // 화면에 적힌 내용을 고치는 중인 사본에 옮겨 둔다
@@ -2040,6 +2557,7 @@ function stashPackFields() {
   p.name = $("packName").value.trim().slice(0, 40) || p.name;
   p.brief = $("brief").value.trim().slice(0, BRIEF_MAX);
   p.terms = $("terms").value;
+  p.facts = $("packFacts").value.slice(0, 20000); p.qa = $("packQa").value.slice(0, 40000);
 }
 
 // 저장 버튼: 바뀐 묶음을 저장소에 쓰고, 설정에 넣을 값(고른 묶음, 자동 저장 여부)을 돌려준다
@@ -2049,7 +2567,7 @@ function commitPackUI() {
   stashPackFields();
   for (const p of dlgPacks) {
     const old = packs.find((x) => x.id === p.id);
-    if (!old || old.name !== p.name || old.brief !== p.brief || old.terms !== p.terms) {
+    if (!old || old.name !== p.name || old.brief !== p.brief || old.terms !== p.terms || (old.facts || "") !== (p.facts || "") || (old.qa || "") !== (p.qa || "")) {
       p.updatedAt = Date.now();
       Store.put("packs", Object.assign({}, p)).catch(() => showBanner("묶음을 이 브라우저에 저장하지 못했습니다."));
     }
@@ -2067,48 +2585,35 @@ async function renderMeetList() {
   if (packId !== dlgSel) return;                       // 기다리는 사이 다른 묶음을 골랐다
   list.sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0));
   box.textContent = "";
-  if (!list.length) { const n = document.createElement("div"); n.className = "none"; n.textContent = "아직 저장된 회의가 없습니다."; box.append(n); return; }
-  const safeName = (x) => x.replace(/[\\/:*?"<>|]/g, "_").slice(0, 40);
-  let toTitle = 0;
+  if (!list.length) { box.append(mk("div", "none", "아직 저장된 회의가 없습니다.")); return; }
+  const aiAuto = !!helperSpec() && settings.autoDigest !== false;
+  let started = 0;
   for (const m of list) {
+    const n = m.lines ? m.lines.length : 0;
     const live = m.id === R.meetingId && R.running;
-    // 제목이 없거나 내용이 늘어난 기록은 한 번씩 제목을 지어 준다 (진행 중인 회의는 정지한 뒤에)
-    const stale = !m.titleManual && (!m.title || m.titleLines !== (m.lines ? m.lines.length : 0));
-    if (stale && !live && !titleTried.has(m.id) && toTitle < 3) { titleTried.add(m.id); toTitle++; autoTitle(m.id); }
-    const row = document.createElement("div"); row.className = "mrow";
-    const info = document.createElement("div"); info.className = "minfo";
-    const title = document.createElement("div"); title.className = "mtitle" + (m.title ? "" : " pending");
-    title.textContent = m.title || (live ? "(진행 중)" : titleBusy.has(m.id) ? "(제목 짓는 중…)" : "(제목 없음)");
-    const meta = document.createElement("div"); meta.className = "mmeta";
+    // 제목이나 정리가 없거나 그 뒤로 내용이 늘어난 기록은 한 번씩 만들어 준다 (진행 중인 회의는 정지한 뒤에)
+    const stale = (!m.titleManual && (!m.title || m.titleLines !== n)) || (aiAuto && (!m.digest || m.digest.lines !== n));
+    if (stale && !live && !digestTried.has(m.id) && started < 3) { digestTried.add(m.id); started++; autoDigest(m.id); }
+    const row = mk("div", "mrow");
+    const info = mk("div", "minfo");
+    info.append(mk("div", "mtitle" + (m.title ? "" : " pending"), m.title || (live ? "(진행 중)" : digestBusy.has(m.id) ? "(제목 짓는 중…)" : "(제목 없음)")));
     const mins = Math.max(1, Math.round((m.secs || 0) / 60));
-    meta.textContent = stamp(m.startedAt) + " · " + mins + "분 · " + (m.lines ? m.lines.length : 0) + "줄" + (m.id === R.meetingId ? " · 지금 화면의 회의" : "");
-    info.append(title, meta);
-    const ed = document.createElement("button"); ed.type = "button"; ed.className = "btn sm"; ed.textContent = "제목 수정";
-    ed.addEventListener("click", async () => {
-      let t;
-      try { t = window.prompt("회의 제목을 입력해 주세요. 비워 두면 내용을 보고 자동으로 다시 짓습니다.", m.title || ""); } catch (e) { return; }
-      if (t === null) return;
-      t = t.trim().slice(0, 60);
-      try {
-        await Store.update("meetings", m.id, (cur) => (cur ? Object.assign({}, cur, { title: t, titleManual: !!t, titleLines: t ? cur.titleLines : 0 }) : null));
-      } catch (e) {}
-      if (!t) titleTried.delete(m.id);
-      renderMeetList();
+    info.append(mk("div", "mmeta", stamp(m.startedAt) + " · " + mins + "분 · " + n + "줄" +
+      (digestBusy.has(m.id) ? " · 정리하는 중" : m.digest ? " · 정리 있음" : "") + (m.id === R.meetingId ? " · 지금 화면의 회의" : "")));
+    const open = mk("button", "btn sm", "열기"); open.type = "button";
+    open.addEventListener("click", async () => {
+      let cur = m;
+      try { cur = (await Store.get("meetings", m.id)) || m; } catch (e) {}
+      openMeeting(cur);
     });
-    const dl = document.createElement("button"); dl.type = "button"; dl.className = "btn sm"; dl.textContent = "내려받기";
-    dl.addEventListener("click", () => {
-      const p = dlgPack();
-      const name = "회의기록_" + (p ? safeName(p.name) + "_" : "") + stamp(m.startedAt, true) + (m.title ? "_" + safeName(m.title) : "") + ".txt";
-      downloadFile(name, String.fromCharCode(0xFEFF) + meetingFile(m, p));
-    });
-    const rm = document.createElement("button"); rm.type = "button"; rm.className = "btn sm"; rm.textContent = "삭제";
+    const rm = mk("button", "btn sm", "삭제"); rm.type = "button";
     rm.addEventListener("click", async () => {
       if (!window.confirm(stamp(m.startedAt) + (m.title ? " '" + m.title + "'" : "") + " 회의 기록을 삭제할까요? 되돌릴 수 없습니다.")) return;
       if (m.id === R.meetingId) { R.noSave = true; R.meetingId = null; }   // 지금 화면의 회의를 지웠으면, 화면을 지우기 전까지 다시 저장하지 않는다
       try { await Store.del("meetings", m.id); } catch (e) {}
-      renderMeetList();
+      renderMeetList(); renderBackupInfo();
     });
-    row.append(info, ed, dl, rm);
+    row.append(info, open, rm);
     box.append(row);
   }
 }
@@ -2123,7 +2628,7 @@ $("packNew").addEventListener("click", async () => {
   stashPackFields();
   let n = 1, name = "새 묶음";
   while (dlgPacks.some((p) => p.name === name)) name = "새 묶음 " + (++n);
-  const p = { id: newId(), name, brief: "", terms: "", createdAt: Date.now(), updatedAt: Date.now() };
+  const p = { id: newId(), name, brief: "", terms: "", facts: "", qa: "", createdAt: Date.now(), updatedAt: Date.now() };
   try { await Store.put("packs", p); } catch (e) { $("packMsg").textContent = "묶음을 만들지 못했습니다."; return; }
   packs.push(Object.assign({}, p)); dlgPacks.push(p); dlgSel = p.id;
   fillPackSelect(); loadPackFields(); renderMeetList();
@@ -2153,10 +2658,53 @@ $("packDel").addEventListener("click", async () => {
 });
 
 // ---- 백업 ----
+const BACKUP_NAG_COUNT = 5;      // 백업 뒤 회의가 이만큼 쌓이면 알린다
+
+async function unsavedMeetings() {
+  if (!Store.ok) return 0;
+  try {
+    const since = settings.lastBackupAt || 0;
+    return (await Store.all("meetings")).filter((m) => (m.endedAt || m.startedAt || 0) > since).length;
+  } catch (e) { return 0; }
+}
+
+// 설정 창의 백업 칸에 마지막 백업 날짜와 그 뒤 쌓인 회의 수를 보여 준다
+async function renderBackupInfo() {
+  const node = $("backupInfo");
+  if (!node) return;
+  const n = await unsavedMeetings();
+  node.textContent = (settings.lastBackupAt ? "마지막 백업: " + stamp(settings.lastBackupAt) : "아직 백업한 적이 없습니다") + " · 그 뒤 쌓인 회의 " + n + "건";
+  node.style.color = n >= BACKUP_NAG_COUNT ? "var(--warn)" : "";
+}
+
+// 백업 없이 회의가 쌓였으면 하루에 한 번 알린다. 회의 중에는 알리지 않는다
+async function checkBackup() {
+  if (!Store.ok || R.running) return;
+  if (Date.now() - (settings.backupNagAt || 0) < 20 * 3600 * 1000) return;
+  const n = await unsavedMeetings();
+  if (n < BACKUP_NAG_COUNT || R.running) return;
+  settings.backupNagAt = Date.now(); saveSettings(settings);
+  if (!el.banner.classList.contains("show")) {
+    showBanner("백업한 뒤로 회의 기록 " + n + "건이 쌓였습니다. 기록은 이 브라우저에만 있으니, 위의 '묶음' 표시를 눌러 백업 칸의 '전체 내보내기'로 파일에 보관해 주세요.", true);
+  }
+}
+
+// 백업 파일의 정리 내용을 형식에 맞게 다시 읽어 들인다 (모르는 내용은 버린다)
+function importDigest(d) {
+  if (!d || typeof d !== "object") return undefined;
+  const clean = parseDigest(JSON.stringify(d));
+  if (!clean) return undefined;
+  delete clean.title;
+  return Object.assign(clean, { lines: typeof d.lines === "number" ? d.lines : 0, at: typeof d.at === "number" ? d.at : 0 });
+}
+
 $("packExport").addEventListener("click", async () => {
   try {
     const data = { app: "meeting-interpreter", version: 1, exportedAt: Date.now(), packs: await Store.all("packs"), meetings: await Store.all("meetings") };
     downloadFile("회의묶음_백업_" + stamp(Date.now(), true) + ".json", JSON.stringify(data, null, 1), "application/json");
+    settings.lastBackupAt = Date.now(); saveSettings(settings);
+    if (/백업한 뒤로/.test(el.banner.textContent)) el.banner.className = "";
+    renderBackupInfo();
     $("packMsg").textContent = "묶음 " + data.packs.length + "개와 회의 " + data.meetings.length + "건을 파일로 내보냈습니다. (저장하지 않은 수정 내용은 빠져 있습니다.)";
   } catch (e) { $("packMsg").textContent = "내보내지 못했습니다."; }
 });
@@ -2173,7 +2721,7 @@ $("packFile").addEventListener("change", async () => {
     const ids = new Set();
     for (const p of data.packs) {
       if (!p || typeof p.id !== "string" || !p.id) continue;
-      await Store.put("packs", { id: str(p.id, 40), name: str(p.name, 40) || "가져온 묶음", brief: str(p.brief, BRIEF_MAX), terms: str(p.terms, 20000), createdAt: num(p.createdAt), updatedAt: num(p.updatedAt) });
+      await Store.put("packs", { id: str(p.id, 40), name: str(p.name, 40) || "가져온 묶음", brief: str(p.brief, BRIEF_MAX), terms: str(p.terms, 20000), facts: str(p.facts, 20000), qa: str(p.qa, 40000), createdAt: num(p.createdAt), updatedAt: num(p.updatedAt) });
       ids.add(str(p.id, 40)); np++;
     }
     const known = new Set((await Store.all("packs")).map((p) => p.id));
@@ -2181,7 +2729,8 @@ $("packFile").addEventListener("change", async () => {
       if (!m || typeof m.id !== "string" || !m.id || !known.has(m.packId) || !Array.isArray(m.lines)) continue;
       const lines = m.lines.slice(0, 20000).map((l) => ({ who: str(l && l.who, 60), en: str(l && l.en, 5000), ko: str(l && l.ko, 5000) }));
       await Store.put("meetings", { id: str(m.id, 40), packId: m.packId, startedAt: num(m.startedAt), endedAt: num(m.endedAt), secs: typeof m.secs === "number" ? m.secs : 0, lines,
-        title: str(m.title, 60), titleManual: m.titleManual === true, titleLines: typeof m.titleLines === "number" ? m.titleLines : 0 });
+        title: str(m.title, 60), titleManual: m.titleManual === true, titleLines: typeof m.titleLines === "number" ? m.titleLines : 0,
+        digest: importDigest(m.digest) });
       nm++;
     }
     packs = await Store.all("packs");
@@ -2208,6 +2757,9 @@ function openSettingsDialog() {
   $("claudeKey").type = "password"; $("showClaudeKey").textContent = "보기";
   $("claudeModel").value = settings.claudeModel; $("draft").checked = settings.draft !== false; $("preview").checked = settings.preview !== false;
   $("refine").checked = settings.refine !== false; $("compare").checked = !!settings.compare;
+  $("stable").checked = !!settings.stable; syncStable();
+  $("assistOn").checked = settings.assist !== false; $("assistAuto").checked = settings.assistAuto !== false; $("me").value = settings.me || "";
+  $("autoDigest").checked = settings.autoDigest !== false;
   $("brief").value = settings.brief || "";
   $("groqKey").value = settings.groqKey || ""; $("groqKey").type = "password"; $("showGroqKey").textContent = "보기";
   $("groqModel").value = settings.groqModel || GROQ_DEFAULT; $("draftFast").checked = settings.draftFast !== false;
@@ -2237,6 +2789,12 @@ $("showKey").addEventListener("click", () => {
   k.type = show ? "text" : "password"; $("showKey").textContent = show ? "숨기기" : "보기";
 });
 $("engine").addEventListener("change", () => { $("claudeBox").style.display = $("engine").value !== "soniox" ? "" : "none"; });
+// 안정 모드를 켜면 함께 꺼지는 선택지를 흐리게 보여 준다
+function syncStable() {
+  const on = $("stable").checked;
+  for (const id of ["draft", "refine", "draftFast"]) { $(id).disabled = on; $(id).closest(".field").style.opacity = on ? ".45" : ""; }
+}
+$("stable").addEventListener("change", syncStable);
 $("showGroqKey").addEventListener("click", () => {
   const k = $("groqKey"); const show = k.type === "password";
   k.type = show ? "text" : "password"; $("showGroqKey").textContent = show ? "숨기기" : "보기";
@@ -2253,7 +2811,8 @@ $("saveSettings").addEventListener("click", () => {
     showOriginal: $("showOriginal").checked, diar: $("diar").checked, micClean: $("micClean").checked,
     engine: $("engine").value, claudeKey: $("claudeKey").value.trim(), claudeModel: $("claudeModel").value,
     draft: $("draft").checked, preview: $("preview").checked,
-    refine: $("refine").checked, compare: $("compare").checked, brief: $("brief").value.trim(),
+    refine: $("refine").checked, compare: $("compare").checked, brief: $("brief").value.trim(), stable: $("stable").checked,
+    assist: $("assistOn").checked, assistAuto: $("assistAuto").checked, me: $("me").value.trim().slice(0, 1500), autoDigest: $("autoDigest").checked,
     groqKey: $("groqKey").value.trim(), groqModel: $("groqModel").value, draftFast: $("draftFast").checked
   });
   T.blocked = false; T.lean = 2; T.off = {}; T.altOff = false;
@@ -2261,7 +2820,7 @@ $("saveSettings").addEventListener("click", () => {
   for (const blk of core.blocks) if (blk.ko) blk.trSrc = blk.en.trim();
   const ok = saveSettings(settings);
   applyDisplaySettings();
-  updatePackPill();
+  updatePackPill(); updateAssistUI();
   for (const b of core.blocks) b.dirty = true;
   render();
   el.dlg.close();
@@ -2290,6 +2849,7 @@ $("saveSettings").addEventListener("click", () => {
     showBanner("처음이시면 '설정'에서 Soniox API 키를 먼저 입력해 주세요.", true);
   }
   window.addEventListener("beforeunload", () => { if (R.running) stop(); });
+  updateAssistUI();
   initPacks();
 })();
 </script>
