@@ -93,6 +93,17 @@
   .cmp p { margin: 2px 0; font-size: .8em; line-height: 1.5; color: #c3cad6; }
   .cmp-l { display: inline-block; min-width: 4.5em; margin-right: 8px; font-size: .85em; font-weight: 700; color: var(--warn); }
   #lat { cursor: pointer; }
+  #packPill { cursor: pointer; max-width: 16em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #packPill::before { display: none; }
+  .packbox { border: 1px solid var(--line); border-radius: 10px; padding: 12px 12px 0; margin-bottom: 14px; }
+  .packbox.nostore .packonly { display: none; }
+  .packbox:not(.nostore) .nostoreonly { display: none; }
+  .meetlist { border: 1px solid var(--line); border-radius: 8px; max-height: 190px; overflow-y: auto; font-size: 13px; }
+  .meetlist .mrow { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+  .meetlist .mrow:last-child { border-bottom: 0; }
+  .meetlist .mrow .minfo { flex: 1 1 auto; min-width: 0; }
+  .meetlist .none { padding: 10px; color: var(--muted); }
+  .btn.sm { padding: 3px 9px; font-size: 12px; flex: 0 0 auto; }
   .stat { margin: 0; white-space: pre-wrap; font: inherit; font-size: 12.5px; line-height: 1.7; padding: 8px 10px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); }
   #connState { font-size: 13px; padding: 8px 10px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); }
 </style>
@@ -104,6 +115,7 @@
   <span id="status" class="pill">대기</span>
   <span id="timer" class="timer">00:00</span>
   <span id="lat" class="pill" style="display:none" title="눌러서 속도 기록 보기"></span>
+  <span id="packPill" class="pill" style="display:none" title="눌러서 회의 묶음 바꾸기"></span>
   <span class="spacer"></span>
   <select id="source" class="btn" title="소리 입력">
     <option value="system">PC 소리 (회의)</option>
@@ -138,6 +150,51 @@
 <dialog id="settings">
   <div class="dlg-head">설정</div>
   <div class="dlg-body">
+    <div class="packbox" id="packBox">
+      <div class="field packonly">
+        <label for="packSel">회의 묶음</label>
+        <div class="row">
+          <select id="packSel" style="flex:3 1 0"></select>
+          <button id="packNew" class="btn" type="button">새 묶음</button>
+          <button id="packDel" class="btn" type="button">삭제</button>
+        </div>
+        <div class="hint">회의 종류나 상대별로 묶음을 만들어 두면 회의 배경, 용어집, 지난 회의 기록이 묶음마다 따로 보관됩니다. 회의 전에 묶음만 고르면 됩니다.</div>
+      </div>
+      <div class="field packonly">
+        <label for="packName">묶음 이름</label>
+        <input id="packName" type="text" maxlength="40" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="brief">회의 배경 (선택)</label>
+        <textarea id="brief" maxlength="1500" placeholder="예) A사와 공급 계약 조건 협의. 상대는 구매팀 John, 법무팀 Sarah. 납기와 위약금이 쟁점."></textarea>
+        <div class="hint">회의 주제, 참석자, 쟁점을 적어 두면 뜻이 여러 개인 단어를 상황에 맞게 번역합니다.</div>
+      </div>
+      <div class="field">
+        <label for="terms">용어집 (선택)</label>
+        <textarea id="terms" placeholder="한 줄에 하나씩 적어 주세요.&#10;Acme Corp&#10;escrow = 에스크로&#10;term sheet = 주요 조건서"></textarea>
+        <div class="hint">등록한 단어는 더 정확하게 받아 적습니다. <b>영어 = 한국어</b>로 적으면 번역할 때 항상 그 표현을 씁니다. 회사명이나 사람 이름처럼 그대로 둘 단어는 영어만 적어 주세요.</div>
+      </div>
+      <div class="field packonly">
+        <label class="check"><input id="autoSave" type="checkbox"> 회의 기록을 고른 묶음에 자동 저장</label>
+        <div class="hint">회의 중에는 30초마다, 그리고 정지할 때 영어 원문과 번역이 이 브라우저에 저장됩니다. 소리는 저장하지 않습니다. 남기면 안 되는 회의는 꺼 주세요.</div>
+      </div>
+      <div class="field packonly">
+        <label>이 묶음의 지난 회의</label>
+        <div id="meetList" class="meetlist"></div>
+      </div>
+      <div class="field packonly">
+        <label>백업</label>
+        <div class="row">
+          <button id="packExport" class="btn" type="button">전체 내보내기</button>
+          <button id="packImport" class="btn" type="button">가져오기</button>
+          <input id="packFile" type="file" accept=".json,application/json" hidden>
+        </div>
+        <div class="hint" id="packMsg">묶음과 회의 기록은 이 브라우저에만 저장됩니다. 브라우저 기록을 지우거나 다른 컴퓨터를 쓰면 보이지 않으니, 가끔 내보내기로 파일에 보관해 주세요. API 키는 백업 파일에 들어가지 않습니다.</div>
+      </div>
+      <div class="field nostoreonly">
+        <div class="hint">이 브라우저 창에서는 묶음과 회의 기록을 저장할 수 없습니다 (시크릿 창이거나 저장소가 막혀 있음). 회의 배경과 용어집은 그대로 쓸 수 있습니다.</div>
+      </div>
+    </div>
     <div class="field">
       <label for="apiKey">Soniox API 키</label>
       <div class="row">
@@ -230,16 +287,6 @@
         <label class="check"><input id="compare" type="checkbox"> 번역 비교 모드 (테스트용)</label>
         <div class="hint">같은 문장을 Soniox와 다른 AI 엔진이 번역한 결과를 작은 글씨로 함께 보여 줍니다. 큰 글씨가 위에서 고른 번역 방식입니다. 이름 옆 숫자는 문장이 끝난 뒤 그 엔진의 번역이 완성될 때까지 걸린 시간입니다. Claude와 Groq 키가 둘 다 있으면 서로를 비교하고, 하나만 있으면 같은 회사의 다른 모델과 비교합니다. 품질을 비교할 때만 켜 주세요. AI 호출이 약 두 배로 늘어납니다.</div>
       </div>
-    </div>
-    <div class="field">
-      <label for="brief">회의 배경 (선택)</label>
-      <textarea id="brief" maxlength="1500" placeholder="예) A사와 공급 계약 조건 협의. 상대는 구매팀 John, 법무팀 Sarah. 납기와 위약금이 쟁점."></textarea>
-      <div class="hint">회의 주제, 참석자, 쟁점을 적어 두면 뜻이 여러 개인 단어를 상황에 맞게 번역합니다. 회의마다 바꿔 주세요.</div>
-    </div>
-    <div class="field">
-      <label for="terms">용어집 (선택)</label>
-      <textarea id="terms" placeholder="한 줄에 하나씩 적어 주세요.&#10;Acme Corp&#10;escrow = 에스크로&#10;term sheet = 주요 조건서"></textarea>
-      <div class="hint">등록한 단어는 더 정확하게 받아 적습니다. <b>영어 = 한국어</b>로 적으면 번역할 때 항상 그 표현을 씁니다. 회사명이나 사람 이름처럼 그대로 둘 단어는 영어만 적어 주세요.</div>
     </div>
     <div class="row">
       <div class="field">
@@ -579,7 +626,8 @@ const DEFAULTS = {
   model: "stt-rt-v6", showOriginal: true, diar: true, source: "system", ver: 2,
   engine: "soniox", claudeKey: "", claudeModel: "claude-haiku-5-5", draft: true, preview: true,
   brief: "", refine: true, compare: false,
-  groqKey: "", groqModel: "openai/gpt-oss-120b", draftFast: true
+  groqKey: "", groqModel: "openai/gpt-oss-120b", draftFast: true,
+  packId: "", autoSave: true
 };
 
 function loadSettings() {
@@ -871,7 +919,9 @@ function stopAudio() {
 const R = {
   running: false, starting: false, ws: null, open: false, queue: [], sampleRate: 16000,
   retries: 0, retryTimer: null, tick: null, startedAt: 0, fatal: false, wake: null, closeTimer: null,
-  noEpDelay: false, noCtxExtra: false   // Soniox가 거부한 선택 설정은 빼고 연결한다
+  noEpDelay: false, noCtxExtra: false,  // Soniox가 거부한 선택 설정은 빼고 연결한다
+  // 회의 기록 자동 저장: 화면의 기록(지우기 전까지)이 회의 한 건이다
+  meetingId: null, meetingStart: 0, meetingSecs: 0, saveTick: null, noSave: false
 };
 const FATAL_CODES = [400, 401, 402, 403, 429];
 const EP_DELAY_MS = 1000;
@@ -1618,6 +1668,8 @@ async function start() {
   R.startedAt = Date.now();
   R.tick = setInterval(() => { el.timer.textContent = fmt(Date.now() - R.startedAt); }, 500);
   T.tick = setInterval(() => { pumpTranslations(); pumpSonioxStats(); }, 200);
+  clearInterval(R.saveTick);
+  R.saveTick = setInterval(() => { saveMeeting(); }, 30000);
   try { if (navigator.wakeLock) R.wake = await navigator.wakeLock.request("screen"); } catch (e) {}
   openSocket();
 }
@@ -1625,7 +1677,8 @@ async function start() {
 function stop() {
   const wasRunning = R.running;
   R.running = false; R.starting = false;
-  clearTimeout(R.retryTimer); clearInterval(R.tick); clearInterval(T.tick);
+  clearTimeout(R.retryTimer); clearInterval(R.tick); clearInterval(T.tick); clearInterval(R.saveTick);
+  if (wasRunning && R.startedAt) R.meetingSecs += (Date.now() - R.startedAt) / 1000;
   stopAudio();
   const ws = R.ws;
   if (ws) {
@@ -1654,6 +1707,11 @@ function stop() {
   core.breakNext = true;
   resetDraft();
   pumpTranslations();
+  if (wasRunning) {
+    // 바로 한 번 저장하고, 늦게 도착하는 마지막 번역까지 담기도록 잠시 뒤 한 번 더 저장한다
+    saveMeeting();
+    setTimeout(() => { saveMeeting(true); }, 4000);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1663,8 +1721,12 @@ el.toggle.addEventListener("click", () => { if (R.running) stop(); else start();
 
 el.source.addEventListener("change", () => { settings.source = el.source.value; saveSettings(settings); });
 
-el.clear.addEventListener("click", () => {
-  if (core.blocks.length && !window.confirm("화면의 기록을 모두 지울까요?")) return;
+el.clear.addEventListener("click", async () => {
+  const kept = Store.ok && settings.autoSave !== false && !R.noSave;
+  if (core.blocks.length && !window.confirm(kept ? "화면의 기록을 모두 지울까요?\n(지금까지의 기록은 회의 묶음에 저장해 둡니다.)" : "화면의 기록을 모두 지울까요?")) return;
+  await saveMeeting();
+  R.meetingId = null; R.meetingStart = 0; R.meetingSecs = 0; R.noSave = false;
+  if (R.running) R.startedAt = Date.now();
   core.blocks = []; core.nf = { en: "", ko: "", speaker: null }; core.breakNext = false; resetDraft();
   el.transcript.textContent = ""; ghostEl = null;
   if (!R.running) el.empty.style.display = "";
@@ -1703,6 +1765,286 @@ el.pip.addEventListener("click", async () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// 회의 묶음과 회의 기록
+// 저장소는 Store 뒤에 둔다. 지금은 브라우저의 IndexedDB 이고, 설치형 앱으로 옮길 때는 이 객체만 바꾸면 된다
+// ---------------------------------------------------------------------------
+const Store = {
+  db: null, ok: false,
+  open() {
+    return new Promise((resolve, reject) => {
+      let req;
+      try { req = indexedDB.open("meeting-interpreter", 1); } catch (e) { reject(e); return; }
+      req.onupgradeneeded = () => {
+        const d = req.result;
+        if (!d.objectStoreNames.contains("packs")) d.createObjectStore("packs", { keyPath: "id" });
+        if (!d.objectStoreNames.contains("meetings")) d.createObjectStore("meetings", { keyPath: "id" }).createIndex("packId", "packId");
+      };
+      req.onsuccess = () => { this.db = req.result; this.ok = true; resolve(); };
+      req.onerror = () => reject(req.error);
+      req.onblocked = () => reject(new Error("blocked"));
+    });
+  },
+  run(store, mode, fn) {
+    return new Promise((resolve, reject) => {
+      let out;
+      try {
+        const tx = this.db.transaction(store, mode);
+        out = fn(tx.objectStore(store));
+        tx.oncomplete = () => resolve(out ? out.result : undefined);
+        tx.onerror = tx.onabort = () => reject(tx.error || new Error("저장 실패"));
+      } catch (e) { reject(e); }
+    });
+  },
+  all(store) { return this.run(store, "readonly", (s) => s.getAll()); },
+  put(store, value) { return this.run(store, "readwrite", (s) => s.put(value)); },
+  del(store, id) { return this.run(store, "readwrite", (s) => s.delete(id)); },
+  meetingsOf(packId) { return this.run("meetings", "readonly", (s) => s.index("packId").getAll(packId)); }
+};
+
+let packs = [];                 // { id, name, brief, terms, createdAt, updatedAt }
+let dlgPacks = [], dlgSel = ""; // 설정 창에서 고치는 중인 사본과 고른 묶음
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const pad2 = (x) => String(x).padStart(2, "0");
+function stamp(ms, compact) {
+  const d = new Date(ms);
+  return compact
+    ? d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + "_" + pad2(d.getHours()) + pad2(d.getMinutes())
+    : d.getFullYear() + ". " + (d.getMonth() + 1) + ". " + d.getDate() + ". " + pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+}
+function downloadFile(name, text, type) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type: type || "text/plain;charset=utf-8" }));
+  a.download = name;
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+function currentPack() { return packs.find((p) => p.id === settings.packId) || null; }
+
+function updatePackPill() {
+  const p = currentPack(), node = $("packPill");
+  node.textContent = p ? "묶음: " + p.name : "";
+  node.style.display = Store.ok && p ? "" : "none";
+}
+
+// 처음 열 때: 저장소를 열고 묶음을 읽는다. 묶음이 없으면 지금 설정의 회의 배경·용어집으로 "기본" 묶음을 만든다
+async function initPacks() {
+  try {
+    await Store.open();
+    packs = await Store.all("packs");
+    if (!packs.length) {
+      const p = { id: newId(), name: "기본", brief: settings.brief || "", terms: settings.terms || "", createdAt: Date.now(), updatedAt: Date.now() };
+      await Store.put("packs", p);
+      packs = [p];
+    }
+  } catch (e) { Store.ok = false; packs = []; updatePackPill(); return; }
+  packs.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  if (!currentPack()) settings.packId = packs[0].id;
+  const p = currentPack();
+  settings.brief = p.brief || ""; settings.terms = p.terms || "";   // 번역은 고른 묶음의 배경·용어집을 쓴다
+  saveSettings(settings);
+  updatePackPill();
+  if (el.dlg.open) openPackUI();
+}
+
+// ---- 회의 기록 자동 저장 ----
+function meetingLines() {
+  const out = [];
+  for (const b of core.blocks) {
+    const en = b.en.trim(), ko = b.ko.trim();
+    if (en || ko) out.push({ who: b.speaker ? speakerLabel(b.speaker) : "", en, ko });
+  }
+  return out;
+}
+
+function meetingText(m) {
+  return (m.lines || []).map((l) => (l.who ? "[" + l.who + "] " : "") + (l.en || "") + (l.ko ? (l.en ? "\n" : "") + l.ko : "")).join("\n\n");
+}
+
+// 화면의 기록을 고른 묶음에 저장한다 (같은 회의는 덮어쓴다). announce 면 아래 상태 줄에 알린다
+async function saveMeeting(announce) {
+  if (!Store.ok || settings.autoSave === false || R.noSave || !currentPack()) return false;
+  const lines = meetingLines();
+  if (!lines.length) return false;
+  if (!R.meetingId) { R.meetingId = newId(); R.meetingStart = R.startedAt || Date.now(); }
+  const secs = Math.round(R.meetingSecs + (R.running && R.startedAt ? (Date.now() - R.startedAt) / 1000 : 0));
+  try {
+    await Store.put("meetings", { id: R.meetingId, packId: settings.packId, startedAt: R.meetingStart, endedAt: Date.now(), secs, lines });
+  } catch (e) {
+    if (announce) setConnState("회의 기록을 저장하지 못했습니다. 위의 저장 버튼으로 파일로 받아 두세요.");
+    return false;
+  }
+  if (announce && !R.running) setConnState("회의 기록을 '" + currentPack().name + "' 묶음에 저장했습니다 (" + lines.length + "줄).");
+  if (el.dlg.open) renderMeetList();
+  return true;
+}
+document.addEventListener("visibilitychange", () => { if (document.hidden) saveMeeting(); });
+
+// ---- 설정 창의 묶음 화면 ----
+function dlgPack() { return dlgPacks.find((p) => p.id === dlgSel) || null; }
+
+function openPackUI() {
+  $("packBox").classList.toggle("nostore", !Store.ok);
+  $("autoSave").checked = settings.autoSave !== false;
+  if (!Store.ok) return;
+  dlgPacks = packs.map((p) => Object.assign({}, p));
+  dlgSel = currentPack() ? settings.packId : (dlgPacks[0] ? dlgPacks[0].id : "");
+  fillPackSelect(); loadPackFields(); renderMeetList();
+}
+
+function fillPackSelect() {
+  const sel = $("packSel");
+  sel.textContent = "";
+  for (const p of dlgPacks) { const o = document.createElement("option"); o.value = p.id; o.textContent = p.name; sel.append(o); }
+  sel.value = dlgSel;
+}
+
+function loadPackFields() {
+  const p = dlgPack();
+  if (!p) return;
+  $("packName").value = p.name; $("brief").value = p.brief || ""; $("terms").value = p.terms || "";
+}
+
+// 화면에 적힌 내용을 고치는 중인 사본에 옮겨 둔다
+function stashPackFields() {
+  const p = dlgPack();
+  if (!p) return;
+  p.name = $("packName").value.trim().slice(0, 40) || p.name;
+  p.brief = $("brief").value.trim().slice(0, BRIEF_MAX);
+  p.terms = $("terms").value;
+}
+
+// 저장 버튼: 바뀐 묶음을 저장소에 쓰고, 설정에 넣을 값(고른 묶음, 자동 저장 여부)을 돌려준다
+function commitPackUI() {
+  const out = { autoSave: $("autoSave").checked };
+  if (!Store.ok || !dlgPack()) return out;
+  stashPackFields();
+  for (const p of dlgPacks) {
+    const old = packs.find((x) => x.id === p.id);
+    if (!old || old.name !== p.name || old.brief !== p.brief || old.terms !== p.terms) {
+      p.updatedAt = Date.now();
+      Store.put("packs", Object.assign({}, p)).catch(() => showBanner("묶음을 이 브라우저에 저장하지 못했습니다."));
+    }
+  }
+  packs = dlgPacks.map((p) => Object.assign({}, p));
+  out.packId = dlgSel;
+  return out;
+}
+
+async function renderMeetList() {
+  const box = $("meetList"), packId = dlgSel;
+  if (!Store.ok || !packId) { box.textContent = ""; return; }
+  let list = [];
+  try { list = await Store.meetingsOf(packId); } catch (e) {}
+  if (packId !== dlgSel) return;                       // 기다리는 사이 다른 묶음을 골랐다
+  list.sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0));
+  box.textContent = "";
+  if (!list.length) { const n = document.createElement("div"); n.className = "none"; n.textContent = "아직 저장된 회의가 없습니다."; box.append(n); return; }
+  for (const m of list) {
+    const row = document.createElement("div"); row.className = "mrow";
+    const info = document.createElement("span"); info.className = "minfo";
+    const mins = Math.max(1, Math.round((m.secs || 0) / 60));
+    info.textContent = stamp(m.startedAt) + " · " + mins + "분 · " + (m.lines ? m.lines.length : 0) + "줄" + (m.id === R.meetingId ? " · 지금 화면의 회의" : "");
+    const dl = document.createElement("button"); dl.type = "button"; dl.className = "btn sm"; dl.textContent = "내려받기";
+    dl.addEventListener("click", () => {
+      const p = dlgPack();
+      downloadFile("회의기록_" + (p ? p.name.replace(/[\\/:*?"<>|]/g, "_") + "_" : "") + stamp(m.startedAt, true) + ".txt", "﻿" + meetingText(m));
+    });
+    const rm = document.createElement("button"); rm.type = "button"; rm.className = "btn sm"; rm.textContent = "삭제";
+    rm.addEventListener("click", async () => {
+      if (!window.confirm(stamp(m.startedAt) + " 회의 기록을 삭제할까요? 되돌릴 수 없습니다.")) return;
+      if (m.id === R.meetingId) { R.noSave = true; R.meetingId = null; }   // 지금 화면의 회의를 지웠으면, 화면을 지우기 전까지 다시 저장하지 않는다
+      try { await Store.del("meetings", m.id); } catch (e) {}
+      renderMeetList();
+    });
+    row.append(info, dl, rm);
+    box.append(row);
+  }
+}
+
+$("packSel").addEventListener("change", () => { stashPackFields(); dlgSel = $("packSel").value; loadPackFields(); renderMeetList(); });
+$("packName").addEventListener("input", () => {
+  const o = $("packSel").selectedOptions[0];
+  if (o) o.textContent = $("packName").value.trim() || (dlgPack() ? dlgPack().name : "");
+});
+
+$("packNew").addEventListener("click", async () => {
+  stashPackFields();
+  let n = 1, name = "새 묶음";
+  while (dlgPacks.some((p) => p.name === name)) name = "새 묶음 " + (++n);
+  const p = { id: newId(), name, brief: "", terms: "", createdAt: Date.now(), updatedAt: Date.now() };
+  try { await Store.put("packs", p); } catch (e) { $("packMsg").textContent = "묶음을 만들지 못했습니다."; return; }
+  packs.push(Object.assign({}, p)); dlgPacks.push(p); dlgSel = p.id;
+  fillPackSelect(); loadPackFields(); renderMeetList();
+  $("packName").focus(); $("packName").select();
+});
+
+$("packDel").addEventListener("click", async () => {
+  const p = dlgPack();
+  if (!p) return;
+  if (dlgPacks.length <= 1) { $("packMsg").textContent = "묶음은 하나 이상 있어야 합니다. 새 묶음을 만든 뒤 삭제해 주세요."; return; }
+  let list = [];
+  try { list = await Store.meetingsOf(p.id); } catch (e) {}
+  if (!window.confirm("'" + p.name + "' 묶음과 지난 회의 " + list.length + "건을 삭제할까요? 되돌릴 수 없습니다.")) return;
+  try {
+    for (const m of list) await Store.del("meetings", m.id);
+    await Store.del("packs", p.id);
+  } catch (e) { $("packMsg").textContent = "삭제하지 못했습니다."; return; }
+  if (list.some((m) => m.id === R.meetingId)) R.meetingId = null;
+  packs = packs.filter((x) => x.id !== p.id);
+  dlgPacks = dlgPacks.filter((x) => x.id !== p.id);
+  if (settings.packId === p.id) {                       // 쓰고 있던 묶음을 지웠으면 첫 묶음으로 바꾼다
+    settings.packId = packs[0].id; settings.brief = packs[0].brief || ""; settings.terms = packs[0].terms || "";
+    saveSettings(settings); updatePackPill();
+  }
+  dlgSel = dlgPacks.some((x) => x.id === settings.packId) ? settings.packId : dlgPacks[0].id;
+  fillPackSelect(); loadPackFields(); renderMeetList();
+});
+
+// ---- 백업 ----
+$("packExport").addEventListener("click", async () => {
+  try {
+    const data = { app: "meeting-interpreter", version: 1, exportedAt: Date.now(), packs: await Store.all("packs"), meetings: await Store.all("meetings") };
+    downloadFile("회의묶음_백업_" + stamp(Date.now(), true) + ".json", JSON.stringify(data, null, 1), "application/json");
+    $("packMsg").textContent = "묶음 " + data.packs.length + "개와 회의 " + data.meetings.length + "건을 파일로 내보냈습니다. (저장하지 않은 수정 내용은 빠져 있습니다.)";
+  } catch (e) { $("packMsg").textContent = "내보내지 못했습니다."; }
+});
+$("packImport").addEventListener("click", () => { $("packFile").value = ""; $("packFile").click(); });
+$("packFile").addEventListener("change", async () => {
+  const file = $("packFile").files && $("packFile").files[0];
+  if (!file) return;
+  const str = (v, max) => (typeof v === "string" ? v : "").slice(0, max);
+  const num = (v) => (typeof v === "number" && isFinite(v) ? v : Date.now());
+  try {
+    const data = JSON.parse(await file.text());
+    if (!data || data.app !== "meeting-interpreter" || !Array.isArray(data.packs)) throw new Error("format");
+    let np = 0, nm = 0;
+    const ids = new Set();
+    for (const p of data.packs) {
+      if (!p || typeof p.id !== "string" || !p.id) continue;
+      await Store.put("packs", { id: str(p.id, 40), name: str(p.name, 40) || "가져온 묶음", brief: str(p.brief, BRIEF_MAX), terms: str(p.terms, 20000), createdAt: num(p.createdAt), updatedAt: num(p.updatedAt) });
+      ids.add(str(p.id, 40)); np++;
+    }
+    const known = new Set((await Store.all("packs")).map((p) => p.id));
+    for (const m of Array.isArray(data.meetings) ? data.meetings : []) {
+      if (!m || typeof m.id !== "string" || !m.id || !known.has(m.packId) || !Array.isArray(m.lines)) continue;
+      const lines = m.lines.slice(0, 20000).map((l) => ({ who: str(l && l.who, 60), en: str(l && l.en, 5000), ko: str(l && l.ko, 5000) }));
+      await Store.put("meetings", { id: str(m.id, 40), packId: m.packId, startedAt: num(m.startedAt), endedAt: num(m.endedAt), secs: typeof m.secs === "number" ? m.secs : 0, lines });
+      nm++;
+    }
+    packs = await Store.all("packs");
+    packs.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+    const cur = currentPack();
+    if (cur) { settings.brief = cur.brief || ""; settings.terms = cur.terms || ""; saveSettings(settings); }
+    updatePackPill();
+    openPackUI();
+    $("packMsg").textContent = "묶음 " + np + "개와 회의 " + nm + "건을 가져왔습니다. 같은 묶음이 이미 있으면 파일의 내용으로 바뀌었습니다.";
+  } catch (e) {
+    $("packMsg").textContent = "가져오지 못했습니다. 이 앱에서 내보낸 백업 파일(.json)인지 확인해 주세요.";
+  }
+});
+
 // 설정 창
 function openSettingsDialog() {
   $("apiKey").value = settings.apiKey;
@@ -1721,11 +2063,13 @@ function openSettingsDialog() {
   $("claudeBox").style.display = settings.engine !== "soniox" ? "" : "none";
   $("copyStats").textContent = "기록 복사";
   renderStats();
+  openPackUI();
   if (!el.dlg.open) el.dlg.showModal();
 }
 el.openSettings.addEventListener("click", openSettingsDialog);
 // 위쪽 속도 표시를 누르면 속도 기록으로 바로 간다
 $("lat").addEventListener("click", () => { openSettingsDialog(); $("statField").scrollIntoView({ block: "center" }); });
+$("packPill").addEventListener("click", () => { openSettingsDialog(); $("packBox").scrollIntoView({ block: "start" }); });
 $("copyStats").addEventListener("click", async () => {
   const text = statSummary();
   let ok = false;
@@ -1751,7 +2095,8 @@ $("showClaudeKey").addEventListener("click", () => {
   k.type = show ? "text" : "password"; $("showClaudeKey").textContent = show ? "숨기기" : "보기";
 });
 $("saveSettings").addEventListener("click", () => {
-  settings = Object.assign({}, settings, {
+  const packChange = commitPackUI();        // 묶음 이름·배경·용어집을 저장하고, 고른 묶음을 돌려준다
+  settings = Object.assign({}, settings, packChange, {
     apiKey: $("apiKey").value.trim(), hint: $("hint").value, target: $("target").value,
     terms: $("terms").value, fontSize: $("fontSize").value, model: $("model").value,
     showOriginal: $("showOriginal").checked, diar: $("diar").checked,
@@ -1765,6 +2110,7 @@ $("saveSettings").addEventListener("click", () => {
   for (const blk of core.blocks) if (blk.ko) blk.trSrc = blk.en.trim();
   const ok = saveSettings(settings);
   applyDisplaySettings();
+  updatePackPill();
   for (const b of core.blocks) b.dirty = true;
   render();
   el.dlg.close();
@@ -1793,6 +2139,7 @@ $("saveSettings").addEventListener("click", () => {
     showBanner("처음이시면 '설정'에서 Soniox API 키를 먼저 입력해 주세요.", true);
   }
   window.addEventListener("beforeunload", () => { if (R.running) stop(); });
+  initPacks();
 })();
 </script>
 </body>
