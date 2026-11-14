@@ -13,7 +13,11 @@ function pageMock(st) {
   window.MOCK = { digest: null, digestStatus: 200, assist: null, assistStatus: 200, assistDelay: 30 };
   window.WebSocket = class {
     constructor() { this.readyState = 0; window.SOCKS.push(this); setTimeout(() => { this.readyState = 1; this.onopen && this.onopen(); }, 20); }
-    send(d) { if (typeof d === 'string' && d) window.CFG.push(JSON.parse(d)); }
+    // 빈 문자열(소리 끝)을 받으면 실제 Soniox처럼 잠시 뒤 finished 를 보낸다. window.MOCK.noFinish 면 보내지 않는다
+    send(d) {
+      if (typeof d === 'string' && d) window.CFG.push(JSON.parse(d));
+      if (d === '' && !window.MOCK.noFinish) setTimeout(() => this.onmessage && this.onmessage({ data: JSON.stringify({ finished: true }) }), 40);
+    }
     close() { this.readyState = 3; setTimeout(() => this.onclose && this.onclose(), 5); }
     emit(o) { this.onmessage({ data: JSON.stringify(o) }); }
   };

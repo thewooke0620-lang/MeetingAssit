@@ -17,7 +17,7 @@ const HTML = fs.readFileSync(require('path').join(__dirname, '..', 'index.html')
       localStorage.setItem('meeting-interpreter.settings.v1', JSON.stringify({ apiKey: 'k', engine: 'soniox', target: 'ko', source: 'mic', ver: 2, terms: 'escrow = 에스크로', brief: '배경' }));
       window.CFG = []; window.SOCKS = [];
       window.WebSocket = class { constructor() { this.readyState = 0; window.SOCKS.push(this); setTimeout(() => { this.readyState = 1; this.onopen && this.onopen(); }, 20); }
-        send(d) { if (typeof d === 'string' && d) window.CFG.push(JSON.parse(d)); } close() { this.readyState = 3; setTimeout(() => this.onclose && this.onclose(), 5); } };
+        send(d) { if (typeof d === 'string' && d) window.CFG.push(JSON.parse(d)); if (d === '') setTimeout(() => this.onmessage && this.onmessage({ data: '{"finished":true}' }), 40); } close() { this.readyState = 3; setTimeout(() => this.onclose && this.onclose(), 5); } };
     });
     await p.goto('https://x.test/'); await p.click('#toggle'); await p.waitForTimeout(300);
     for (const m of msgs) { await p.evaluate((m) => { const s = window.SOCKS[window.SOCKS.length - 1]; s.onmessage({ data: JSON.stringify({ error_code: 400, error_message: m }) }); }, m); await p.waitForTimeout(2200); }

@@ -14,7 +14,7 @@ async function open(b, settings, groqStatus) {
     localStorage.setItem('meeting-interpreter.settings.v1', JSON.stringify(st));
     window.CFG = []; window.REQ = []; window.SOCKS = [];
     class FakeWS { constructor() { this.readyState = 0; window.SOCKS.push(this); setTimeout(() => { this.readyState = 1; this.onopen && this.onopen(); }, 20); }
-      send(d) { if (typeof d === 'string' && d) window.CFG.push(JSON.parse(d)); }
+      send(d) { if (typeof d === 'string' && d) window.CFG.push(JSON.parse(d)); if (d === '') setTimeout(() => this.onmessage && this.onmessage({ data: '{"finished":true}' }), 40); }
       close() { this.readyState = 3; setTimeout(() => this.onclose && this.onclose(), 5); }
       emit(o) { this.onmessage({ data: JSON.stringify(o) }); } }
     window.WebSocket = FakeWS;

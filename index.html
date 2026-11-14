@@ -33,6 +33,8 @@
   .pill.live { color: var(--ok); } .pill.live::before { background: var(--ok); animation: blink 1.4s infinite; }
   .pill.wait { color: var(--warn); } .pill.wait::before { background: var(--warn); }
   .pill.err { color: var(--err); } .pill.err::before { background: var(--err); }
+  .pill.saved { color: var(--muted); } .pill.saved::before { background: var(--ok); }
+  .gapmark { margin: 10px 0; padding: 6px 10px; border-radius: 8px; border: 1px dashed var(--warn); color: var(--warn); font-size: 13px; line-height: 1.5; }
   @keyframes blink { 50% { opacity: .35; } }
   .spacer { flex: 1 1 auto; }
   .btn {
@@ -156,6 +158,7 @@
   <span id="timer" class="timer">00:00</span>
   <span id="lat" class="pill" style="display:none" title="눌러서 속도 기록 보기"></span>
   <span id="packPill" class="pill" style="display:none" title="눌러서 회의 묶음 바꾸기"></span>
+  <span id="saveState" class="pill" style="display:none; cursor:pointer"></span>
   <span class="spacer"></span>
   <select id="source" class="btn" title="소리 입력">
     <option value="system">PC 소리 (회의)</option>
@@ -719,6 +722,38 @@ function exportText(core, names, withCmp) {
   }
   return out.join("\n\n");
 }
+
+// ---- 연결 복구 ----
+// 다시 연결하기 전 기다릴 시간: 0.5초에서 시작해 두 배씩 늘리고, 10초를 넘지 않는다
+function retryDelay(n) { return Math.min(10000, 500 * Math.pow(2, Math.max(0, n - 1))); }
+
+// 연결이 안 된 동안 소리를 모아 둔다. 한도(maxMs)를 넘으면 오래된 것부터 버리고, 버린 길이(ms)를 돌려준다
+function newQueue() { return { items: [], lens: [], total: 0 }; }
+function pushChunk(q, buf, ms, maxMs) {
+  q.items.push(buf); q.lens.push(ms); q.total += ms;
+  let dropped = 0;
+  while (q.total > maxMs && q.items.length > 1) { q.items.shift(); const d = q.lens.shift(); q.total -= d; dropped += d; }
+  return dropped;
+}
+
+// 연결이 끊기면 아직 확정되지 않은 말도 버리지 않고 확정 글자로 남긴다 (그 말의 Soniox 번역은 오지 않는다)
+function salvageNf(core) {
+  const en = core.nf.en, sp = core.nf.speaker;
+  core.nf = { en: "", ko: "", speaker: null };
+  if (en.trim()) { appendOriginal(core, en, sp, false); return true; }
+  return false;
+}
+
+// AI 번역 방식에서 아직 번역이 끝나지 않은 줄 수. 정지한 뒤 이 값이 0 이 되면 저장한다
+function pendingTranslations(core) {
+  if (core.mode !== "llm") return 0;
+  let n = 0;
+  for (const b of core.blocks) {
+    const s = b.en.trim();
+    if (s && (b.trState === "run" || (b.trSrc !== s && b.trState !== "err"))) n++;
+  }
+  return n;
+}
 /*CORE-END*/
 
 // ---------------------------------------------------------------------------
@@ -1027,8 +1062,10 @@ function stopAudio() {
 // Soniox 연결
 // ---------------------------------------------------------------------------
 const R = {
-  running: false, starting: false, ws: null, open: false, queue: [], sampleRate: 16000,
+  running: false, starting: false, ws: null, open: false, queue: newQueue(), sampleRate: 16000,
   retries: 0, retryTimer: null, tick: null, startedAt: 0, fatal: false, wake: null, closeTimer: null,
+  // 연결 복구: session 은 시작할 때마다 1씩 늘어난다. 이전 시작에서 걸어 둔 타이머·응답이 새 시작을 건드리지 못하게 한다
+  session: 0, drain: null, openAt: 0, downAt: 0, lostMs: 0, limitRetries: 0, gaps: [],
   noEpDelay: false, noCtxExtra: false,  // Soniox가 거부한 선택 설정은 빼고 연결한다
   // 회의 기록 자동 저장: 화면의 기록(지우기 전까지)이 회의 한 건이다
   meetingId: null, meetingStart: 0, meetingSecs: 0, saveTick: null, noSave: false
@@ -1642,7 +1679,43 @@ function pumpTranslations() {
   pumpCompare();
 }
 
+const QUEUE_MAX_MS = 30000;    // 연결이 끊긴 동안 모아 둘 소리의 최대 길이
+const LIMIT_RETRY_MAX = 3;     // 사용량 한도(429)일 때 다시 시도할 횟수
+const RETRY_NOTICE_AFTER = 3;  // 연속으로 이만큼 실패하면 화면 위에 알린다
+const DRAIN_MAX_MS = 6000;     // 정지 후 Soniox의 마지막 글자를 기다리는 최대 시간
+const FINAL_WAIT_MS = 15000;   // 정지 후 마지막 AI 번역을 기다리는 최대 시간
+
+function chunkMs(buf) { return (buf.byteLength / 2) / (R.sampleRate || 16000) * 1000; }
+function clock(t) { return new Date(t).toLocaleTimeString(); }
+
+function gapText(g) {
+  return "⚠ " + clock(g.at) + " 연결이 " + g.secs + "초 동안 끊겼다가 다시 이어졌습니다. " +
+    (g.lostSecs ? "그중 약 " + g.lostSecs + "초의 소리는 모아 둘 수 있는 30초를 넘어 빠졌습니다."
+                : "그동안의 소리는 모아 두었다가 보냈습니다. 끊긴 순간의 말은 일부 빠졌을 수 있습니다.");
+}
+
+// 연결이 다시 이어지면 끊겼던 구간을 기록 사이에 표시하고, 저장할 때 함께 남긴다
+function noteGap() {
+  const g = { at: R.downAt, secs: Math.max(1, Math.round((Date.now() - R.downAt) / 1000)),
+              lostSecs: Math.round(R.lostMs / 1000), afterLine: meetingLines().length };
+  R.downAt = 0; R.lostMs = 0;
+  R.gaps.push(g);
+  core.breakNext = true;
+  const node = document.createElement("div");
+  node.className = "gapmark";
+  node.textContent = gapText(g);
+  if (ghostEl && ghostEl.parentNode === el.transcript) el.transcript.insertBefore(node, ghostEl);
+  else el.transcript.append(node);
+  el.empty.style.display = "none";
+}
+
+function scheduleReconnect(sess, wait) {
+  clearTimeout(R.retryTimer);
+  R.retryTimer = setTimeout(() => { if (R.running && R.session === sess && !R.ws) openSocket(); }, wait);
+}
+
 function openSocket() {
+  const sess = R.session;
   let ws;
   try {
     ws = new WebSocket(WS_URL, ["soniox-api-key", settings.apiKey.trim()]);
@@ -1654,20 +1727,25 @@ function openSocket() {
   }
   ws.binaryType = "arraybuffer";
   R.ws = ws; R.open = false;
-  setStatus("wait", R.retries ? "재연결 중" : "연결 중");
+  setStatus("wait", R.retries ? "재연결 중" + (R.retries > 1 ? " (" + R.retries + "번째)" : "") : "연결 중");
 
   ws.onopen = () => {
     if (R.ws !== ws) return;
     ws.send(JSON.stringify(buildConfig()));
-    R.open = true;
-    for (const chunk of R.queue) ws.send(chunk);
-    R.queue = [];
+    R.open = true; R.openAt = Date.now(); R.lastMsgAt = Date.now();
+    for (const chunk of R.queue.items) ws.send(chunk);
+    R.queue = newQueue();
+    // 처음 연결이 늦어진 것은 표시하지 않는다. 한 번 이어졌다가 끊긴 경우와 소리가 빠진 경우만 표시한다
+    if (R.downAt && (R.hadOpen || R.lostMs)) noteGap(); else { R.downAt = 0; R.lostMs = 0; }
+    R.hadOpen = true;
+    if (R.retryBanner) { hideBanner(); R.retryBanner = false; }
     setStatus("live", "듣는 중");
-    setConnState("연결됨 (" + new Date().toLocaleTimeString() + ")");
+    setConnState("연결됨 (" + clock(Date.now()) + ")");
   };
 
   ws.onmessage = (ev) => {
     if (R.ws !== ws || typeof ev.data !== "string") return;
+    R.lastMsgAt = Date.now();
     let msg;
     try { msg = JSON.parse(ev.data); } catch (e) { return; }
     if (msg.error_code) {
@@ -1680,11 +1758,19 @@ function openSocket() {
         if (ep || !cx) R.noEpDelay = true;
         if (cx || !ep) R.noCtxExtra = true;
         if (before !== String(R.noEpDelay) + String(R.noCtxExtra)) {
+          R.cfgRetry = true;
           try { ws.close(); } catch (e) {}
           return;
         }
       }
       const text = errorText(msg.error_code, msg.error_message);
+      // 사용량 한도는 잠시 뒤 풀릴 수 있어 몇 번 더 시도한다. 키·잔액·권한·설정 오류는 다시 시도해도 같으므로 멈춘다
+      if (msg.error_code === 429 && R.limitRetries < LIMIT_RETRY_MAX) {
+        R.limitRetries++; R.limitWait = true;
+        setConnState("오류: " + text + " (" + R.limitRetries + "/" + LIMIT_RETRY_MAX + "번째 다시 시도)");
+        try { ws.close(); } catch (e) {}
+        return;
+      }
       setConnState("오류: " + text);
       if (FATAL_CODES.includes(msg.error_code)) {
         R.fatal = true;
@@ -1694,7 +1780,7 @@ function openSocket() {
       return;
     }
     if (msg.tokens && msg.tokens.length) {
-      R.retries = 0;
+      R.retries = 0; R.limitRetries = 0;
       processTokens(core, msg.tokens);
       pumpTranslations();
       pumpExtras();
@@ -1708,24 +1794,49 @@ function openSocket() {
   ws.onclose = () => {
     if (R.ws !== ws) return;
     R.open = false; R.ws = null;
-    if (!R.running) return;
+    if (!R.running || R.session !== sess) return;
     if (R.fatal) { stop(); return; }
-    if (R.retries < 3) {
-      R.retries++;
-      setStatus("wait", "재연결 중");
-      R.retryTimer = setTimeout(openSocket, 800 * R.retries);
-    } else {
-      showBanner("Soniox와 연결이 끊어졌습니다. 인터넷 연결과 API 키를 확인한 뒤 다시 시작해 주세요.");
-      setConnState("연결 끊김 (" + new Date().toLocaleTimeString() + ")");
-      stop();
+    if (R.cfgRetry) { R.cfgRetry = false; scheduleReconnect(sess, 100); return; }   // 선택 설정을 빼고 바로 다시 연결
+    if (!R.downAt) R.downAt = Date.now();
+    // 확정되지 않은 채 남은 말은 버리지 않는다
+    if (salvageNf(core)) { pumpTranslations(); render(); }
+    if (R.openAt && Date.now() - R.openAt > 10000) R.retries = 0;   // 한동안 잘 이어져 있었으면 처음부터 다시 센다
+    R.retries++;
+    let wait = retryDelay(R.retries);
+    if (R.limitWait) { R.limitWait = false; wait = 5000 * R.limitRetries; }
+    const offline = navigator.onLine === false;
+    setStatus("wait", offline ? "인터넷 끊김" : "재연결 중" + (R.retries > 1 ? " (" + R.retries + "번째)" : ""));
+    setConnState((offline ? "인터넷 연결이 끊겼습니다. 다시 이어지면 바로 연결합니다."
+      : "연결이 끊겨 다시 연결하는 중입니다 (" + R.retries + "번째, " + (wait / 1000).toFixed(1) + "초 뒤).") +
+      " 그동안 소리는 30초까지 모아 두었다가 보냅니다.");
+    if (R.retries === RETRY_NOTICE_AFTER && !R.retryBanner) {
+      showBanner("Soniox 연결이 끊겨 계속 다시 연결하는 중입니다. 인터넷 연결을 확인해 주세요. 그만두려면 정지를 누르세요.", true);
+      R.retryBanner = true;
     }
+    // 인터넷이 끊긴 상태면 다시 이어졌다는 신호(online)를 기다리고, 신호가 없어도 15초마다 한 번은 시도한다
+    scheduleReconnect(sess, offline ? 15000 : wait);
   };
 }
 
+// 인터넷이 끊기면 소켓을 바로 닫아, 끊긴 동안의 소리가 죽은 연결로 사라지지 않고 모아 두어지게 한다
+window.addEventListener("offline", () => {
+  if (!R.running) return;
+  setStatus("wait", "인터넷 끊김");
+  if (R.ws) { const ws = R.ws; R.downAt = R.downAt || Date.now(); try { ws.close(); } catch (e) {} }
+});
+window.addEventListener("online", () => {
+  if (!R.running || R.fatal || R.ws) return;
+  scheduleReconnect(R.session, 0);
+});
+
 function onChunk(buf) {
   if (!R.running) return;
-  if (R.open && R.ws && R.ws.readyState === 1) R.ws.send(buf);
-  else { R.queue.push(buf); if (R.queue.length > 50) R.queue.shift(); }
+  if (R.open && R.ws && R.ws.readyState === 1) { R.ws.send(buf); return; }
+  const dropped = pushChunk(R.queue, buf, chunkMs(buf), QUEUE_MAX_MS);
+  if (dropped) {
+    if (!R.lostMs) setConnState("연결이 30초 넘게 끊겨, 가장 오래된 소리부터 빠지고 있습니다. 다시 이어지면 빠진 구간을 기록에 표시합니다.");
+    R.lostMs += dropped;
+  }
 }
 
 function fmt(ms) {
@@ -1743,7 +1854,9 @@ async function start() {
   if (settings.engine === "groq" && settings.target !== "none" && !(settings.groqKey || "").trim()) {
     openSettingsDialog(); showBanner("번역 방식이 Groq으로 되어 있습니다. 설정에서 Groq API 키를 입력해 주세요.", true); return;
   }
-  R.starting = true; R.fatal = false; R.retries = 0; R.queue = [];
+  R.starting = true; R.fatal = false; R.retries = 0; R.queue = newQueue();
+  R.session++; R.hadOpen = false; R.openAt = 0; R.downAt = 0; R.lostMs = 0; R.limitRetries = 0; R.limitWait = false; R.cfgRetry = false;
+  const sess = R.session;
   T.blocked = false; T.off = {}; T.altOff = false; T.groqPause = 0; T.groqLean = true;
   T.draftGap = DRAFT_GAP_MS; resetDraft(); resetStats(); showLatency();
   warmEngines();
@@ -1784,6 +1897,9 @@ async function start() {
   clearInterval(R.saveTick);
   R.saveTick = setInterval(() => { saveMeeting(); }, 30000);
   try { if (navigator.wakeLock) R.wake = await navigator.wakeLock.request("screen"); } catch (e) {}
+  // 바로 앞의 정지에서 마지막 글자를 아직 받는 중이면 끝난 뒤에 연결한다 (그동안 소리는 모아 둔다)
+  if (R.drain) { setStatus("wait", "이전 연결 마무리 중"); await R.drain; }
+  if (!R.running || R.session !== sess) return;
   openSocket();
 }
 
@@ -1792,39 +1908,70 @@ function stop() {
   R.running = false; R.starting = false;
   clearTimeout(R.retryTimer); clearInterval(R.tick); clearInterval(T.tick); clearInterval(R.saveTick);
   if (wasRunning && R.startedAt) R.meetingSecs += (Date.now() - R.startedAt) / 1000;
+  if (R.retryBanner) { hideBanner(); R.retryBanner = false; }
   stopAudio();
   const ws = R.ws;
   if (ws) {
     R.ws = null; R.open = false;
     try {
       if (ws.readyState === 1) {
-        ws.send("");  // 빈 문자열 = 소리 끝
-        R.closeTimer = setTimeout(() => { try { ws.close(); } catch (e) {} }, 3000);
-        ws.onmessage = (ev) => {
-          if (typeof ev.data !== "string") return;
-          try {
-            const msg = JSON.parse(ev.data);
-            if (msg.tokens && msg.tokens.length) { processTokens(core, msg.tokens); pumpTranslations(); pumpExtras(); render(); }
-            if (msg.finished) { clearTimeout(R.closeTimer); ws.close(); }
-          } catch (e) {}
-        };
-        ws.onclose = () => { clearTimeout(R.closeTimer); core.nf = { en: "", ko: "", speaker: null }; core.breakNext = true; pumpTranslations(); render(); };
-      } else { ws.close(); }
+        // 소리 끝을 알리고 Soniox가 마지막 글자를 다 보낼 때까지 기다린다. 다시 시작하면 이것이 끝난 뒤에 새로 연결한다
+        const p = new Promise((resolve) => {
+          let done = false;
+          const finish = () => {
+            if (done) return;
+            done = true;
+            clearTimeout(R.closeTimer);
+            try { ws.close(); } catch (e) {}
+            salvageNf(core); core.breakNext = true; pumpTranslations(); render();
+            resolve();
+          };
+          ws.onmessage = (ev) => {
+            if (typeof ev.data !== "string") return;
+            try {
+              const msg = JSON.parse(ev.data);
+              if (msg.tokens && msg.tokens.length) { processTokens(core, msg.tokens); pumpTranslations(); pumpExtras(); render(); }
+              if (msg.finished || msg.error_code) finish();
+            } catch (e) {}
+          };
+          ws.onclose = finish;
+          ws.send("");  // 빈 문자열 = 소리 끝
+          R.closeTimer = setTimeout(finish, DRAIN_MAX_MS);
+        });
+        R.drain = p;
+        p.then(() => { if (R.drain === p) R.drain = null; });
+      } else { ws.close(); salvageNf(core); }
     } catch (e) {}
-  }
+  } else if (wasRunning) { salvageNf(core); }
   try { if (R.wake) R.wake.release(); } catch (e) {}
-  R.wake = null; R.queue = [];
+  R.wake = null; R.queue = newQueue();
   el.toggle.textContent = "시작"; el.toggle.className = "btn primary"; el.toggle.disabled = false;
   el.source.disabled = false;
   if (wasRunning && !R.fatal) setStatus("", "정지됨");
   core.breakNext = true;
   resetDraft();
   pumpTranslations();
-  if (wasRunning) {
-    // 바로 한 번 저장하고, 늦게 도착하는 마지막 번역까지 담기도록 잠시 뒤 한 번 더 저장한다
-    saveMeeting();
-    setTimeout(() => { saveMeeting(true).then(() => autoDigest(R.meetingId)).then(() => checkBackup()); }, 4000);
+  render();
+  if (wasRunning) finishMeeting(R.session);
+}
+
+// 정지한 뒤: 바로 한 번 저장하고, 마지막 글자와 마지막 번역이 끝나기를 기다렸다가 다시 저장한 뒤 정리를 만든다
+// 기다리는 시간에는 한도가 있다. 넘으면 영어 원문을 먼저 저장하고 번역이 덜 된 줄 수를 남긴다
+async function finishMeeting(sess) {
+  await saveMeeting();
+  const id = R.meetingId;
+  if (R.drain) await R.drain;
+  core.breakNext = true; pumpTranslations();
+  const t0 = Date.now();
+  while (pendingTranslations(core) && !T.blocked && Date.now() - t0 < FINAL_WAIT_MS) {
+    await sleep(250);
+    if (R.meetingId !== id) break;          // 기다리는 동안 화면을 지웠다 (지울 때 이미 저장했다)
+    pumpTranslations();
   }
+  if (id && R.meetingId === id) await saveMeeting(true, pendingTranslations(core));
+  if (R.running && R.session !== sess) return;   // 그사이 다시 시작했으면 같은 회의가 이어지므로 정리는 다음 정지 때 한다
+  if (id) await autoDigest(id);
+  checkBackup();
 }
 
 // ---------------------------------------------------------------------------
@@ -1842,7 +1989,8 @@ el.clear.addEventListener("click", async () => {
   if (prevMeeting) autoDigest(prevMeeting);      // 정지 없이 지운 회의에도 제목과 정리를 붙인다
   if (AS.ac) { try { AS.ac.abort(); } catch (e) {} AS.ac = null; }
   AS.cur = null; if (assistOn()) renderAssist();
-  R.meetingId = null; R.meetingStart = 0; R.meetingSecs = 0; R.noSave = false;
+  R.meetingId = null; R.meetingStart = 0; R.meetingSecs = 0; R.noSave = false; R.gaps = [];
+  setSaveState("");
   if (R.running) R.startedAt = Date.now();
   core.blocks = []; core.nf = { en: "", ko: "", speaker: null }; core.breakNext = false; resetDraft();
   el.transcript.textContent = ""; ghostEl = null;
@@ -1993,30 +2141,68 @@ function meetingLines() {
 }
 
 function meetingText(m) {
-  return (m.lines || []).map((l) => (l.who ? "[" + l.who + "] " : "") + (l.en || "") + (l.ko ? (l.en ? "\n" : "") + l.ko : "")).join("\n\n");
+  const gaps = (m.gaps || []).slice().sort((a, b) => a.afterLine - b.afterLine);
+  const out = [];
+  (m.lines || []).forEach((l, i) => {
+    while (gaps.length && gaps[0].afterLine <= i) out.push(gapText(gaps.shift()));
+    out.push((l.who ? "[" + l.who + "] " : "") + (l.en || "") + (l.ko ? (l.en ? "\n" : "") + l.ko : ""));
+  });
+  for (const g of gaps) out.push(gapText(g));
+  return out.join("\n\n");
 }
 
 // 화면의 기록을 고른 묶음에 저장한다 (같은 회의는 덮어쓴다). announce 면 아래 상태 줄에 알린다
-async function saveMeeting(announce) {
-  if (!Store.ok || settings.autoSave === false || R.noSave || !currentPack()) return false;
+// pending: 번역이 끝나기 전에 저장한 줄 수 (정지 후 마지막 저장에서만 넘긴다)
+async function saveMeeting(announce, pending) {
+  if (settings.autoSave === false || R.noSave) { setSaveState(""); return false; }
   const lines = meetingLines();
   if (!lines.length) return false;
+  if (!Store.ok || !currentPack()) { setSaveState("off"); return false; }
   if (!R.meetingId) { R.meetingId = newId(); R.meetingStart = R.startedAt || Date.now(); }
   const secs = Math.round(R.meetingSecs + (R.running && R.startedAt ? (Date.now() - R.startedAt) / 1000 : 0));
   const id = R.meetingId;
+  const extra = { gaps: R.gaps.slice() };
+  if (pending !== undefined) extra.pending = pending || 0;
   let saved = null;
+  setSaveState("busy");
   try {
     // 이미 붙은 제목은 그대로 두고 내용만 바꾼다
     saved = await Store.update("meetings", id, (old) => Object.assign({}, old || {},
-      { id, packId: settings.packId, startedAt: R.meetingStart, endedAt: Date.now(), secs, lines }));
+      { id, packId: settings.packId, startedAt: R.meetingStart, endedAt: Date.now(), secs, lines }, extra));
   } catch (e) {
-    if (announce) setConnState("회의 기록을 저장하지 못했습니다. 위의 저장 버튼으로 파일로 받아 두세요.");
+    setSaveState("fail");
+    if (announce) setConnState("회의 기록을 저장하지 못했습니다. 위의 '저장 실패'를 눌러 파일로 받아 두세요.");
     return false;
   }
-  if (announce && !R.running) setConnState("회의 기록을 '" + currentPack().name + "' 묶음에 저장했습니다" + (saved && saved.title ? ": " + saved.title : "") + " (" + lines.length + "줄).");
+  setSaveState("ok");
+  if (announce && !R.running) setConnState("회의 기록을 '" + currentPack().name + "' 묶음에 저장했습니다" + (saved && saved.title ? ": " + saved.title : "") + " (" + lines.length + "줄)." +
+    (pending ? " 마지막 " + pending + "줄은 번역이 끝나기 전에 저장했습니다. 영어 원문은 모두 저장했습니다." : ""));
   if (el.dlg.open) renderMeetList();
   return true;
 }
+
+// 위쪽의 저장 상태 표시: 저장 중, 마지막 저장 시각, 실패. 실패하면 눌러서 바로 파일로 받는다
+const SV = { kind: "", at: 0, failNoticed: false };
+function setSaveState(kind) {
+  const node = $("saveState");
+  if (!node) return;
+  if (kind === "ok") { SV.at = Date.now(); SV.failNoticed = false; }
+  // 저장 중 표시는 앞의 결과가 실패였을 때는 덮지 않는다 (실패가 눈에 계속 보이도록)
+  if (kind === "busy" && SV.kind === "fail") return;
+  SV.kind = kind;
+  if (!kind) { node.style.display = "none"; return; }
+  node.style.display = "";
+  node.className = "pill" + (kind === "fail" ? " err" : kind === "ok" ? " saved" : " wait");
+  node.textContent = kind === "busy" ? "저장 중" : kind === "fail" ? "저장 실패 · 눌러서 파일로 받기"
+    : kind === "off" ? "자동 저장 안 됨 · 눌러서 파일로 받기" : "저장됨 " + new Date(SV.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  node.title = kind === "ok" ? "회의 기록이 이 브라우저에 저장되었습니다" : kind === "fail" || kind === "off"
+    ? "이 브라우저에 저장하지 못했습니다. 눌러서 지금까지의 기록을 텍스트 파일로 받아 두세요." : "";
+  if (kind === "fail" && !SV.failNoticed) {
+    SV.failNoticed = true;
+    showBanner("회의 기록을 자동 저장하지 못했습니다. 위쪽의 '저장 실패'를 누르면 지금까지의 기록을 파일로 받을 수 있습니다. 회의는 계속 진행됩니다.");
+  }
+}
+$("saveState").addEventListener("click", () => { if (SV.kind === "fail" || SV.kind === "off") el.save.click(); });
 document.addEventListener("visibilitychange", () => { if (document.hidden) saveMeeting(); });
 
 // ---- 회의 후 정리: 제목, 요약, 결정 사항, 할 일, 묶음에 쌓을 내용 ----
@@ -2177,6 +2363,8 @@ function meetingFile(m, pack) {
   const mins = Math.max(1, Math.round((m.secs || 0) / 60));
   const out = [m.title || "회의 기록", "일시: " + stamp(m.startedAt) + " (" + mins + "분)"];
   if (pack) out.push("묶음: " + pack.name);
+  if (m.gaps && m.gaps.length) out.push("연결 끊김: " + m.gaps.length + "번 (본문에 ⚠ 로 표시)");
+  if (m.pending) out.push("번역 미완료: 마지막 " + m.pending + "줄 (영어 원문은 모두 있음)");
   const d = m.digest;
   const sec = (name, items) => { if (items && items.length) { out.push("", "[" + name + "]"); for (const x of items) out.push("- " + x); } };
   if (d) { sec("요약", d.summary); sec("결정 사항", d.decisions); sec("할 일", d.todos); }
@@ -2237,6 +2425,12 @@ function renderMeeting() {
   body.textContent = "";
   const mins = Math.max(1, Math.round((m.secs || 0) / 60));
   body.append(mk("div", "mmeta", stamp(m.startedAt) + " · " + mins + "분 · " + m.lines.length + "줄" + (pack ? " · 묶음: " + pack.name : "") + (m.id ? "" : " · 저장하지 않는 회의")));
+  if (m.gaps && m.gaps.length || m.pending) {
+    const lost = (m.gaps || []).reduce((t, g) => t + (g.lostSecs || 0), 0);
+    body.append(mk("div", "mvnote warn", [
+      m.gaps && m.gaps.length ? "이 회의 중 연결이 " + m.gaps.length + "번 끊겼습니다" + (lost ? " (빠진 소리 약 " + lost + "초)" : "") + ". 전체 기록에 ⚠ 로 표시했습니다." : "",
+      m.pending ? "마지막 " + m.pending + "줄은 번역이 끝나기 전에 저장했습니다. 영어 원문은 모두 있습니다." : ""].filter(Boolean).join(" ")));
+  }
   if (busy) body.append(mk("div", "mvnote", "회의 내용을 읽고 정리하는 중입니다…"));
   else if (viewNote) body.append(mk("div", "mvnote warn", viewNote));
   else if (!d) body.append(mk("div", "mvnote", helperSpec() ? "아직 정리가 없습니다. 아래 '정리 만들기'를 눌러 주세요." : "Claude나 Groq API 키를 설정에 넣으면 요약과 정리를 만들 수 있습니다."));
@@ -2280,13 +2474,16 @@ function renderMeeting() {
   }
   const det = mk("details", "mvlog");
   det.append(mk("summary", "", "전체 기록 (" + m.lines.length + "줄)"));
-  for (const l of m.lines) {
+  const gq = (m.gaps || []).slice().sort((a, b) => a.afterLine - b.afterLine);
+  m.lines.forEach((l, li) => {
+    while (gq.length && gq[0].afterLine <= li) det.append(mk("div", "gapmark", gapText(gq.shift())));
     const row = mk("div", "mvline");
     if (l.who) row.append(mk("span", "mvwho", l.who));
     if (l.en) row.append(mk("div", "mven", l.en));
     if (l.ko) row.append(mk("div", "mvko", l.ko));
     det.append(row);
-  }
+  });
+  for (const g of gq) det.append(mk("div", "gapmark", gapText(g)));
   det.open = !d;
   body.append(det);
   body.scrollTop = keepScroll;
