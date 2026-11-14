@@ -34,6 +34,21 @@
   .pill.wait { color: var(--warn); } .pill.wait::before { background: var(--warn); }
   .pill.err { color: var(--err); } .pill.err::before { background: var(--err); }
   .pill.saved { color: var(--muted); } .pill.saved::before { background: var(--ok); }
+  .block { position: relative; }
+  .block .star { position: absolute; top: 2px; right: 0; background: none; border: 0; color: var(--muted); font-size: 16px; cursor: pointer; opacity: .35; padding: 2px 4px; }
+  .block:hover .star, .block.starred .star { opacity: 1; }
+  .block.starred .star { color: #facc15; }
+  .block.starred { border-left: 3px solid #facc15; padding-left: 8px; }
+  .block.tome { background: rgba(79,140,255,.10); border-radius: 8px; padding-left: 8px; }
+  .block > .en, .block > .ko { padding-right: 24px; }
+  mark { background: none; color: inherit; }
+  mark.hl-num { color: #7dd3fc; font-weight: 600; }
+  mark.hl-neg { color: #fda4af; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+  mark.hl-me { background: rgba(79,140,255,.35); color: #fff; border-radius: 3px; padding: 0 2px; }
+  .srcbtn { background: none; border: 1px solid var(--line); color: var(--accent); border-radius: 6px; font-size: 11.5px; padding: 1px 6px; cursor: pointer; }
+  .mvline.star { border-left: 3px solid #facc15; padding-left: 8px; }
+  .mvline.flash { animation: flash 1.6s ease-out; }
+  @keyframes flash { 0% { background: rgba(250,204,21,.35); } 100% { background: transparent; } }
   .gapmark { margin: 10px 0; padding: 6px 10px; border-radius: 8px; border: 1px dashed var(--warn); color: var(--warn); font-size: 13px; line-height: 1.5; }
   @keyframes blink { 50% { opacity: .35; } }
   .spacer { flex: 1 1 auto; }
@@ -404,6 +419,10 @@
       <label class="check"><input id="showOriginal" type="checkbox"> 영어 원문도 함께 표시</label>
     </div>
     <div class="field">
+      <label class="check"><input id="marks" type="checkbox"> 숫자·날짜·부정 표현 강조</label>
+      <div class="hint">마감일, 금액, 횟수, 퍼센트와 not, can't, never 같은 부정 표현에 색을 입혀 잘못 듣기 쉬운 곳을 바로 보이게 합니다.</div>
+    </div>
+    <div class="field">
       <label class="check"><input id="diar" type="checkbox"> 목소리로 화자 구분</label>
       <div class="hint">말하는 사람이 바뀌면 화자 1, 화자 2처럼 표시합니다. 화자 이름을 누르면 이름을 바꿀 수 있습니다.</div>
     </div>
@@ -425,6 +444,32 @@
         <textarea id="me" maxlength="1500" placeholder="예) 구매팀 과장. 공급 계약 실무 담당. 가격 결정 권한은 팀장에게 있음."></textarea>
         <div class="hint">소속, 역할, 권한을 적어 두면 내 입장에 맞는 답변을 제안합니다. 모든 묶음에 공통으로 쓰입니다.</div>
       </div>
+      <div class="field">
+        <label for="myNames">회의에서 나를 부르는 이름 (선택)</label>
+        <input id="myNames" type="text" maxlength="120" autocomplete="off" placeholder="예) David, Dave, Mr. Kim">
+        <div class="hint">쉼표로 여러 개 적습니다. 이 이름이 들리면 그 줄을 눈에 띄게 표시하고, 나에게 묻거나 부탁한 말이면 물음표가 없어도 답변을 제안합니다.</div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="assistEngine">답변 제안에 쓸 AI</label>
+          <select id="assistEngine">
+            <option value="">자동 (번역 방식을 따름)</option>
+            <option value="claude-haiku">Claude Haiku (빠름)</option>
+            <option value="claude-sonnet">Claude Sonnet (정확, 느림)</option>
+            <option value="groq">Groq (가장 빠름)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="digestEngine">회의 정리에 쓸 AI</label>
+          <select id="digestEngine">
+            <option value="">자동 (번역 방식을 따름)</option>
+            <option value="claude-haiku">Claude Haiku (빠름)</option>
+            <option value="claude-sonnet">Claude Sonnet (정확, 느림)</option>
+            <option value="groq">Groq (가장 빠름)</option>
+          </select>
+        </div>
+      </div>
+      <div class="hint" style="margin-top:-4px">번역 엔진과 따로 고를 수 있습니다. 예) 번역은 Groq으로 빠르게, 회의 정리는 Claude Sonnet으로 꼼꼼하게. 고른 AI의 키가 없으면 자동으로 돌아갑니다.</div>
     </div>
     <div class="field" id="statField">
       <label>번역 속도 기록 (시작부터 지금까지)</label>
@@ -466,7 +511,9 @@ function newBlock(core, speaker) {
               trSrc: "", trState: "", ac: null, lastChange: Date.now(), mt: "", mtDone: false,
               cont: false, swap: false, draftKo: "", alt: "", altSrc: "", altState: "", altLabel: "", altMs: 0, altAc: null,
               // 속도 비교용: mtAt = Soniox 번역이 완성된 시각, sonMs/mainMs/altMs = 문장이 끝난 뒤 각 엔진의 번역 완성까지 걸린 시간
-              mtAt: 0, sonMs: 0, sonDone: false, mainMs: 0, waitMs: 0 };
+              mtAt: 0, sonMs: 0, sonDone: false, mainMs: 0, waitMs: 0,
+              // at = 이 줄이 시작된 시각, star = 중요 표시, ask = 질문 판단 결과("me"/"q"/"other"/"named"/"")
+              at: Date.now(), star: false, ask: "", askSrc: "" };
   core.blocks.push(b);
   return b;
 }
@@ -759,6 +806,79 @@ function pendingTranslations(core) {
   }
   return n;
 }
+
+// ---- 나에게 온 질문 알아채기 ----
+function parseNames(s) {
+  return (s || "").split(/[,\n]/).map((x) => x.trim()).filter((x) => x.length >= 2).slice(0, 10);
+}
+function escRe(x) { return x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+function namesRe(names) { return names.length ? new RegExp("\\b(?:" + names.map(escRe).join("|") + ")\\b", "i") : null; }
+
+// 물음표가 없어도 상대에게 묻거나 부탁하는 말
+const REQUEST_RE = /\b(what do you think|what'?s your (view|take|opinion|thinking)|your (thoughts|view|opinion|take|input)|any thoughts|do you (agree|have|see|want|need)|are you (ok|okay|fine|able|comfortable)|let (me|us) know|please (confirm|share|clarify|explain|send|advise|check)|could you|can you|would you|will you|over to you|(we'?d|i'?d) (love|like) to hear|walk us through|tell us)\b/i;
+// 문장 앞 "John, ..." 처럼 부르는 말로 자주 쓰이지만 사람 이름이 아닌 단어
+const NOT_NAME = new Set(["so", "well", "okay", "ok", "yes", "no", "right", "now", "and", "but", "also", "actually", "sorry", "thanks", "thank", "great",
+  "hi", "hello", "look", "listen", "guys", "everyone", "folks", "team", "sure", "alright", "anyway", "yeah", "then", "first", "finally", "again", "please", "honestly", "however", "frankly"]);
+
+function lastSentenceOf(text) {
+  const parts = text.trim().split(/(?<=[.?!…])\s+/).filter((x) => x.trim());
+  return parts.length ? parts[parts.length - 1] : "";
+}
+
+// 끝난 한 줄을 보고 답변을 제안할지 정한다
+//   "me": 내 이름을 부르며 묻거나 부탁함 / "q": 묻거나 부탁함 / "other": 다른 사람 이름을 부르며 물음 (자동 제안 안 함)
+//   "named": 내 이름이 나왔지만 질문은 아님 (표시만) / "": 해당 없음
+function askKind(src, names) {
+  const s = (src || "").trim();
+  if (!s) return "";
+  const last = lastSentenceOf(s);
+  const re = namesRe(names || []);
+  const me = !!re && re.test(s);
+  const q = /\?["'”’)\]]*$/.test(s) && lastSentenceWords(s) >= 3;
+  const req = REQUEST_RE.test(last);
+  const voc = last.match(/^([A-Z][a-z]+)\s*,/);
+  const other = !me && !!voc && !NOT_NAME.has(voc[1].toLowerCase());
+  if (me) return q || req || (voc && re.test(voc[1])) ? "me" : "named";
+  if (!(q || req)) return "";
+  return other ? "other" : "q";
+}
+
+// ---- 강조 표시: 숫자·날짜·금액·부정 표현, 내 이름 ----
+const MARK_NUM = /(?:[$€£₩¥]\s?)?\d(?:[\d,.:]*\d)?(?:\s?(?:%|percent|k|m|bn|million|billion|thousand|hundred|dollars?|euros?|won|weeks?|days?|months?|years?|hours?|minutes?|am|pm))?|\b(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|hundred|thousand|million|billion|half|double|twice)\b|\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|january|february|march|april|june|july|august|september|october|november|december|tomorrow|yesterday|tonight|next week|next month|end of (?:the )?(?:day|week|month|quarter|year)|eod|q[1-4])\b/i;
+const MARK_NEG = /\b(?:not|no longer|never|cannot|can'?t|won'?t|don'?t|doesn'?t|didn'?t|isn'?t|aren'?t|wasn'?t|weren'?t|shouldn'?t|couldn'?t|wouldn'?t|haven'?t|hasn'?t|unable|neither|nor|none)\b/i;
+
+// 글을 [ {t: 글자, k: ""|"num"|"neg"|"me"} ] 조각으로 나눈다
+function markSegments(text, names, opts) {
+  const parts = [];
+  const res = [];
+  if (opts && opts.marks) { res.push(["num", MARK_NUM], ["neg", MARK_NEG]); }
+  const nr = namesRe(names || []);
+  if (nr) res.push(["me", nr]);
+  if (!res.length || !text) return [{ t: text || "", k: "" }];
+  let rest = text;
+  while (rest) {
+    let best = null;
+    for (const [k, re] of res) {
+      const m = re.exec(rest);
+      if (m && m[0] && (!best || m.index < best.i || (m.index === best.i && m[0].length > best.len))) best = { i: m.index, len: m[0].length, k };
+    }
+    if (!best) { parts.push({ t: rest, k: "" }); break; }
+    if (best.i) parts.push({ t: rest.slice(0, best.i), k: "" });
+    parts.push({ t: rest.slice(best.i, best.i + best.len), k: best.k });
+    rest = rest.slice(best.i + best.len);
+  }
+  return parts;
+}
+
+// 회의 기록 내용의 지문. 줄 수가 같아도 글자가 바뀌면 달라진다 (정리를 다시 만들어야 하는지 판단할 때 쓴다)
+function linesSig(lines) {
+  let h = 5381;
+  for (const l of lines || []) {
+    const t = (l.en || "") + "\u0001" + (l.ko || "") + "\u0002";
+    for (let i = 0; i < t.length; i++) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0;
+  }
+  return (lines || []).length + "-" + h.toString(36);
+}
 /*CORE-END*/
 
 // ---------------------------------------------------------------------------
@@ -774,7 +894,8 @@ const DEFAULTS = {
   groqKey: "", groqModel: "openai/gpt-oss-120b", draftFast: true,
   packId: "", autoSave: true, micClean: false,
   stable: false, lastBackupAt: 0, backupNagAt: 0,
-  assist: true, assistAuto: true, assistOpen: true, me: "", autoDigest: true
+  assist: true, assistAuto: true, assistOpen: true, me: "", autoDigest: true,
+  assistEngine: "", digestEngine: "", myNames: "", marks: true
 };
 
 function loadSettings() {
@@ -836,8 +957,22 @@ function buildBlockEl() {
   const en = document.createElement("p"); en.className = "en";
   const ko = document.createElement("p"); ko.className = "ko";
   const cmp = document.createElement("div"); cmp.className = "cmp"; cmp.style.display = "none";
-  wrap.append(spk, en, ko, cmp);
+  const star = document.createElement("button"); star.className = "star"; star.type = "button"; star.title = "중요 표시 (단축키 B: 방금 끝난 줄)"; star.textContent = "☆";
+  wrap.append(spk, en, ko, cmp, star);
   return wrap;
+}
+
+// 글자를 넣으면서 숫자·날짜·부정 표현과 내 이름에 색을 입힌다
+function fillMarked(node, text) {
+  const names = parseNames(settings.myNames);
+  const marks = settings.marks !== false;
+  if (!marks && !names.length) { node.textContent = text; return; }
+  node.textContent = "";
+  for (const seg of markSegments(text, names, { marks })) {
+    if (!seg.k) { node.append(seg.t); continue; }
+    const m = document.createElement("mark"); m.className = "hl-" + seg.k; m.textContent = seg.t;
+    node.append(m);
+  }
 }
 
 const SPK_COLORS = ["#4f8cff", "#3ecf8e", "#f5a524", "#e879f9", "#ff8a65", "#22d3ee", "#c4b5fd", "#facc15"];
@@ -848,8 +983,13 @@ function speakerColor(sp) {
   return SPK_COLORS[(isNaN(n) ? String(sp).length : n - 1 + SPK_COLORS.length) % SPK_COLORS.length];
 }
 
-function fillBlockEl(node, enText, koText, speaker, nfEn, nfKo, showSpeaker, cmpLines) {
-  const [spk, en, ko, cmp] = node.children;
+function fillBlockEl(node, enText, koText, speaker, nfEn, nfKo, showSpeaker, cmpLines, b) {
+  const [spk, en, ko, cmp, star] = node.children;
+  // 중요 표시와 나에게 온 말 표시 (아직 줄이 아닌 임시 줄에는 없다)
+  star.style.display = b ? "" : "none";
+  star.textContent = b && b.star ? "★" : "☆";
+  node.classList.toggle("starred", !!(b && b.star));
+  node.classList.toggle("tome", !!(b && (b.ask === "me" || b.ask === "named")));
   // 번역 비교 모드: 다른 엔진의 번역을 작게 덧붙인다
   cmp.textContent = "";
   if (cmpLines && cmpLines.length) {
@@ -866,9 +1006,9 @@ function fillBlockEl(node, enText, koText, speaker, nfEn, nfKo, showSpeaker, cmp
   spk.dataset.speaker = speaker || "";
   spk.style.color = show ? speakerColor(speaker) : "";
   spk.style.display = show ? "" : "none";
-  en.textContent = enText.replace(/^\s+/, "");
+  fillMarked(en, enText.replace(/^\s+/, ""));
   if (nfEn) { const s = document.createElement("span"); s.className = "nf"; s.textContent = en.textContent ? nfEn : nfEn.replace(/^\s+/, ""); en.append(s); }
-  ko.textContent = koText.replace(/^\s+/, "");
+  fillMarked(ko, koText.replace(/^\s+/, ""));
   if (nfKo) { const s = document.createElement("span"); s.className = "nf"; s.textContent = ko.textContent ? nfKo : nfKo.replace(/^\s+/, ""); ko.append(s); }
   en.style.display = en.textContent ? "" : "none";
   ko.style.display = ko.textContent ? "" : "none";
@@ -906,7 +1046,7 @@ function render() {
       else if (b.trState === "run") tailKo = "…";
       else if (b.trState === "err") tailKo = "(번역 실패)";
     }
-    if (!b.el) { b.el = buildBlockEl(); el.transcript.append(b.el); b.dirty = true; }
+    if (!b.el) { b.el = buildBlockEl(); b.el._b = b; el.transcript.append(b.el); b.dirty = true; }
     const showSpk = i === 0 || core.blocks[i - 1].speaker !== b.speaker;
     if (b.dirty || tailEn || tailKo || b.hadTail || b.shownSpk !== showSpk) {
       let cmp = null;
@@ -921,7 +1061,7 @@ function render() {
                     b.alt || (b.altState === "run" ? "…" : b.altState === "err" ? "(번역 실패)" : "")]);
         }
       }
-      fillBlockEl(b.el, b.en, b.ko, b.speaker, tailEn, tailKo, showSpk, cmp);
+      fillBlockEl(b.el, b.en, b.ko, b.speaker, tailEn, tailKo, showSpk, cmp, b);
       b.shownSpk = showSpk;
       b.hadTail = !!(tailEn || tailKo);
       b.dirty = false;
@@ -945,9 +1085,26 @@ function render() {
   else el.jump.classList.add("show");
 }
 
+// 중요 표시: 줄의 ☆를 누르거나, 단축키 B 로 방금 끝난 줄에 표시한다
+function toggleStar(b) {
+  if (!b) return;
+  b.star = !b.star; b.dirty = true; render();
+  saveMeeting();
+}
+function onStarKey(ev) {
+  if (ev.key !== "b" && ev.key !== "B") return;
+  if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+  const t = ev.target;
+  if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
+  if (document.querySelector("dialog[open]")) return;
+  for (let i = core.blocks.length - 1; i >= 0; i--) { if (core.blocks[i].en.trim()) { toggleStar(core.blocks[i]); break; } }
+}
+document.addEventListener("keydown", onStarKey);
+
 // 화자 이름을 누르면 이름을 바꿀 수 있다
 el.transcript.addEventListener("click", (ev) => {
   const t = ev.target;
+  if (t && t.classList && t.classList.contains("star")) { const node = t.closest(".block"); toggleStar(node && node._b); return; }
   if (!t || !t.classList || !t.classList.contains("spk")) return;
   const sp = t.dataset.speaker;
   if (!sp) return;
@@ -2025,6 +2182,7 @@ el.pip.addEventListener("click", async () => {
   for (const s of document.querySelectorAll("style")) pipWin.document.head.append(s.cloneNode(true));
   pipWin.document.body.style.cssText = "margin:0;display:flex;height:100vh;background:#0f1115;";
   pipWin.document.body.append(el.stage);
+  pipWin.document.addEventListener("keydown", onStarKey);   // 작은 창에서도 B 로 중요 표시
   el.stage.scrollTop = el.stage.scrollHeight;
   el.pip.textContent = "작은 창 닫기";
   pipWin.addEventListener("pagehide", () => {
@@ -2140,7 +2298,11 @@ function meetingLines() {
   const out = [];
   for (const b of core.blocks) {
     const en = b.en.trim(), ko = b.ko.trim();
-    if (en || ko) out.push({ who: b.speaker ? speakerLabel(b.speaker) : "", en, ko });
+    if (en || ko) {
+      const l = { who: b.speaker ? speakerLabel(b.speaker) : "", en, ko, at: b.at || 0 };
+      if (b.star) l.star = true;
+      out.push(l);
+    }
   }
   return out;
 }
@@ -2166,7 +2328,7 @@ async function saveMeeting(announce, pending) {
   if (!R.meetingId) { R.meetingId = newId(); R.meetingStart = R.startedAt || Date.now(); }
   const secs = Math.round(R.meetingSecs + (R.running && R.startedAt ? (Date.now() - R.startedAt) / 1000 : 0));
   const id = R.meetingId;
-  const extra = { gaps: R.gaps.slice() };
+  const extra = { gaps: R.gaps.slice(), sig: linesSig(lines) };
   if (pending !== undefined) extra.pending = pending || 0;
   let saved = null;
   setSaveState("busy");
@@ -2279,10 +2441,32 @@ $("testKeys").addEventListener("click", async () => {
 
 // ---- 회의 후 정리: 제목, 요약, 결정 사항, 할 일, 묶음에 쌓을 내용 ----
 const digestBusy = new Set(), digestTried = new Set();
+
+// 내용이 바뀌어 정리·제목을 다시 만들어야 하는지 (예전 기록은 지문이 없으니 줄 수로 본다)
+function sigOf(m) { return m.sig || linesSig(m.lines); }
+function digestStale(m) {
+  if (!m.digest) return true;
+  return m.digest.sig ? m.digest.sig !== sigOf(m) : m.digest.lines !== (m.lines || []).length;
+}
+function titleStale(m) {
+  if (m.titleManual) return false;
+  if (!m.title || m.titleLines === -1) return true;
+  return m.titleSig ? m.titleSig !== sigOf(m) : m.titleLines !== (m.lines || []).length;
+}
 const DIGEST_FAIL = "정리를 만들지 못했습니다. 잠시 뒤 '다시 정리'를 눌러 주세요.";
 
-// 번역 말고 다른 일(제목, 정리, 답변 제안)을 맡길 엔진: 지금 쓰는 번역 엔진, 없으면 키가 있는 쪽
-function helperSpec() {
+// 번역 말고 다른 일(제목, 정리, 답변 제안)을 맡길 엔진
+// role: "assist"(답변 제안) / "digest"(회의 정리). 설정에서 따로 고른 엔진이 있고 그 키가 있으면 그것을 쓴다
+// 고르지 않았으면(자동) 지금 쓰는 번역 엔진, 없으면 키가 있는 쪽
+const HELPER_CHOICES = {
+  "claude-haiku": { p: "claude", model: "claude-haiku-5-5" },
+  "claude-sonnet": { p: "claude", model: "claude-sonnet-5-5" },
+  "groq": { p: "groq" }
+};
+function helperSpec(role) {
+  const pick = role === "assist" ? settings.assistEngine : role === "digest" ? settings.digestEngine : "";
+  const c = pick && HELPER_CHOICES[pick];
+  if (c && hasKey(c.p)) return c.p === "groq" ? { p: "groq", model: settings.groqModel || GROQ_DEFAULT } : Object.assign({}, c);
   if (isLLM() && hasKey(mainSpec().p)) return mainSpec();
   if (hasKey("claude")) return { p: "claude", model: "claude-haiku-5-5" };
   if (hasKey("groq")) return { p: "groq", model: settings.groqModel || GROQ_DEFAULT };
@@ -2370,8 +2554,8 @@ const DIGEST_SYSTEM =
   "You prepare the record of a business meeting for a Korean professional. Read the transcript and reply with one JSON object only (no markdown, no text around it) with exactly these keys:\n" +
   "title: a Korean title of at most 30 characters that tells this meeting apart from other meetings in the same series (main topic and, if clear, the key issue or decision; no date).\n" +
   "summary: array of 2 to 6 Korean sentences covering what was discussed.\n" +
-  "decisions: array of Korean sentences, one per thing that was decided or agreed. Empty array if none.\n" +
-  "todos: array of Korean sentences, one per follow-up action, with who and by when if stated. Empty array if none.\n" +
+  "decisions: array of objects {\"text\", \"line\"}, one per thing that was decided or agreed. text is a Korean sentence; line is the number in [brackets] of the transcript line where it was decided or confirmed. Empty array if none.\n" +
+  "todos: array of objects {\"text\", \"line\"}, one per follow-up action. text is a Korean sentence that includes who and by when only if they were actually said; never guess an owner or a deadline (write '담당자 미정' or '기한 미정' when it matters). line is the number of the transcript line where it was said. Empty array if none.\n" +
   "terms: array of up to 15 objects {\"en\", \"ko\"}: domain terms, abbreviations, and names of companies, products or people that appeared and matter for translating future meetings. " +
   "ko is the Korean wording to use; for names that should stay in English, ko is an empty string. Skip everyday words and anything already in the existing glossary.\n" +
   "facts: array of up to 10 short Korean sentences with concrete things worth remembering for the next meeting in this series (numbers, dates, conditions, each side's position).\n" +
@@ -2380,8 +2564,9 @@ const DIGEST_SYSTEM =
   "Use only what is in the transcript. Do not invent anything.";
 
 // AI 에 보낼 회의 내용. 아주 긴 회의는 앞과 뒤를 남기고 가운데를 줄인다
-function transcriptForAI(lines, max) {
-  let body = lines.map((l) => (l.who ? l.who + ": " : "") + (l.en || l.ko)).join("\n");
+// numbered 면 줄마다 [번호] 를 붙인다 (정리의 결정 사항·할 일이 어느 줄에서 나왔는지 돌려받기 위해)
+function transcriptForAI(lines, max, numbered) {
+  let body = lines.map((l, i) => (numbered ? "[" + (i + 1) + "] " : "") + (l.who ? l.who + ": " : "") + (l.en || l.ko)).join("\n");
   if (body.length > max) body = body.slice(0, Math.floor(max * 0.6)) + "\n…\n" + body.slice(-Math.floor(max * 0.4));
   return body;
 }
@@ -2396,9 +2581,17 @@ function parseDigest(raw) {
   const S = (v, len) => (typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, len) : "");
   const list = (v, n, len) => (Array.isArray(v) ? v : []).map((x) => S(x, len)).filter(Boolean).slice(0, n);
   const noComma = (x) => x.replace(/[,=\n]/g, " ").replace(/\s+/g, " ").trim();   // 용어집 형식(쉼표, =)과 겹치지 않게
+  // 결정 사항·할 일: 예전 형식(문장만)과 새 형식({text, line}) 모두 받는다
+  const items = (v) => (Array.isArray(v) ? v : []).map((x) => {
+    const text = S(typeof x === "string" ? x : x && x.text, 300);
+    const n = x && typeof x === "object" ? parseInt(x.line, 10) : NaN;
+    return { text, line: n >= 1 ? n - 1 : -1 };
+  }).filter((x) => x.text).slice(0, 12);
   return {
     title: cleanTitle(S(j.title, 80)),
-    summary: list(j.summary, 8, 400), decisions: list(j.decisions, 12, 300), todos: list(j.todos, 12, 300),
+    summary: list(j.summary, 8, 400), decisions: items(j.decisions).map((x) => x.text), todos: items(j.todos).map((x) => x.text),
+    // 결정 사항·할 일이 나온 원문 줄 (0부터 센 번호, 모르면 -1)
+    refs: { decisions: items(j.decisions).map((x) => x.line), todos: items(j.todos).map((x) => x.line) },
     terms: (Array.isArray(j.terms) ? j.terms : []).map((t) => ({ en: noComma(S(t && t.en, 80)), ko: noComma(S(t && t.ko, 80)) })).filter((t) => t.en).slice(0, 20),
     facts: list(j.facts, 12, 300),
     questions: (Array.isArray(j.questions) ? j.questions : [])
@@ -2408,11 +2601,11 @@ function parseDigest(raw) {
 
 // 회의 내용을 읽고 { title, digest } 를 만든다. 실패하면 오류를 던진다
 async function makeDigest(m, pack) {
-  const spec = helperSpec();
+  const spec = helperSpec("digest");
   if (!spec) throw new Error("no engine");
   const glossary = pack ? parseTerms(pack.terms).map((t) => t.src).join(", ") : "";
   const user = (pack ? "Meeting series: " + pack.name + (pack.brief ? "\nBackground: " + pack.brief : "") + (glossary ? "\nExisting glossary: " + glossary : "") + "\n\n" : "") +
-    "<transcript>\n" + transcriptForAI(m.lines, 100000) + "\n</transcript>";
+    "<transcript>\n" + transcriptForAI(m.lines, 100000, true) + "\n</transcript>";
   const d = parseDigest(await llmAsk(spec, DIGEST_SYSTEM, user, 3000));
   if (!d) throw new Error("bad format");
   const title = d.title;
@@ -2437,8 +2630,9 @@ async function autoDigest(id, opts) {
     if (!m || !m.lines || !m.lines.length) return null;
     const n = m.lines.length;
     const ai = !!helperSpec() && (opts.explicit || settings.autoDigest !== false);
-    const needTitle = !m.titleManual && (!m.title || m.titleLines !== n);
-    const needDigest = ai && (opts.redo || !m.digest || m.digest.lines !== n);
+    const sig = sigOf(m);
+    const needTitle = titleStale(m);
+    const needDigest = ai && (opts.redo || digestStale(m));
     if (!needTitle && !needDigest) return m;
     let made = null;
     if (ai) {
@@ -2449,8 +2643,8 @@ async function autoDigest(id, opts) {
       if (!cur) return null;
       const next = Object.assign({}, cur);
       if (made) {
-        next.digest = Object.assign({}, made.digest, { lines: n, at: Date.now() });
-        if (!cur.titleManual && made.title) { next.title = made.title; next.titleLines = n; }
+        next.digest = Object.assign({}, made.digest, { lines: n, sig, at: Date.now() });
+        if (!cur.titleManual && made.title) { next.title = made.title; next.titleLines = n; next.titleSig = sig; }
       }
       // AI 없이 붙인 임시 제목은 titleLines 를 -1 로 두어, 나중에 키가 생기면 다시 짓게 한다
       if (!next.titleManual && !next.title) { next.title = simpleTitle(cur.lines); next.titleLines = -1; }
@@ -2481,7 +2675,14 @@ function meetingFile(m, pack) {
   if (m.pending) out.push("번역 미완료: 마지막 " + m.pending + "줄 (영어 원문은 모두 있음)");
   const d = m.digest;
   const sec = (name, items) => { if (items && items.length) { out.push("", "[" + name + "]"); for (const x of items) out.push("- " + x); } };
-  if (d) { sec("요약", d.summary); sec("결정 사항", d.decisions); sec("할 일", d.todos); }
+  // 결정 사항·할 일 뒤에 그 말이 나온 시각을 붙인다
+  const withRef = (items, refs) => (items || []).map((x, i) => {
+    const r = refs && refs[i], l = r >= 0 && m.lines[r];
+    return x + (l && l.at ? " (" + hhmm(l.at) + " 발언)" : "");
+  });
+  if (d) { const rf = d.refs || {}; sec("요약", d.summary); sec("결정 사항", withRef(d.decisions, rf.decisions)); sec("할 일", withRef(d.todos, rf.todos)); }
+  const st = (m.lines || []).filter((l) => l.star);
+  if (st.length) sec("중요 표시", st.map((l) => (l.at ? hhmm(l.at) + " " : "") + (l.who ? "[" + l.who + "] " : "") + (l.en || "") + (l.ko ? " / " + l.ko : "")));
   out.push("", d ? "[전체 기록]" : "", meetingText(m));
   return out.join("\n").replace(/\n{3,}/g, "\n\n");
 }
@@ -2490,12 +2691,30 @@ function meetingFile(m, pack) {
 let viewM = null, viewNote = "", viewAddMsg = "", viewBusy = false;
 function mk(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
 
+function hhmm(t) { return new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
+
+// 회의 보기 창의 '원문' 단추: 전체 기록을 펼치고 그 줄로 옮겨 가서 잠시 표시한다
+function srcButton(i) {
+  const l = viewM && viewM.lines[i];
+  const b = mk("button", "srcbtn", "원문" + (l && l.at ? " " + hhmm(l.at) : ""));
+  b.type = "button"; b.title = "이 내용이 나온 말로 이동";
+  b.addEventListener("click", () => {
+    const det = $("mvBody").querySelector("details.mvlog");
+    if (det) det.open = true;
+    const row = $("mvBody").querySelector('.mvline[data-line="' + i + '"]');
+    if (!row) return;
+    row.scrollIntoView({ block: "center" });
+    row.classList.remove("flash"); void row.offsetWidth; row.classList.add("flash");
+  });
+  return b;
+}
+
 function openMeeting(m) {
   viewM = m; viewNote = ""; viewAddMsg = "";
   renderMeeting();
   if (!$("meetDlg").open) $("meetDlg").showModal();
   // 정리가 없거나 그 뒤로 내용이 늘었으면 만든다 (열어 본 것이 곧 요청이다)
-  if (helperSpec() && (!m.digest || m.digest.lines !== m.lines.length)) buildViewDigest(false);
+  if (helperSpec() && digestStale(m)) buildViewDigest(false);
 }
 
 async function buildViewDigest(redo) {
@@ -2508,7 +2727,7 @@ async function buildViewDigest(redo) {
   viewBusy = true; viewNote = ""; renderMeeting();
   try {
     const made = await makeDigest(m, packOf(m));
-    m.digest = Object.assign({}, made.digest, { lines: m.lines.length, at: Date.now() });
+    m.digest = Object.assign({}, made.digest, { lines: m.lines.length, sig: sigOf(m), at: Date.now() });
     if (made.title) m.title = made.title;
   } catch (e) { if (viewM === m) viewNote = askFailText(e); }
   viewBusy = false;
@@ -2548,19 +2767,26 @@ function renderMeeting() {
   if (busy) body.append(mk("div", "mvnote", "회의 내용을 읽고 정리하는 중입니다…"));
   else if (viewNote) body.append(mk("div", "mvnote warn", viewNote));
   else if (!d) body.append(mk("div", "mvnote", helperSpec() ? "아직 정리가 없습니다. 아래 '정리 만들기'를 눌러 주세요." : "Claude나 Groq API 키를 설정에 넣으면 요약과 정리를 만들 수 있습니다."));
-  else if (d.lines !== m.lines.length) body.append(mk("div", "mvnote", "이 정리를 만든 뒤 회의 내용이 늘었습니다. '다시 정리'를 누르면 새로 만듭니다."));
+  else if (digestStale(m)) body.append(mk("div", "mvnote", "이 정리를 만든 뒤 회의 내용이 바뀌었습니다. '다시 정리'를 누르면 새로 만듭니다."));
   if (d) {
-    const section = (name, items, empty) => {
+    // refs 가 있으면 항목마다 '원문' 단추를 달아 그 말이 나온 줄로 옮겨 간다 (줄 번호는 AI 가 짚은 것이라 틀릴 수 있다)
+    const section = (name, items, empty, refs) => {
       if (!items.length && !empty) return;
       body.append(mk("h4", "mvh", name));
       if (!items.length) { body.append(mk("div", "mmeta", empty)); return; }
       const ul = mk("ul", "mvlist");
-      for (const x of items) ul.append(mk("li", "", x));
+      items.forEach((x, i) => {
+        const li = mk("li", "", x);
+        const r = refs && refs[i];
+        if (r >= 0 && r < m.lines.length) li.append(" ", srcButton(r));
+        ul.append(li);
+      });
       body.append(ul);
     };
+    const refs = d.refs || {};
     section("요약", d.summary, "요약할 내용이 없습니다.");
-    section("결정 사항", d.decisions, "없음");
-    section("할 일", d.todos, "없음");
+    section("결정 사항", d.decisions, "없음", refs.decisions);
+    section("할 일", d.todos, "없음", refs.todos);
     const items = pack && Store.ok ? harvestItems(d, pack) : [];
     if (items.length) {
       body.append(mk("h4", "mvh", "묶음에 쌓을 내용"));
@@ -2586,13 +2812,25 @@ function renderMeeting() {
       body.append(line);
     }
   }
+  const starred = m.lines.map((l, i) => [l, i]).filter(([l]) => l.star);
+  if (starred.length) {
+    body.append(mk("h4", "mvh", "중요 표시한 발언 (" + starred.length + ")"));
+    const ul = mk("ul", "mvlist");
+    for (const [l, i] of starred) {
+      const li = mk("li", "", (l.who ? "[" + l.who + "] " : "") + (l.en || "") + (l.ko ? " — " + l.ko : ""));
+      li.append(" ", srcButton(i));
+      ul.append(li);
+    }
+    body.append(ul);
+  }
   const det = mk("details", "mvlog");
   det.append(mk("summary", "", "전체 기록 (" + m.lines.length + "줄)"));
   const gq = (m.gaps || []).slice().sort((a, b) => a.afterLine - b.afterLine);
   m.lines.forEach((l, li) => {
     while (gq.length && gq[0].afterLine <= li) det.append(mk("div", "gapmark", gapText(gq.shift())));
-    const row = mk("div", "mvline");
-    if (l.who) row.append(mk("span", "mvwho", l.who));
+    const row = mk("div", "mvline" + (l.star ? " star" : ""));
+    row.dataset.line = String(li);
+    if (l.who || l.at) row.append(mk("span", "mvwho", (l.star ? "★ " : "") + (l.who || "") + (l.at ? " " + hhmm(l.at) : "")));
     if (l.en) row.append(mk("div", "mven", l.en));
     if (l.ko) row.append(mk("div", "mvko", l.ko));
     det.append(row);
@@ -2671,7 +2909,7 @@ $("mvRename").addEventListener("click", async () => {
   t = t.trim().slice(0, 60);
   let saved = null;
   try {
-    saved = await Store.update("meetings", m.id, (cur) => (cur ? Object.assign({}, cur, { title: t, titleManual: !!t, titleLines: t ? cur.titleLines : 0 }) : null));
+    saved = await Store.update("meetings", m.id, (cur) => (cur ? Object.assign({}, cur, { title: t, titleManual: !!t, titleLines: t ? cur.titleLines : 0, titleSig: t ? cur.titleSig : undefined }) : null));
   } catch (e) {}
   if (saved && viewM && viewM.id === saved.id) viewM = saved;
   if (!t) { digestTried.delete(m.id); await autoDigest(m.id, { explicit: true, redo: true }); }
@@ -2740,7 +2978,7 @@ function assistContext(end) {
 
 // kind: "q" = 상대가 한 말에 대한 답 / "ko" = 내가 한국어로 적은 말을 영어로
 async function suggest(kind, text, block) {
-  const spec = helperSpec();
+  const spec = helperSpec("assist");
   if (!spec || !text) return;
   if (AS.ac) { try { AS.ac.abort(); } catch (e) {} }       // 새 요청이 오면 앞의 것은 그만둔다
   const ac = new AbortController();
@@ -2799,17 +3037,26 @@ function renderAssist() {
   }
 }
 
-// 방금 끝난 문장이 질문이면 답변을 제안한다
+// 방금 끝난 줄이 나에게 묻거나 부탁하는 말이면 답변을 제안한다
+// 물음표뿐 아니라 "Could you ...", "Let me know ...", 내 이름을 부르는 말도 알아챈다
+// 다른 사람 이름을 부르며 한 질문("John, can you ...")은 자동으로 제안하지 않는다 ('지금 제안'으로는 가능)
 function pumpAssist() {
-  if (!R.running || settings.assistAuto === false || !assistOn()) return;
+  if (!R.running) return;
+  const names = parseNames(settings.myNames);
+  const auto = settings.assistAuto !== false && assistOn();
   const n = core.blocks.length, now = Date.now();
   for (let i = Math.max(0, n - 3); i < n; i++) {
     const b = core.blocks[i], src = b.en.trim();
-    if (!src || b.asSrc === src) continue;
-    if (!/\?["'”’)\]]*$/.test(src) || lastSentenceWords(src) < 3) continue;   // 물음표로 끝나는 말만. "Right?" 같은 짧은 추임새는 뺀다
+    if (!src || b.askSrc === src) continue;
     const next = core.blocks[i + 1];
     if (b.cont || (next && next.cont)) continue;                         // 아직 합쳐지지 않은 긴 문장의 조각
     if (i === n - 1 && core.nf.en && !/^\s/.test(core.nf.en)) continue;  // 아직 같은 단어를 말하는 중
+    if (i === n - 1 && !SENT_END.test(src) && !core.breakNext && now - b.lastChange < 1500) continue;   // 문장이 아직 안 끝남
+    b.askSrc = src;
+    const kind = askKind(src, names);
+    if (kind !== b.ask) { b.ask = kind; b.dirty = true; }
+    if (!auto || (kind !== "q" && kind !== "me")) continue;
+    if (b.asSrc === src) continue;
     b.asSrc = src;
     if (now - b.lastChange > 15000) continue;                            // 한참 지난 질문은 건너뛴다
     suggest("q", src, b);
@@ -2903,7 +3150,7 @@ async function renderMeetList() {
     const n = m.lines ? m.lines.length : 0;
     const live = m.id === R.meetingId && R.running;
     // 제목이나 정리가 없거나 그 뒤로 내용이 늘어난 기록은 한 번씩 만들어 준다 (진행 중인 회의는 정지한 뒤에)
-    const stale = (!m.titleManual && (!m.title || m.titleLines !== n)) || (aiAuto && (!m.digest || m.digest.lines !== n));
+    const stale = titleStale(m) || (aiAuto && digestStale(m));
     if (stale && !live && !digestTried.has(m.id) && started < 3) { digestTried.add(m.id); started++; autoDigest(m.id); }
     const row = mk("div", "mrow");
     const info = mk("div", "minfo");
@@ -3006,7 +3253,10 @@ function importDigest(d) {
   const clean = parseDigest(JSON.stringify(d));
   if (!clean) return undefined;
   delete clean.title;
-  return Object.assign(clean, { lines: typeof d.lines === "number" ? d.lines : 0, at: typeof d.at === "number" ? d.at : 0 });
+  const nums = (a, n) => (Array.isArray(a) ? a : []).slice(0, n).map((x) => (typeof x === "number" && x >= 0 ? Math.floor(x) : -1));
+  if (d.refs && typeof d.refs === "object") clean.refs = { decisions: nums(d.refs.decisions, clean.decisions.length), todos: nums(d.refs.todos, clean.todos.length) };
+  return Object.assign(clean, { lines: typeof d.lines === "number" ? d.lines : 0, at: typeof d.at === "number" ? d.at : 0,
+    sig: typeof d.sig === "string" ? d.sig.slice(0, 40) : undefined });
 }
 
 $("packExport").addEventListener("click", async () => {
@@ -3038,9 +3288,17 @@ $("packFile").addEventListener("change", async () => {
     const known = new Set((await Store.all("packs")).map((p) => p.id));
     for (const m of Array.isArray(data.meetings) ? data.meetings : []) {
       if (!m || typeof m.id !== "string" || !m.id || !known.has(m.packId) || !Array.isArray(m.lines)) continue;
-      const lines = m.lines.slice(0, 20000).map((l) => ({ who: str(l && l.who, 60), en: str(l && l.en, 5000), ko: str(l && l.ko, 5000) }));
+      const lines = m.lines.slice(0, 20000).map((l) => {
+        const x = { who: str(l && l.who, 60), en: str(l && l.en, 5000), ko: str(l && l.ko, 5000), at: l && typeof l.at === "number" ? l.at : 0 };
+        if (l && l.star === true) x.star = true;
+        return x;
+      });
+      const gaps = (Array.isArray(m.gaps) ? m.gaps : []).slice(0, 200).filter((g) => g && typeof g.at === "number")
+        .map((g) => ({ at: g.at, secs: Math.max(0, g.secs | 0), lostSecs: Math.max(0, g.lostSecs | 0), afterLine: Math.max(0, g.afterLine | 0) }));
       await Store.put("meetings", { id: str(m.id, 40), packId: m.packId, startedAt: num(m.startedAt), endedAt: num(m.endedAt), secs: typeof m.secs === "number" ? m.secs : 0, lines,
         title: str(m.title, 60), titleManual: m.titleManual === true, titleLines: typeof m.titleLines === "number" ? m.titleLines : 0,
+        titleSig: typeof m.titleSig === "string" ? m.titleSig.slice(0, 40) : undefined, sig: linesSig(lines), gaps,
+        pending: typeof m.pending === "number" ? Math.max(0, m.pending | 0) : 0,
         digest: importDigest(m.digest) });
       nm++;
     }
@@ -3070,6 +3328,8 @@ function openSettingsDialog() {
   $("refine").checked = settings.refine !== false; $("compare").checked = !!settings.compare;
   $("stable").checked = !!settings.stable; syncStable();
   $("assistOn").checked = settings.assist !== false; $("assistAuto").checked = settings.assistAuto !== false; $("me").value = settings.me || "";
+  $("myNames").value = settings.myNames || ""; $("assistEngine").value = settings.assistEngine || ""; $("digestEngine").value = settings.digestEngine || "";
+  $("marks").checked = settings.marks !== false;
   $("autoDigest").checked = settings.autoDigest !== false;
   $("brief").value = settings.brief || "";
   $("groqKey").value = settings.groqKey || ""; $("groqKey").type = "password"; $("showGroqKey").textContent = "보기";
@@ -3124,6 +3384,7 @@ $("saveSettings").addEventListener("click", () => {
     draft: $("draft").checked, preview: $("preview").checked,
     refine: $("refine").checked, compare: $("compare").checked, brief: $("brief").value.trim(), stable: $("stable").checked,
     assist: $("assistOn").checked, assistAuto: $("assistAuto").checked, me: $("me").value.trim().slice(0, 1500), autoDigest: $("autoDigest").checked,
+    myNames: $("myNames").value.trim().slice(0, 120), assistEngine: $("assistEngine").value, digestEngine: $("digestEngine").value, marks: $("marks").checked,
     groqKey: $("groqKey").value.trim(), groqModel: $("groqModel").value, draftFast: $("draftFast").checked
   });
   T.blocked = false; T.lean = 2; T.off = {}; T.altOff = false;
