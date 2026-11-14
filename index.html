@@ -200,6 +200,7 @@
         <li>회의나 영상에서 영어가 들리면 영어 자막과 한국어 번역이 표시됩니다.</li>
       </ol>
       <p>정지를 누르면 요금이 더 이상 발생하지 않습니다. 화면은 녹화되거나 전송되지 않고 소리만 사용합니다.</p>
+      <p class="restore">브라우저 기록을 지웠거나 다른 컴퓨터에서 쓰던 회의 기록이 있으면 <button id="restoreBtn" class="btn sm" type="button">백업 파일에서 되살리기</button></p>
     </div>
     <div id="transcript"></div>
     <button id="jump">최신으로 ↓</button>
@@ -302,6 +303,11 @@
         <button id="showKey" class="btn" type="button" style="flex:1 1 0">보기</button>
       </div>
       <div class="hint">키는 이 브라우저에만 저장됩니다. 다른 사람과 공유하는 PC에서는 사용 후 지워 주세요.</div>
+    </div>
+    <div class="field">
+      <label class="check"><input id="keepKeys" type="checkbox"> API 키를 이 브라우저에 기억하기</label>
+      <div class="hint">끄면 키를 이 창에만 두었다가, 브라우저 창을 닫으면 지웁니다. 다음에 열 때 키를 다시 넣어야 합니다. 여러 사람이 쓰는 PC라면 꺼 두세요.</div>
+      <button id="clearKeys" class="btn" type="button" style="margin-top:6px">키 모두 지우기</button>
     </div>
     <div class="field">
       <label>연결 상태</label>
@@ -479,6 +485,7 @@
     </div>
   </div>
   <div class="dlg-foot">
+    <span id="appVer" class="mmeta" style="margin-right:auto; align-self:center"></span>
     <button id="cancelSettings" class="btn" type="button">닫기</button>
     <button id="saveSettings" class="btn primary" type="button">저장</button>
   </div>
@@ -885,6 +892,8 @@ function linesSig(lines) {
 // 설정
 // ---------------------------------------------------------------------------
 const WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
+// 앱 버전: 고칠 때마다 올린다. 설정 창 아래에 보이고, 새 버전이 올라왔는지 확인할 때 쓴다
+const APP_VERSION = "2026.11.15-2";
 const STORE_KEY = "meeting-interpreter.settings.v1";
 const DEFAULTS = {
   apiKey: "", hint: "en", target: "ko", terms: "", fontSize: "18",
@@ -895,20 +904,39 @@ const DEFAULTS = {
   packId: "", autoSave: true, micClean: false,
   stable: false, lastBackupAt: 0, backupNagAt: 0,
   assist: true, assistAuto: true, assistOpen: true, me: "", autoDigest: true,
-  assistEngine: "", digestEngine: "", myNames: "", marks: true
+  assistEngine: "", digestEngine: "", myNames: "", marks: true, keepKeys: true
 };
 
+// API 키 보관: 기본은 이 브라우저(localStorage)에 기억한다
+// "키 기억하기"를 끄면 키는 이 탭(sessionStorage)에만 두어, 브라우저 창을 닫으면 지워진다
+const KEY_FIELDS = ["apiKey", "claudeKey", "groqKey"];
+const KEY_SESSION = "meeting-interpreter.keys.v1";
 function loadSettings() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
     const saved = raw ? JSON.parse(raw) : {};
     if (!saved.ver || saved.ver < 2) { saved.diar = true; saved.ver = 2; }   // 화자 구분을 기본으로 켬
+    if (saved.keepKeys === false) {
+      let keys = {};
+      try { keys = JSON.parse(sessionStorage.getItem(KEY_SESSION) || "{}") || {}; } catch (e) {}
+      for (const k of KEY_FIELDS) saved[k] = typeof keys[k] === "string" ? keys[k] : "";
+    }
     return Object.assign({}, DEFAULTS, saved);
   } catch (e) { return Object.assign({}, DEFAULTS); }
 }
 function saveSettings(s) {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); return true; }
-  catch (e) { return false; }
+  try {
+    if (s.keepKeys === false) {
+      const keys = {}, rest = Object.assign({}, s);
+      for (const k of KEY_FIELDS) { keys[k] = s[k] || ""; rest[k] = ""; }
+      try { sessionStorage.setItem(KEY_SESSION, JSON.stringify(keys)); } catch (e) {}
+      localStorage.setItem(STORE_KEY, JSON.stringify(rest));
+    } else {
+      try { sessionStorage.removeItem(KEY_SESSION); } catch (e) {}
+      localStorage.setItem(STORE_KEY, JSON.stringify(s));
+    }
+    return true;
+  } catch (e) { return false; }
 }
 
 let settings = loadSettings();
@@ -2411,6 +2439,16 @@ async function testLLM(spec) {
   } finally { clearTimeout(timer); }
 }
 
+$("clearKeys").addEventListener("click", () => {
+  if (!window.confirm("Soniox, Claude, Groq API 키를 이 브라우저에서 모두 지울까요?\n(회의 묶음과 기록은 지우지 않습니다.)")) return;
+  if (R.running) stop();
+  for (const k of KEY_FIELDS) { settings[k] = ""; const n = $(k); if (n) n.value = ""; }
+  saveSettings(settings);
+  try { sessionStorage.removeItem(KEY_SESSION); } catch (e) {}
+  setConnState("API 키를 모두 지웠습니다.");
+  updateAssistUI();
+});
+
 $("testKeys").addEventListener("click", async () => {
   const out = $("testOut"), btn = $("testKeys");
   if (R.running) { out.style.display = ""; out.textContent = "회의 중에는 시험할 수 없습니다. 정지한 뒤 눌러 주세요."; return; }
@@ -3328,6 +3366,7 @@ function openSettingsDialog() {
   $("refine").checked = settings.refine !== false; $("compare").checked = !!settings.compare;
   $("stable").checked = !!settings.stable; syncStable();
   $("assistOn").checked = settings.assist !== false; $("assistAuto").checked = settings.assistAuto !== false; $("me").value = settings.me || "";
+  $("keepKeys").checked = settings.keepKeys !== false;
   $("myNames").value = settings.myNames || ""; $("assistEngine").value = settings.assistEngine || ""; $("digestEngine").value = settings.digestEngine || "";
   $("marks").checked = settings.marks !== false;
   $("autoDigest").checked = settings.autoDigest !== false;
@@ -3384,7 +3423,7 @@ $("saveSettings").addEventListener("click", () => {
     draft: $("draft").checked, preview: $("preview").checked,
     refine: $("refine").checked, compare: $("compare").checked, brief: $("brief").value.trim(), stable: $("stable").checked,
     assist: $("assistOn").checked, assistAuto: $("assistAuto").checked, me: $("me").value.trim().slice(0, 1500), autoDigest: $("autoDigest").checked,
-    myNames: $("myNames").value.trim().slice(0, 120), assistEngine: $("assistEngine").value, digestEngine: $("digestEngine").value, marks: $("marks").checked,
+    keepKeys: $("keepKeys").checked, myNames: $("myNames").value.trim().slice(0, 120), assistEngine: $("assistEngine").value, digestEngine: $("digestEngine").value, marks: $("marks").checked,
     groqKey: $("groqKey").value.trim(), groqModel: $("groqModel").value, draftFast: $("draftFast").checked
   });
   T.blocked = false; T.lean = 2; T.off = {}; T.altOff = false;
@@ -3424,6 +3463,30 @@ $("saveSettings").addEventListener("click", () => {
   updateAssistUI();
   initPacks();
 })();
+
+// ---- 백업에서 되살리기: 첫 화면에서 바로 백업 파일을 고른다 ----
+$("restoreBtn").addEventListener("click", () => {
+  openSettingsDialog();
+  $("packFile").value = "";
+  $("packFile").click();
+});
+
+// ---- 버전 표시와 새 버전 알림 ----
+$("appVer").textContent = "버전 " + APP_VERSION;
+// 회의 중이 아닐 때, 올라와 있는 앱의 버전이 지금 열린 것과 다르면 새로고침하라고 알린다
+async function checkNewVersion() {
+  if (R.running || !/^https:$/.test(location.protocol)) return;
+  try {
+    const res = await fetch(location.href.split("#")[0], { cache: "no-store" });
+    if (!res.ok) return;
+    const m = (await res.text()).match(/const APP_VERSION = "([^"]+)"/);
+    if (m && m[1] !== APP_VERSION && !el.banner.classList.contains("show")) {
+      showBanner("새 버전(" + m[1] + ")이 올라왔습니다. 회의 중이 아니면 새로고침(F5)해 주세요.", true);
+    }
+  } catch (e) {}
+}
+setTimeout(checkNewVersion, 5000);
+setInterval(checkNewVersion, 30 * 60 * 1000);
 </script>
 </body>
 </html>

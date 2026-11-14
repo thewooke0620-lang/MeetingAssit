@@ -13,6 +13,7 @@
   2. `git push origin main main:gh-pages` 로 두 브랜치에 같이 올린다.
   3. `gh api "repos/thewooke0620-lang/MeetingAssit/actions/runs?per_page=1"` 로 "pages build and deployment" 실행이 올린 커밋에 대해 `completed / success` 인지 확인한다.
 - 배포 완료를 확인하기 전에는 사용자에게 "반영했다"고 말하지 않는다.
+- 배포할 때마다 `index.html` 의 `APP_VERSION` 을 올린다 (예: `2026.11.15-2` → `2026.11.15-3`). 열려 있는 앱이 이 값을 보고 새 버전 알림을 띄운다.
 - 주소: https://thewooke0620-lang.github.io/MeetingAssit/
 
 ## 테스트

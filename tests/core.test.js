@@ -86,4 +86,20 @@ core.blocks.forEach((b) => { b.trSrc = b.en.trim(); b.trState = 'done'; });
 assert.strictEqual(rc.pendingTranslations(core), 0);
 core.blocks[0].trState = 'run'; assert.strictEqual(rc.pendingTranslations(core), 1);
 core.mode = 'inline'; assert.strictEqual(rc.pendingTranslations(core), 0);
+
+// 나에게 온 질문 알아채기, 강조 표시, 내용 지문
+const r2 = new Function(src + '; return { askKind, markSegments, linesSig };')();
+const NM = ['David', 'Dave'];
+const cases = { 'Can you confirm the price by Friday?': 'q', 'David, what do you think about the timeline.': 'me', 'John, can you send the deck?': 'other',
+  'David mentioned it earlier.': 'named', 'So, what is the plan?': 'q', 'Please confirm the numbers by end of week.': 'q', 'Right?': '',
+  'We cannot accept a 5% increase.': '', 'Let us know your thoughts.': 'q', 'Dave, over to you.': 'me' };
+for (const [t, want] of Object.entries(cases)) assert.strictEqual(r2.askKind(t, NM), want, t);
+assert.strictEqual(r2.askKind('David, can you hear me?', []), 'other', '이름을 등록하지 않았으면 남의 이름으로 본다');
+const segs = r2.markSegments('We cannot do $1,200 by Friday, David. Delivery in 6.', NM, { marks: true });
+assert.deepStrictEqual(segs.filter((x) => x.k).map((x) => x.k + ':' + x.t), ['neg:cannot', 'num:$1,200', 'num:Friday', 'me:David', 'num:6']);
+assert.strictEqual(segs.map((x) => x.t).join(''), 'We cannot do $1,200 by Friday, David. Delivery in 6.');
+assert.deepStrictEqual(r2.markSegments('plain text', [], { marks: false }), [{ t: 'plain text', k: '' }]);
+const L = [{ en: 'a', ko: 'b' }, { en: 'c', ko: 'd' }];
+assert.strictEqual(r2.linesSig(L), r2.linesSig(JSON.parse(JSON.stringify(L))));
+assert.notStrictEqual(r2.linesSig(L), r2.linesSig([{ en: 'a', ko: 'b' }, { en: 'c', ko: 'e' }]), '줄 수가 같아도 내용이 다르면 다름');
 console.log('CORE TESTS PASSED');
