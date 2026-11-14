@@ -1,0 +1,145 @@
+const { chromium } = require('playwright');
+const fs = require('fs'), assert = require('assert');
+const HTML = fs.readFileSync(require('path').join(__dirname, '..', 'index.html'), 'utf8');
+const mock = () => {
+  if (location.protocol !== 'https:') return;
+  if (!localStorage.getItem('meeting-interpreter.settings.v1')) localStorage.setItem('meeting-interpreter.settings.v1', JSON.stringify({ apiKey: 'soniox-SECRETKEY', claudeKey: 'sk-ant-SECRETKEY', engine: 'claude', target: 'ko', source: 'mic', draft: false, preview: false, ver: 2, brief: '예전 배경', terms: 'Acme Corp' }));
+  window.REQ = []; window.SOCKS = []; window.CFG = [];
+  window.WebSocket = class { constructor() { this.readyState = 0; window.SOCKS.push(this); setTimeout(() => { this.readyState = 1; this.onopen && this.onopen(); }, 20); }
+    send(d) { if (typeof d === 'string' && d) window.CFG.push(JSON.parse(d)); } close() { this.readyState = 3; setTimeout(() => this.onclose && this.onclose(), 5); }
+    emit(o) { this.onmessage({ data: JSON.stringify(o) }); } };
+  window.fetch = async (url, opt) => {
+    const body = JSON.parse(opt.body); const txt = body.messages[0].content.match(/<translate>([\s\S]*)<\/translate>/)[1];
+    window.REQ.push({ system: body.system, txt });
+    const out = '번역[' + txt.trim().split(/\s+/).slice(0, 3).join(' ') + ']'; const enc = new TextEncoder(); let sent = false;
+    return { ok: true, status: 200, body: new ReadableStream({ async pull(c) { await new Promise((r) => setTimeout(r, 80)); if (sent) { c.close(); return; } sent = true; c.enqueue(enc.encode('data: ' + JSON.stringify({ type: 'content_block_delta', delta: { type: 'text_delta', text: out } }) + '\n')); } }) };
+  };
+};
+const speak = async (p, text) => { for (const w of text.match(/\s*\S+/g)) { await p.evaluate((w) => window.SOCKS[window.SOCKS.length - 1].emit({ tokens: [{ text: w, is_final: true, translation_status: 'original', speaker: '1' }] }), w); await p.waitForTimeout(15); } };
+const packsOf = (p) => p.evaluate(() => [...document.querySelectorAll('#packSel option')].map((o) => o.textContent));
+const meets = (p) => p.evaluate(() => [...document.querySelectorAll('#meetList .mrow .minfo, #meetList .none')].map((x) => x.textContent));
+const pill = (p) => p.evaluate(() => document.getElementById('packPill').textContent);
+const openDlg = async (p) => { await p.click('#openSettings'); await p.waitForTimeout(250); };
+const save = async (p) => { await p.click('#saveSettings'); await p.waitForTimeout(250); };
+
+(async () => {
+  const b = await chromium.launch({ args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] });
+  const ctx = await b.newContext({ viewport: { width: 760, height: 1100 }, acceptDownloads: true });
+  await ctx.route('https://x.test/', (r) => r.fulfill({ body: HTML, contentType: 'text/html' }));
+  await ctx.addInitScript(mock);
+  let p = await ctx.newPage();
+  p.on('pageerror', (e) => console.log('PAGEERR', e.message));
+  p.on('dialog', (d) => d.accept());
+  await p.goto('https://x.test/'); await p.waitForTimeout(400);
+
+  // 1) 처음: 기존 배경·용어집이 "기본" 묶음으로
+  assert.strictEqual(await pill(p), '묶음: 기본');
+  await openDlg(p);
+  assert.deepStrictEqual(await packsOf(p), ['기본']);
+  assert.strictEqual(await p.inputValue('#brief'), '예전 배경'); assert.strictEqual(await p.inputValue('#terms'), 'Acme Corp');
+  assert.deepStrictEqual(await meets(p), ['아직 저장된 회의가 없습니다.']);
+  console.log('1 OK 기본 묶음 생성, 기존 배경·용어집 이관');
+
+  // 2) 새 묶음 만들고 이름·배경·용어집 입력 후 저장
+  await p.click('#packNew'); await p.waitForTimeout(200);
+  await p.fill('#packName', 'A사 계약'); await p.fill('#brief', 'A사와 공급 계약 협의'); await p.fill('#terms', 'escrow = 에스크로');
+  // 다른 묶음으로 갔다 와도 입력이 남는지
+  await p.selectOption('#packSel', { label: '기본' }); await p.waitForTimeout(100);
+  assert.strictEqual(await p.inputValue('#brief'), '예전 배경');
+  await p.selectOption('#packSel', { label: 'A사 계약' }); await p.waitForTimeout(100);
+  assert.strictEqual(await p.inputValue('#brief'), 'A사와 공급 계약 협의');
+  await save(p);
+  assert.strictEqual(await pill(p), '묶음: A사 계약');
+  console.log('2 OK 새 묶음 저장, 묶음 전환 시 입력 유지');
+
+  // 3) 회의 → 정지 → 자동 저장
+  await p.click('#toggle'); await p.waitForTimeout(300);
+  await speak(p, "We reviewed the draft agreement over the weekend. The escrow terms look fine to us.");
+  await p.waitForTimeout(600);
+  await p.click('#toggle'); await p.waitForTimeout(4600);
+  const state = await p.evaluate(() => document.getElementById('connState').textContent);
+  const req = await p.evaluate(() => window.REQ);
+  assert(req.some((r) => /A사와 공급 계약 협의/.test(r.system) && /escrow = 에스크로/.test(r.system)), '묶음의 배경·용어집이 번역 지시문에 들어가야 함');
+  assert.deepStrictEqual(await p.evaluate(() => window.CFG[0].context.terms), ['escrow']);
+  await openDlg(p);
+  let m = await meets(p);
+  console.log('3 상태줄:', state, '| 목록:', m);
+  assert(m.length === 1 && /2줄/.test(m[0]) && /지금 화면의 회의/.test(m[0]));
+
+  // 4) 내려받기 내용
+  let [dl] = await Promise.all([p.waitForEvent('download'), p.click('#meetList .mrow button:has-text("내려받기")')]);
+  const txt = fs.readFileSync(await dl.path(), 'utf8');
+  console.log('4 파일명:', dl.suggestedFilename(), '\n' + txt.replace(/^﻿/, ''));
+  assert(/\[화자 1\] We reviewed the draft agreement over the weekend\.\n번역\[We reviewed the\]/.test(txt));
+
+  // 5) 전체 내보내기
+  [dl] = await Promise.all([p.waitForEvent('download'), p.click('#packExport')]);
+  const backupPath = require('path').join(require('os').tmpdir(), 'meeting-backup-test-' + process.pid + '.json');
+  await dl.saveAs(backupPath);
+  const backup = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
+  assert.strictEqual(backup.packs.length, 2); assert.strictEqual(backup.meetings.length, 1);
+  assert(!JSON.stringify(backup).includes('SECRETKEY'), 'API 키가 백업에 들어가면 안 됨');
+  console.log('5 OK 내보내기:', dl.suggestedFilename(), '| 묶음', backup.packs.length, '회의', backup.meetings.length);
+  await p.click('#cancelSettings');
+
+  // 6) 지우기 → 새 회의 → 두 번째 기록
+  await p.click('#clear'); await p.waitForTimeout(200);
+  await p.click('#toggle'); await p.waitForTimeout(300);
+  await speak(p, "Can you confirm the penalty clause by Friday?"); await p.waitForTimeout(500);
+  await p.click('#toggle'); await p.waitForTimeout(4600);
+  await openDlg(p);
+  m = await meets(p); console.log('6 목록:', m);
+  assert.strictEqual(m.length, 2); assert(/1줄/.test(m[0]) && /2줄/.test(m[1]));
+
+  // 7) 지금 화면의 회의를 삭제하면 다시 저장되지 않는다
+  await p.click('#meetList .mrow:first-child button:has-text("삭제")'); await p.waitForTimeout(300);
+  assert.strictEqual((await meets(p)).length, 1);
+  await p.click('#cancelSettings');
+  await p.click('#toggle'); await p.waitForTimeout(300); await speak(p, " We will get back to you soon."); await p.click('#toggle'); await p.waitForTimeout(4600);
+  await openDlg(p);
+  assert.strictEqual((await meets(p)).length, 1, '삭제한 회의는 다시 저장되면 안 됨');
+  console.log('7 OK 삭제한 현재 회의는 다시 저장하지 않음');
+  await p.click('#cancelSettings');
+
+  // 8) 새로고침 후에도 유지
+  await p.reload(); await p.waitForTimeout(500);
+  assert.strictEqual(await pill(p), '묶음: A사 계약');
+  await openDlg(p);
+  assert.deepStrictEqual(await packsOf(p), ['기본', 'A사 계약']);
+  assert.strictEqual(await p.inputValue('#terms'), 'escrow = 에스크로');
+  assert.strictEqual((await meets(p)).length, 1);
+  console.log('8 OK 새로고침 후 묶음·기록 유지');
+
+  // 9) 묶음 삭제 → 가져오기로 복구
+  await p.click('#packDel'); await p.waitForTimeout(400);
+  assert.deepStrictEqual(await packsOf(p), ['기본']);
+  assert.strictEqual(await p.inputValue('#brief'), '예전 배경');
+  await p.click('#cancelSettings'); await p.waitForTimeout(100);
+  assert.strictEqual(await pill(p), '묶음: 기본');
+  await openDlg(p);
+  await p.setInputFiles('#packFile', backupPath); await p.waitForTimeout(500);
+  console.log('9 가져오기 안내:', await p.textContent('#packMsg'));
+  assert.deepStrictEqual(await packsOf(p), ['기본', 'A사 계약']);
+  await p.selectOption('#packSel', { label: 'A사 계약' }); await p.waitForTimeout(300);
+  assert.strictEqual((await meets(p)).length, 1);
+  // 잘못된 파일
+  fs.writeFileSync(backupPath + '.bad', '{"hello":1}');
+  await p.setInputFiles('#packFile', backupPath + '.bad'); await p.waitForTimeout(300);
+  console.log('  잘못된 파일 안내:', await p.textContent('#packMsg'));
+  // 마지막 묶음은 삭제 불가
+  await p.selectOption('#packSel', { label: 'A사 계약' }); await p.click('#packDel'); await p.waitForTimeout(300);
+  await p.click('#packDel'); await p.waitForTimeout(300);
+  assert.strictEqual((await packsOf(p)).length, 1);
+  console.log('  마지막 묶음 삭제 시:', await p.textContent('#packMsg'));
+  await p.click('#cancelSettings');
+
+  // 10) 자동 저장 끔
+  await openDlg(p); await p.uncheck('#autoSave'); await save(p);
+  await p.click('#clear'); await p.waitForTimeout(100);
+  await p.click('#toggle'); await p.waitForTimeout(300); await speak(p, "This one is confidential."); await p.click('#toggle'); await p.waitForTimeout(4600);
+  await openDlg(p);
+  assert.deepStrictEqual(await meets(p), ['아직 저장된 회의가 없습니다.']);
+  console.log('10 OK 자동 저장을 끄면 기록이 남지 않음');
+  await b.close();
+  console.log('ALL PACK TESTS PASSED');
+})().catch((e) => { console.error('FAILED', e); process.exit(1); });
