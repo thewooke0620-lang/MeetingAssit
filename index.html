@@ -318,6 +318,10 @@
       <label class="check"><input id="diar" type="checkbox"> 목소리로 화자 구분</label>
       <div class="hint">말하는 사람이 바뀌면 화자 1, 화자 2처럼 표시합니다. 화자 이름을 누르면 이름을 바꿀 수 있습니다.</div>
     </div>
+    <div class="field">
+      <label class="check"><input id="micClean" type="checkbox"> 마이크 잡음·울림 제거</label>
+      <div class="hint">마이크 입력일 때만 적용됩니다. 꺼 두면 주변 소리를 그대로 들어서, 같은 폰이나 PC의 스피커에서 나는 소리(유튜브, 회의 앱)도 인식합니다. 켜면 그 소리는 지워지고 가까이서 말하는 목소리만 또렷하게 받습니다. 바꾼 뒤에는 정지하고 다시 시작해 주세요.</div>
+    </div>
     <div class="field" id="statField">
       <label>번역 속도 기록 (시작부터 지금까지)</label>
       <pre id="statBox" class="stat"></pre>
@@ -632,7 +636,7 @@ const DEFAULTS = {
   engine: "soniox", claudeKey: "", claudeModel: "claude-haiku-5-5", draft: true, preview: true,
   brief: "", refine: true, compare: false,
   groqKey: "", groqModel: "openai/gpt-oss-120b", draftFast: true,
-  packId: "", autoSave: true
+  packId: "", autoSave: true, micClean: false
 };
 
 function loadSettings() {
@@ -879,7 +883,10 @@ async function getStream(source) {
     }
     return stream;
   }
-  return md.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+  // 기본은 주변 소리를 그대로 듣는다. 울림 제거를 켜면 같은 기기의 스피커에서 나는 소리(유튜브, 회의 앱)를
+  // 브라우저가 "내 기기에서 난 소리"로 보고 지워 버려서 인식이 안 된다
+  const clean = !!settings.micClean;
+  return md.getUserMedia({ audio: { echoCancellation: clean, noiseSuppression: clean, autoGainControl: true } });
 }
 
 async function startAudio(stream, onChunk) {
@@ -2196,7 +2203,7 @@ function openSettingsDialog() {
   $("hint").value = settings.hint; $("target").value = settings.target;
   $("terms").value = settings.terms; $("fontSize").value = String(settings.fontSize);
   $("model").value = settings.model;
-  $("showOriginal").checked = !!settings.showOriginal; $("diar").checked = !!settings.diar;
+  $("showOriginal").checked = !!settings.showOriginal; $("diar").checked = !!settings.diar; $("micClean").checked = !!settings.micClean;
   $("engine").value = settings.engine; $("claudeKey").value = settings.claudeKey;
   $("claudeKey").type = "password"; $("showClaudeKey").textContent = "보기";
   $("claudeModel").value = settings.claudeModel; $("draft").checked = settings.draft !== false; $("preview").checked = settings.preview !== false;
@@ -2243,7 +2250,7 @@ $("saveSettings").addEventListener("click", () => {
   settings = Object.assign({}, settings, packChange, {
     apiKey: $("apiKey").value.trim(), hint: $("hint").value, target: $("target").value,
     terms: $("terms").value, fontSize: $("fontSize").value, model: $("model").value,
-    showOriginal: $("showOriginal").checked, diar: $("diar").checked,
+    showOriginal: $("showOriginal").checked, diar: $("diar").checked, micClean: $("micClean").checked,
     engine: $("engine").value, claudeKey: $("claudeKey").value.trim(), claudeModel: $("claudeModel").value,
     draft: $("draft").checked, preview: $("preview").checked,
     refine: $("refine").checked, compare: $("compare").checked, brief: $("brief").value.trim(),
