@@ -38,7 +38,7 @@
 
 ## 폰 앱 (PWA)
 - 설치형 웹 앱이다: `manifest.webmanifest`, `sw.js`(앱 파일만 캐시, html 은 네트워크 우선), `icons/`. 서비스 워커는 github.io 에서만 등록한다.
-- 이 작업 환경에서는 안드로이드 SDK·Gradle 을 받을 수 없어 네이티브 앱(APK, Capacitor)은 아직 만들지 않았다. 스토어 배포가 필요해지면 GitHub Actions 나 사용자 PC에서 Capacitor 로 감싼다.
+- 안드로이드 APK: `android/` 의 Capacitor 껍데기(웹 앱 주소를 불러옴, 마이크 권한, 화면 켜 두기)를 GitHub Actions(`.github/workflows/android.yml`)가 빌드해 `apk` 브랜치에 올린다(디버그 서명). 받는 주소: https://github.com/thewooke0620-lang/MeetingAssit/raw/apk/MeetingAssit.apk . 이 작업 환경에서는 안드로이드 SDK 를 받을 수 없고 Actions 결과물(Artifacts) 내려받기도 막혀 있어 이렇게 한다. 플레이스토어에 올리려면 정식 서명 키가 필요하다.
 
 ## 정해 둔 방향
 - 순서: 웹 기능 안정 → 설치형(exe, 2026.11 시작) → 폰 앱. 폰 앱도 같은 index.html 을 감싸는 방식(예: Capacitor)으로 만든다.
