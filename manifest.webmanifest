@@ -1,0 +1,17 @@
+{
+  "name": "회의 통역 도우미",
+  "short_name": "회의통역",
+  "description": "영어 회의를 실시간 한국어 자막으로",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#10161f",
+  "theme_color": "#10161f",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

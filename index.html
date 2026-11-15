@@ -2,9 +2,17 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>회의 통역 도우미</title>
-<link rel="icon" href="data:,">
+<!-- 폰에 앱으로 설치(홈 화면에 추가)할 때 쓰는 정보 -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#10161f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="회의통역">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/favicon.png">
 <style>
   :root {
     /* 통역 부스: 어두운 남색 판, 종이색 글자, 방송 중 램프(호박색)는 "지금 듣는 중"에만 쓴다 */
@@ -283,7 +291,7 @@
   .howto { margin-top: 36px; font-size: 13.5px; line-height: 1.7; }
   .howto summary { cursor: pointer; color: var(--text); font-weight: 600; }
   .howto ol { padding-left: 20px; margin: 10px 0; }
-  body.desktop .web-only, body:not(.desktop) .desk-only { display: none; }
+  body.desktop .web-only, body:not(.desktop) .desk-only, body.phone .web-only, body:not(.phone) .phone-only { display: none; }
   @media (max-width: 560px) {
     /* 폰: 위쪽 도구는 한 줄로 두고 옆으로 밀어 본다. 들을 소리는 시작 화면에서 고른다 */
     header#bar { padding: 8px 10px; row-gap: 6px; }
@@ -302,6 +310,13 @@
 
   dialog { background: var(--panel); border-radius: 16px; }
   .dlg-head { font-size: 16px; padding: 16px 18px; }
+
+  /* 폰에 설치한 앱: 노치·홈 막대에 가리지 않게 */
+  header#bar { padding-top: max(8px, env(safe-area-inset-top)); padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
+  .assist { padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+  #side { padding-top: max(12px, env(safe-area-inset-top)); padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  .install-tip { margin-top: 18px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; font-size: 13.5px; line-height: 1.6; color: var(--muted); }
+  .install-tip b { color: var(--text); }
 
   /* 데스크톱 앱: 위쪽 막대를 끌어서 창을 옮긴다. 오른쪽 끝은 Windows 창 단추 자리 */
   body.desktop header#bar { -webkit-app-region: drag; padding-right: 150px; min-height: 48px; }
@@ -371,6 +386,7 @@
   <ul id="sideTree" class="tree" role="tree" aria-label="회의 묶음과 회의"></ul>
   <button id="sidePackNew" class="side-item sub" type="button">＋ 새 묶음</button>
   <span class="spacer"></span>
+  <button id="sideInstall" class="side-item sub" type="button" style="display:none">⤓ 앱으로 설치</button>
   <button id="sideCloud" class="side-item sub" type="button" title="계정과 동기화">☁ 동기화 꺼짐</button>
   <button id="sideSettings" class="side-item" type="button">설정</button>
 </nav>
@@ -389,11 +405,13 @@
           <span id="homeKey" class="home-warn" style="display:none">먼저 Soniox API 키를 넣어야 합니다. <button id="homeKeyBtn" class="btn sm" type="button">설정 열기</button></span>
         </div>
       </section>
+      <div id="installTip" class="install-tip" style="display:none"></div>
       <details class="howto">
         <summary>처음 쓰는 방법</summary>
         <ol id="howtoList">
           <li><b>설정</b>에서 Soniox API 키를 입력합니다. (처음 한 번)</li>
           <li><b>회의 시작</b>을 누릅니다.</li>
+          <li class="phone-only">폰에서는 <b>마이크</b>로 듣습니다. 회의 소리가 나는 스피커 가까이에 두세요. 화면이 꺼지거나 다른 앱으로 넘어가면 듣기가 멈출 수 있으니, 회의 중에는 이 앱을 켜 둔 채로 두세요.</li>
           <li class="web-only">화면 공유 창이 뜨면 <b>전체 화면</b>을 고르고 <b>시스템 오디오도 공유</b>를 켠 뒤 공유를 누릅니다.</li>
           <li class="desk-only">공유 창 없이 바로 컴퓨터 소리(Zoom, Teams 등)를 듣습니다.</li>
           <li>영어가 들리면 영어 자막과 한국어 번역이 표시됩니다. <b>작은 창</b>을 누르면 회의 창 위에 자막만 띄웁니다.</li>
@@ -1159,7 +1177,7 @@ function termCandidate(before, after) {
 // ---------------------------------------------------------------------------
 const WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 // 앱 버전: 고칠 때마다 올린다. 설정 창 아래에 보이고, 새 버전이 올라왔는지 확인할 때 쓴다
-const APP_VERSION = "2026.11.15-8";
+const APP_VERSION = "2026.11.15-9";
 const STORE_KEY = "meeting-interpreter.settings.v1";
 const DEFAULTS = {
   apiKey: "", hint: "en", target: "ko", terms: "", fontSize: "18",
@@ -4127,6 +4145,7 @@ $("saveSettings").addEventListener("click", () => {
 (function init() {
   const canShare = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
   const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if (mobile) document.body.classList.add("phone");
   if (!canShare || mobile) {
     const opt = el.source.querySelector('option[value="system"]');
     if (opt) opt.remove();
@@ -4395,6 +4414,44 @@ if (!POPUP) {
   setInterval(() => Cloud.schedule(1000), 5 * 60 * 1000);
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && Date.now() - Cloud.lastOk > 30000) Cloud.schedule(500); });
   window.addEventListener("online", () => Cloud.schedule(1000));
+}
+
+// ---- 폰·PC에 앱으로 설치 (PWA) ----
+// 안드로이드·PC 크롬: 브라우저가 설치를 허락하면 '앱으로 설치' 단추를 보인다
+// 아이폰: 사파리의 '공유 → 홈 화면에 추가'로만 설치되므로 방법을 알려 준다
+const STANDALONE = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+let installEvt = null;
+if (STANDALONE) document.body.classList.add("standalone");
+window.addEventListener("beforeinstallprompt", (e) => {
+  if (DESKTOP) return;
+  e.preventDefault();
+  installEvt = e;
+  $("sideInstall").style.display = "";
+  const tip = $("installTip");
+  tip.innerHTML = "";
+  tip.append("이 기기에 앱으로 설치하면 홈 화면에서 바로 열 수 있습니다. ");
+  const b = mk("button", "btn sm", "앱으로 설치"); b.type = "button";
+  b.addEventListener("click", doInstall);
+  tip.append(b);
+  tip.style.display = "";
+});
+async function doInstall() {
+  if (!installEvt) return;
+  installEvt.prompt();
+  try { await installEvt.userChoice; } catch (e) {}
+  installEvt = null;
+  $("sideInstall").style.display = "none"; $("installTip").style.display = "none";
+}
+$("sideInstall").addEventListener("click", doInstall);
+window.addEventListener("appinstalled", () => { $("sideInstall").style.display = "none"; $("installTip").style.display = "none"; });
+if (!STANDALONE && !DESKTOP && /iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+  const tip = $("installTip");
+  tip.innerHTML = "<b>아이폰에 앱으로 설치하기</b><br>사파리 아래쪽의 공유 단추(□↑)를 누른 뒤 <b>홈 화면에 추가</b>를 누르세요. 홈 화면의 '회의통역' 아이콘으로 열면 앱처럼 전체 화면으로 씁니다.";
+  tip.style.display = "";
+}
+// 서비스 워커: 실제 앱 주소(https)에서만 등록한다 (exe 는 따로 처리하므로 제외)
+if (!DESKTOP && !POPUP && "serviceWorker" in navigator && location.protocol === "https:" && /github\.io$/.test(location.hostname)) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
 }
 
 // ---- 버전 표시와 새 버전 알림 ----

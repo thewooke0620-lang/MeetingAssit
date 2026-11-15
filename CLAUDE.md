@@ -36,6 +36,10 @@
 - 빌드: `cd desktop && npm install && npx electron-builder --win --x64` (리눅스에서는 wine 필요). 결과는 `desktop/dist/`. 올릴 때는 `desktop/package.json` 의 version 을 올린다. 이 작업 환경에서는 GitHub 릴리스를 만들 수 없어 exe 를 사용자에게 파일로 직접 보낸다 (exe 는 100MB가 넘어 저장소에 넣을 수 없다).
 - 실행 확인: `cd tests && xvfb-run -a node desktop.smoke.js` (desktop 에서 npm install 필요). 실제 Windows 소리 받기는 Windows에서만 확인할 수 있다.
 
+## 폰 앱 (PWA)
+- 설치형 웹 앱이다: `manifest.webmanifest`, `sw.js`(앱 파일만 캐시, html 은 네트워크 우선), `icons/`. 서비스 워커는 github.io 에서만 등록한다.
+- 이 작업 환경에서는 안드로이드 SDK·Gradle 을 받을 수 없어 네이티브 앱(APK, Capacitor)은 아직 만들지 않았다. 스토어 배포가 필요해지면 GitHub Actions 나 사용자 PC에서 Capacitor 로 감싼다.
+
 ## 정해 둔 방향
 - 순서: 웹 기능 안정 → 설치형(exe, 2026.11 시작) → 폰 앱. 폰 앱도 같은 index.html 을 감싸는 방식(예: Capacitor)으로 만든다.
 - 기기 간 동기화는 Supabase(PostgreSQL)로 한다 (2026.11 연결). 나중에 API 키도 Supabase Edge Functions 뒤로 옮길 수 있다.
