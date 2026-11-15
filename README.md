@@ -19,7 +19,7 @@
 - **백업**: 묶음과 기록은 그 브라우저에만 저장됩니다. "전체 내보내기"로 파일에 보관하고 "가져오기"로 되살립니다. API 키는 백업에 들어가지 않습니다.
 
 ## 데스크톱 앱 (Windows exe)
-- [릴리스 페이지](https://github.com/thewooke0620-lang/MeetingAssit/releases)에서 `MeetingAssit-Setup-…exe`(설치형) 또는 `MeetingAssit-…-portable.exe`(설치 없이 바로 실행)를 받습니다.
+- `MeetingAssit-Setup-…exe`(설치형) 또는 `MeetingAssit-…-portable.exe`(설치 없이 바로 실행) 중 하나를 실행합니다. 파일은 `desktop/` 에서 빌드합니다 (만드는 법은 CLAUDE.md).
 - 서명하지 않은 프로그램이라 처음 실행할 때 "Windows의 PC 보호" 창이 뜰 수 있습니다. **추가 정보 → 실행**을 누르면 됩니다.
 - 웹 앱과 다른 점
   - **컴퓨터 소리 바로 듣기**: "들을 소리"를 "컴퓨터 소리"로 두면 공유 창 없이 Zoom·Teams 등의 소리를 바로 듣습니다. (컴퓨터에서 나는 모든 소리를 듣습니다)
