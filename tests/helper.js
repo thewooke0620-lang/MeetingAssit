@@ -84,7 +84,8 @@ async function openApp(browser, settings, opts) {
   opts = opts || {};
   const ctx = await browser.newContext(Object.assign({ viewport: { width: 820, height: 1000 }, acceptDownloads: true, permissions: ['clipboard-read', 'clipboard-write'] }, opts.context || {}));
   await ctx.route('https://x.test/', (r) => r.fulfill({ body: HTML, contentType: 'text/html' }));
-  await ctx.addInitScript(pageMock, settings);
+  // 정지 후 정리 화면 자동 열기는 따로 시험한다. 지정하지 않았으면 끈다
+  await ctx.addInitScript(pageMock, Object.assign({ openAfterStop: false }, settings));
   const p = await ctx.newPage();
   p.errors = [];
   p.on('pageerror', (e) => { p.errors.push(e.message); console.log('PAGEERR', e.message); });
@@ -102,9 +103,11 @@ async function speak(p, text, gap) {
   }
 }
 
-const toggle = async (p) => { await p.click('#toggle'); await p.waitForTimeout(300); };
+// 시작·정지: 시작 화면에서는 큰 '회의 시작' 단추, 그 밖에는 위쪽 막대의 시작·정지 단추를 누른다
+const clickToggle = async (p) => { await p.click((await p.isVisible('#homeStart')) ? '#homeStart' : '#toggle'); };
+const toggle = async (p) => { await clickToggle(p); await p.waitForTimeout(300); };
 // 시작 → 말하기 → 정지 → 자동 저장과 정리가 끝날 때까지 기다림
-async function meeting(p, text, after) { await toggle(p); await speak(p, text); await p.waitForTimeout(400); await p.click('#toggle'); await p.waitForTimeout(after || 4900); }
+async function meeting(p, text, after) { await toggle(p); await speak(p, text); await p.waitForTimeout(400); await clickToggle(p); await p.waitForTimeout(after || 4900); }
 const openSettings = async (p) => { await p.click('#openSettings'); await p.waitForTimeout(300); };
 const closeSettings = (p) => p.click('#cancelSettings');
 const saveSettings = async (p) => { await p.click('#saveSettings'); await p.waitForTimeout(250); };
@@ -112,11 +115,11 @@ const meets = (p) => p.evaluate(() => [...document.querySelectorAll('#meetList .
 const reqs = (p, kind) => p.evaluate((kind) => window.REQ.filter((r) => !kind || r.kind === kind), kind);
 const stored = (p) => p.evaluate(() => JSON.parse(localStorage.getItem('meeting-interpreter.settings.v1')));
 
-const BASE = { apiKey: 'k', claudeKey: 'ck', engine: 'claude', target: 'ko', source: 'mic', draft: false, preview: false, ver: 2 };
+const BASE = { apiKey: 'k', claudeKey: 'ck', engine: 'claude', target: 'ko', source: 'mic', draft: false, preview: false, ver: 2, openAfterStop: false };   // 정지 후 정리 화면 자동 열기는 따로 시험한다
 
 function run(name, fn) {
   (async () => { const b = await launch(); try { await fn(b); console.log(name + ' PASSED'); } finally { await b.close(); } })()
     .catch((e) => { console.error('FAILED', e); process.exit(1); });
 }
 
-module.exports = { launch, openApp, speak, toggle, meeting, openSettings, closeSettings, saveSettings, meets, reqs, stored, BASE, run };
+module.exports = { launch, openApp, speak, toggle, meeting, openSettings, closeSettings, saveSettings, meets, reqs, stored, BASE, run, clickToggle };

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>회의 통역 도우미</title>
+<style>
+  html, body { height: 100%; margin: 0; }
+  body { background: #10161f; color: #e9edf2; font-family: "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+    display: flex; align-items: center; justify-content: center; -webkit-app-region: drag; }
+  main { max-width: 420px; padding: 24px; line-height: 1.6; }
+  h1 { font-size: 22px; margin: 0 0 8px; font-weight: 700; }
+  p { color: #8d9aab; margin: 0 0 20px; font-size: 15px; }
+  button { -webkit-app-region: no-drag; font: inherit; font-size: 15px; font-weight: 700; padding: 10px 20px; border-radius: 10px; border: 0;
+    background: #e9edf2; color: #10161f; cursor: pointer; }
+  button:focus-visible { outline: 3px solid #f2b84b; outline-offset: 2px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>인터넷에 연결되지 않았습니다</h1>
+  <p>회의 통역 도우미는 음성 인식과 번역을 인터넷으로 처리합니다. 연결을 확인한 뒤 다시 열어 주세요. 저장된 회의 기록은 그대로 있습니다.</p>
+  <button id="retry" type="button">다시 연결</button>
+</main>
+<script>
+  document.getElementById("retry").addEventListener("click", () => { location.href = "https://thewooke0620-lang.github.io/MeetingAssit/"; });
+</script>
+</body>
+</html>

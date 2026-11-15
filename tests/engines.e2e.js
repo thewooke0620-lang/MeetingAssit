@@ -1,3 +1,4 @@
+const { clickToggle } = require('./helper');   // 시작 화면이면 '회의 시작', 아니면 위쪽 시작·정지 단추
 const assert = require('assert');
 const { chromium } = require('playwright');
 const fs = require('fs');
@@ -67,7 +68,7 @@ const summary = async (p, title) => {
   const base = { apiKey: 'k', target: 'ko', source: 'mic', draft: true, preview: true, ver: 2 };
   const run = async (st, title, groqStatus) => {
     const p = await open(b, Object.assign({}, base, st), groqStatus);
-    await p.click('#toggle'); await p.waitForTimeout(400);
+    await clickToggle(p); await p.waitForTimeout(400);
     await feed(p, S1, 45); await p.waitForTimeout(1500); await feed(p, S2, 45); await p.waitForTimeout(2500);
     const req = await summary(p, title);
     await p.click('#openSettings'); await p.waitForTimeout(150);
@@ -108,7 +109,7 @@ const summary = async (p, title) => {
 
   // F) Groq 방식인데 키 없음 → 시작 전 안내
   const p = await open(b, Object.assign({}, base, { engine: 'groq' }));
-  await p.click('#toggle'); await p.waitForTimeout(300);
+  await clickToggle(p); await p.waitForTimeout(300);
   console.log('\n=== F) Groq 키 없음 ===\nbanner:', await p.evaluate(() => document.getElementById('banner').textContent), '| dialog open:', await p.evaluate(() => document.getElementById('settings').open));
   assert(/Groq API 키를 입력/.test(await p.evaluate(() => document.getElementById('banner').textContent)));
   assert.strictEqual(await p.evaluate(() => document.getElementById('settings').open), true);

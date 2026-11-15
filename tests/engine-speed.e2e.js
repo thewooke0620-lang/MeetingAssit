@@ -1,3 +1,4 @@
+const { clickToggle } = require('./helper');   // 시작 화면이면 '회의 시작', 아니면 위쪽 시작·정지 단추
 const assert = require('assert');
 const { chromium } = require('playwright');
 const fs = require('fs');
@@ -58,7 +59,7 @@ const rows = (p) => p.evaluate(() => [...document.querySelectorAll('#transcript 
   const base = { apiKey: 'k', target: 'ko', source: 'mic', draft: true, preview: true, ver: 2 };
 
   let p = await open(b, Object.assign({}, base, { engine: 'claude', claudeKey: 'ck', groqKey: 'gk', compare: true }));
-  await p.click('#toggle'); await p.waitForTimeout(400);
+  await clickToggle(p); await p.waitForTimeout(400);
   await speak(p, SENTS, 120); await p.waitForTimeout(1500);
   console.log('=== A) Claude 확정 + Groq 미리 번역 + 비교 (가짜 응답: Soniox 0.12초, Groq 0.15초~, Claude 0.5초~) ===');
   console.log((await rows(p)).join('\n'));
@@ -71,7 +72,7 @@ const rows = (p) => p.evaluate(() => [...document.querySelectorAll('#transcript 
   await p.close();
 
   p = await open(b, Object.assign({}, base, { engine: 'soniox' }));
-  await p.click('#toggle'); await p.waitForTimeout(400);
+  await clickToggle(p); await p.waitForTimeout(400);
   await speak(p, SENTS.slice(0, 2), 200); await p.waitForTimeout(500);
   const sb = await stats(p);
   console.log('\n=== B) Soniox 내장만 (0.2초로 흉내) ===\n' + sb);
@@ -79,7 +80,7 @@ const rows = (p) => p.evaluate(() => [...document.querySelectorAll('#transcript 
   await p.close();
 
   p = await open(b, Object.assign({}, base, { engine: 'groq', groqKey: 'gk', draft: false }));
-  await p.click('#toggle'); await p.waitForTimeout(400);
+  await clickToggle(p); await p.waitForTimeout(400);
   await speak(p, SENTS.slice(0, 2), 100); await p.waitForTimeout(500);
   const sc = await stats(p);
   console.log('\n=== C) Groq 단독, 미리 번역 끔, 비교 끔 ===\n' + sc);

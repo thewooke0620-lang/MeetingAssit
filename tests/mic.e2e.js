@@ -1,3 +1,4 @@
+const { clickToggle } = require('./helper');   // 시작 화면이면 '회의 시작', 아니면 위쪽 시작·정지 단추
 const { chromium, devices } = require('playwright'); const fs = require('fs'); const assert = require('assert');
 const HTML = fs.readFileSync(require('path').join(__dirname, '..', 'index.html'), 'utf8');
 (async () => {
@@ -14,11 +15,11 @@ const HTML = fs.readFileSync(require('path').join(__dirname, '..', 'index.html')
     const p = await ctx.newPage(); p.on('pageerror', (e) => console.log('PAGEERR', e.message));
     await p.goto('https://x.test/'); await p.waitForTimeout(300);
     const opts2 = await p.evaluate(() => [...document.querySelectorAll('#source option')].map((o) => o.value));
-    await p.click('#toggle'); await p.waitForTimeout(500);
+    await clickToggle(p); await p.waitForTimeout(500);
     const status1 = await p.textContent('#status');
-    await p.click('#toggle'); await p.waitForTimeout(200);
+    await clickToggle(p); await p.waitForTimeout(200);
     await p.click('#openSettings'); await p.check('#micClean'); await p.click('#saveSettings'); await p.waitForTimeout(200);
-    await p.click('#toggle'); await p.waitForTimeout(500);
+    await clickToggle(p); await p.waitForTimeout(500);
     const gum = await p.evaluate(() => window.GUM.map((c) => c.audio));
     console.log(name, '| 입력 선택지:', opts2, '| 상태:', status1, '\n  기본:', JSON.stringify(gum[0]), '\n  제거 켬:', JSON.stringify(gum[1]));
     assert.deepStrictEqual(gum[0], { echoCancellation: false, noiseSuppression: false, autoGainControl: true });

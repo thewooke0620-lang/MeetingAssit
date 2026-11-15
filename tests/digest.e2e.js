@@ -1,6 +1,6 @@
 // 회의 후 정리: 제목·요약 자동 작성, 회의 보기 창, 묶음에 쌓기, 내려받기
 const assert = require('assert'), fs = require('fs');
-const { openApp, speak, toggle, meeting, openSettings, closeSettings, saveSettings, meets, reqs, stored, BASE, run } = require('./helper');
+const { openApp, speak, toggle, meeting, openSettings, closeSettings, saveSettings, meets, reqs, stored, BASE, run, clickToggle } = require('./helper');
 const S1 = "We reviewed the draft agreement over the weekend. The escrow terms look fine to us.";
 const viewText = (p) => p.evaluate(() => document.getElementById('mvBody').innerText);
 const picks = (p) => p.evaluate(() => [...document.querySelectorAll('#mvBody .mvpick')].map((r) => (r.querySelector('input').disabled ? '[-] ' : r.querySelector('input').checked ? '[v] ' : '[ ] ') + r.innerText.replace(/\n+/g, ' / ')));
@@ -78,14 +78,14 @@ run('DIGEST TESTS', async (b) => {
 
   // 7) 위쪽 "회의 정리" 버튼: 회의 중에도 지금까지의 내용을 정리해 연다
   p = await openApp(b, BASE);
-  await p.click('#digestBtn'); await p.waitForTimeout(200);
-  assert(/정리할 회의 내용이 아직 없습니다/.test(await p.textContent('#banner')));
+  // 시작 화면에서는 회의 중에만 쓰는 '회의 정리' 단추를 숨긴다
+  assert.strictEqual(await p.isVisible('#digestBtn'), false);
   await toggle(p); await speak(p, S1); await p.waitForTimeout(300);
   await p.click('#digestBtn'); await p.waitForTimeout(600);
   assert.strictEqual(await p.evaluate(() => document.getElementById('meetDlg').open), true);
   assert.strictEqual(await p.textContent('#mvTitle'), '계약 초안 검토 2줄');
   assert((await viewText(p)).includes('계약 초안을 검토했다.'));
-  await p.click('#mvClose'); await p.click('#toggle'); await p.waitForTimeout(300);
+  await p.click('#mvClose'); await clickToggle(p); await p.waitForTimeout(300);
   await p.context().close();
 
   // 8) 자동 저장을 끈 회의: 화면에서만 정리하고 기록은 남기지 않는다

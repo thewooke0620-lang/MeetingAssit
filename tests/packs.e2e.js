@@ -1,9 +1,10 @@
+const { clickToggle } = require('./helper');   // 시작 화면이면 '회의 시작', 아니면 위쪽 시작·정지 단추
 const { chromium } = require('playwright');
 const fs = require('fs'), assert = require('assert');
 const HTML = fs.readFileSync(require('path').join(__dirname, '..', 'index.html'), 'utf8');
 const mock = () => {
   if (location.protocol !== 'https:') return;
-  if (!localStorage.getItem('meeting-interpreter.settings.v1')) localStorage.setItem('meeting-interpreter.settings.v1', JSON.stringify({ apiKey: 'soniox-SECRETKEY', claudeKey: 'sk-ant-SECRETKEY', engine: 'claude', target: 'ko', source: 'mic', draft: false, preview: false, ver: 2, brief: '예전 배경', terms: 'Acme Corp' }));
+  if (!localStorage.getItem('meeting-interpreter.settings.v1')) localStorage.setItem('meeting-interpreter.settings.v1', JSON.stringify({ apiKey: 'soniox-SECRETKEY', claudeKey: 'sk-ant-SECRETKEY', engine: 'claude', target: 'ko', source: 'mic', draft: false, preview: false, ver: 2, openAfterStop: false, brief: '예전 배경', terms: 'Acme Corp' }));
   window.REQ = []; window.SOCKS = []; window.CFG = [];
   window.WebSocket = class { constructor() { this.readyState = 0; window.SOCKS.push(this); setTimeout(() => { this.readyState = 1; this.onopen && this.onopen(); }, 20); }
     send(d) { if (typeof d === 'string' && d) window.CFG.push(JSON.parse(d)); if (d === '') setTimeout(() => this.onmessage && this.onmessage({ data: '{"finished":true}' }), 40); } close() { this.readyState = 3; setTimeout(() => this.onclose && this.onclose(), 5); }
@@ -53,10 +54,10 @@ const save = async (p) => { await p.click('#saveSettings'); await p.waitForTimeo
   console.log('2 OK 새 묶음 저장, 묶음 전환 시 입력 유지');
 
   // 3) 회의 → 정지 → 자동 저장
-  await p.click('#toggle'); await p.waitForTimeout(300);
+  await clickToggle(p); await p.waitForTimeout(300);
   await speak(p, "We reviewed the draft agreement over the weekend. The escrow terms look fine to us.");
   await p.waitForTimeout(600);
-  await p.click('#toggle'); await p.waitForTimeout(4600);
+  await clickToggle(p); await p.waitForTimeout(4600);
   const state = await p.evaluate(() => document.getElementById('connState').textContent);
   const req = await p.evaluate(() => window.REQ);
   assert(req.some((r) => /A사와 공급 계약 협의/.test(r.system) && /escrow = 에스크로/.test(r.system)), '묶음의 배경·용어집이 번역 지시문에 들어가야 함');
@@ -86,9 +87,9 @@ const save = async (p) => { await p.click('#saveSettings'); await p.waitForTimeo
 
   // 6) 지우기 → 새 회의 → 두 번째 기록
   await p.click('#clear'); await p.waitForTimeout(200);
-  await p.click('#toggle'); await p.waitForTimeout(300);
+  await clickToggle(p); await p.waitForTimeout(300);
   await speak(p, "Can you confirm the penalty clause by Friday?"); await p.waitForTimeout(500);
-  await p.click('#toggle'); await p.waitForTimeout(4600);
+  await clickToggle(p); await p.waitForTimeout(4600);
   await openDlg(p);
   m = await meets(p); console.log('6 목록:', m);
   assert.strictEqual(m.length, 2); assert(/1줄/.test(m[0]) && /2줄/.test(m[1]));
@@ -97,7 +98,7 @@ const save = async (p) => { await p.click('#saveSettings'); await p.waitForTimeo
   await p.click('#meetList .mrow:first-child button:has-text("삭제")'); await p.waitForTimeout(300);
   assert.strictEqual((await meets(p)).length, 1);
   await p.click('#cancelSettings');
-  await p.click('#toggle'); await p.waitForTimeout(300); await speak(p, " We will get back to you soon."); await p.click('#toggle'); await p.waitForTimeout(4600);
+  await clickToggle(p); await p.waitForTimeout(300); await speak(p, " We will get back to you soon."); await clickToggle(p); await p.waitForTimeout(4600);
   await openDlg(p);
   assert.strictEqual((await meets(p)).length, 1, '삭제한 회의는 다시 저장되면 안 됨');
   console.log('7 OK 삭제한 현재 회의는 다시 저장하지 않음');
@@ -137,8 +138,8 @@ const save = async (p) => { await p.click('#saveSettings'); await p.waitForTimeo
 
   // 10) 자동 저장 끔
   await openDlg(p); await p.uncheck('#autoSave'); await save(p);
-  await p.click('#clear'); await p.waitForTimeout(100);
-  await p.click('#toggle'); await p.waitForTimeout(300); await speak(p, "This one is confidential."); await p.click('#toggle'); await p.waitForTimeout(4600);
+  if (await p.isVisible('#clear')) { await p.click('#clear'); await p.waitForTimeout(100); }   // 시작 화면이면 지울 것이 없다
+  await clickToggle(p); await p.waitForTimeout(300); await speak(p, "This one is confidential."); await clickToggle(p); await p.waitForTimeout(4600);
   await openDlg(p);
   assert.deepStrictEqual(await meets(p), ['아직 저장된 회의가 없습니다.']);
   console.log('10 OK 자동 저장을 끄면 기록이 남지 않음');

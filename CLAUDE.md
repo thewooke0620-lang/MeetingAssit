@@ -29,7 +29,13 @@
 - 회의 묶음과 회의 기록은 브라우저 IndexedDB에 저장한다. 저장소 접근은 `Store` 객체 한 곳에 모아 두었다. 설치형 앱이나 서버 DB로 옮길 때 이 객체만 바꾼다.
 - Soniox가 선택 설정(확정 대기 시간, 번역어 지정, 회의 배경)을 거부하면 그 설정만 빼고 다시 연결한다. 새 선택 설정을 추가할 때도 같은 방식으로 한다.
 
+## 데스크톱 앱 (desktop/)
+- Electron 껍데기다. 화면은 GitHub Pages의 웹 앱 주소를 불러온다(`desktop/main.js` 의 `APP_URL`). 웹을 배포하면 exe에도 반영된다.
+- 껍데기가 더하는 것: 컴퓨터 소리 바로 듣기(getDisplayMedia → loopback), 작은 창(창을 줄이고 항상 위). 화면 쪽은 `window.desktop` 이 있으면 `body.desktop` 으로 동작한다.
+- 빌드: `cd desktop && npm install && npx electron-builder --win --x64` (리눅스에서는 wine 필요). 결과는 `desktop/dist/`. 올릴 때는 `desktop/package.json` 의 version 을 올리고 GitHub 릴리스(`gh release create`)에 exe 두 개를 붙인다.
+- 실행 확인: `cd tests && xvfb-run -a node desktop.smoke.js` (desktop 에서 npm install 필요). 실제 Windows 소리 받기는 Windows에서만 확인할 수 있다.
+
 ## 정해 둔 방향
-- 순서: 웹에서 기능 안정 → 폰 앱 → 설치형(exe). 포장은 맨 마지막에 한다.
+- 순서: 웹 기능 안정 → 설치형(exe, 2026.11 시작) → 폰 앱. 폰 앱도 같은 index.html 을 감싸는 방식(예: Capacitor)으로 만든다.
 - 기기 간 동기화가 필요해지면 Supabase(PostgreSQL)를 붙일 계획이다.
 - 참고 제품은 Smooth AI(trysmooth.ai)다. 디자인이나 문구를 그대로 가져오지 않는다.

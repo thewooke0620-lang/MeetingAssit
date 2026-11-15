@@ -1,3 +1,4 @@
+const { clickToggle } = require('./helper');   // 시작 화면이면 '회의 시작', 아니면 위쪽 시작·정지 단추
 const assert = require('assert');
 const { chromium } = require('playwright');
 const fs = require('fs');
@@ -53,7 +54,7 @@ const rows = (p) => p.evaluate(() => [...document.querySelectorAll('#transcript 
 
   // ---- 1) 다듬기 + 비교 모드 ----
   let p = await open(b, Object.assign({}, base, { compare: true }));
-  await p.click('#toggle'); await p.waitForTimeout(300);
+  await clickToggle(p); await p.waitForTimeout(300);
   console.log('SONIOX CONFIG context:', JSON.stringify(await p.evaluate(() => window.CFG[0].context)), '| translation:', JSON.stringify(await p.evaluate(() => window.CFG[0].translation)));
   const cfg0 = await p.evaluate(() => window.CFG[0]);
   assert.deepStrictEqual(cfg0.context.terms, ['Acme Corp', 'escrow']);
@@ -94,7 +95,7 @@ const rows = (p) => p.evaluate(() => [...document.querySelectorAll('#transcript 
 
   // ---- 2) Soniox 가 context 를 거부하면 빼고 재연결 ----
   p = await open(b, base);
-  await p.click('#toggle'); await p.waitForTimeout(300);
+  await clickToggle(p); await p.waitForTimeout(300);
   await p.evaluate(() => window.SOCKS[0].emit({ error_code: 400, error_message: 'Invalid context: unknown field translation_terms' }));
   await p.waitForTimeout(1300);
   console.log('\nFALLBACK configs:', JSON.stringify(await p.evaluate(() => window.CFG.map((c) => c.context))), '| status:', await p.evaluate(() => document.getElementById('status').textContent), '| banner:', JSON.stringify(await p.evaluate(() => document.getElementById('banner').textContent)));
@@ -106,7 +107,7 @@ const rows = (p) => p.evaluate(() => [...document.querySelectorAll('#transcript 
 
   // ---- 3) 다듬기 끔 + 비교 끔: 예전 동작 ----
   p = await open(b, Object.assign({}, base, { refine: false }));
-  await p.click('#toggle'); await p.waitForTimeout(300);
+  await clickToggle(p); await p.waitForTimeout(300);
   await feed(p, S1 + S2, 30); await p.waitForTimeout(2500);
   console.log('\nREFINE OFF rows:'); console.log(await rows(p));
   console.log('요청 수:', await p.evaluate(() => window.REQ.length), '| Sonnet 요청:', await p.evaluate(() => window.REQ.filter((r) => r.model.includes('sonnet')).length));

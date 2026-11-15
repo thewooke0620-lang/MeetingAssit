@@ -1,3 +1,4 @@
+const { clickToggle } = require('./helper');   // 시작 화면이면 '회의 시작', 아니면 위쪽 시작·정지 단추
 const assert = require('assert');
 const { chromium } = require('playwright'); const fs = require('fs');
 const HTML = fs.readFileSync(require('path').join(__dirname, '..', 'index.html'), 'utf8');
@@ -19,7 +20,7 @@ const HTML = fs.readFileSync(require('path').join(__dirname, '..', 'index.html')
       window.WebSocket = class { constructor() { this.readyState = 0; window.SOCKS.push(this); setTimeout(() => { this.readyState = 1; this.onopen && this.onopen(); }, 20); }
         send(d) { if (typeof d === 'string' && d) window.CFG.push(JSON.parse(d)); if (d === '') setTimeout(() => this.onmessage && this.onmessage({ data: '{"finished":true}' }), 40); } close() { this.readyState = 3; setTimeout(() => this.onclose && this.onclose(), 5); } };
     });
-    await p.goto('https://x.test/'); await p.click('#toggle'); await p.waitForTimeout(300);
+    await p.goto('https://x.test/'); await clickToggle(p); await p.waitForTimeout(300);
     for (const m of msgs) { await p.evaluate((m) => { const s = window.SOCKS[window.SOCKS.length - 1]; s.onmessage({ data: JSON.stringify({ error_code: 400, error_message: m }) }); }, m); await p.waitForTimeout(2200); }
     console.log(name, '=>', JSON.stringify(await p.evaluate(() => window.CFG.map((c) => [c.max_endpoint_delay_ms || null, Object.keys(c.context || {})]))), '|', await p.evaluate(() => document.getElementById('status').textContent), '|', await p.evaluate(() => document.getElementById('banner').textContent));
     assert.deepStrictEqual(await p.evaluate(() => window.CFG.map((c) => [c.max_endpoint_delay_ms || null, Object.keys(c.context || {})])), wantCfg, name);

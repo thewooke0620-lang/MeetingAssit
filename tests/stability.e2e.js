@@ -1,7 +1,7 @@
 // 안정성: 연결 복구, 끊긴 구간 표시, 정지 후 마지막 번역까지 저장, 저장 실패 표시, 회의 정리 시간 제한, 연결 시험
 // 실제 Soniox·Claude·Groq 는 부르지 않는다. 가짜 응답으로 동작만 확인한다
 const assert = require('assert');
-const { openApp, speak, toggle, openSettings, closeSettings, BASE, run } = require('./helper');
+const { openApp, speak, toggle, openSettings, closeSettings, BASE, run, clickToggle } = require('./helper');
 const socks = (p) => p.evaluate(() => window.SOCKS.length);
 const status = (p) => p.textContent('#status');
 const lastSock = (p) => p.evaluate(() => window.SOCKS[window.SOCKS.length - 1]);
@@ -93,7 +93,7 @@ run('STABILITY TESTS', async (b) => {
   await p.evaluate(() => { window.MOCK.noFinish = true; });
   await toggle(p); await speak(p, "First part.");
   const n0 = await socks(p);
-  await p.click('#toggle'); await p.waitForTimeout(100); await p.click('#toggle'); await p.waitForTimeout(800);
+  await clickToggle(p); await p.waitForTimeout(100); await clickToggle(p); await p.waitForTimeout(800);
   assert.strictEqual(await socks(p), n0, '이전 연결이 끝나기 전에는 새로 연결하지 않음');
   assert.strictEqual(await status(p), '이전 연결 마무리 중');
   await p.evaluate(() => window.SOCKS[window.SOCKS.length - 1].emit({ tokens: [{ text: ' Last words.', is_final: true, speaker: '1' }] }));
