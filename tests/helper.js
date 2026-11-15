@@ -22,7 +22,10 @@ function pageMock(st) {
     emit(o) { this.onmessage({ data: JSON.stringify(o) }); }
   };
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const realFetch = window.fetch.bind(window);
   window.fetch = async (url, opt) => {
+    // Claude·Groq 가 아닌 주소(예: 가짜 Supabase)는 그대로 보낸다 (테스트가 page.route 로 받는다)
+    if (!/anthropic\.com|groq\.com/.test(String(url))) return realFetch(url, opt);
     const groq = /groq\.com/.test(url);
     const body = JSON.parse(opt.body);
     const system = groq ? body.messages[0].content : body.system;

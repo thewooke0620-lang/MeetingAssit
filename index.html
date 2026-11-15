@@ -228,6 +228,8 @@
   .side-item.strong { font-weight: 700; }
   .side-item.now { color: var(--lamp); }
   .side-item.sub { color: var(--muted); font-size: 13px; }
+  .side-item.warn { color: var(--warn); }
+  #sideCloud { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .side-item:disabled { opacity: .45; cursor: default; background: none; }
   .side-h { font-size: 12px; color: var(--muted); padding: 14px 10px 4px; }
   .tree, .tree ul { list-style: none; margin: 0; padding: 0; }
@@ -369,6 +371,7 @@
   <ul id="sideTree" class="tree" role="tree" aria-label="회의 묶음과 회의"></ul>
   <button id="sidePackNew" class="side-item sub" type="button">＋ 새 묶음</button>
   <span class="spacer"></span>
+  <button id="sideCloud" class="side-item sub" type="button" title="계정과 동기화">☁ 동기화 꺼짐</button>
   <button id="sideSettings" class="side-item" type="button">설정</button>
 </nav>
 <div id="stageHome">
@@ -450,6 +453,35 @@
 <dialog id="settings">
   <div class="dlg-head">설정</div>
   <div class="dlg-body">
+    <div class="packbox" id="cloudBox">
+      <div class="field">
+        <label>계정과 동기화 (Supabase)</label>
+        <div id="cloudState" class="hint" style="margin-top:0">로그인하면 회의 묶음과 기록을 Supabase에 저장하고, exe·브라우저·폰 어디서 열어도 같은 기록을 봅니다. API 키는 올리지 않습니다.</div>
+      </div>
+      <div id="cloudCfg">
+        <div class="row">
+          <div class="field"><label for="sbUrl">Supabase 주소</label><input id="sbUrl" type="url" autocomplete="off" placeholder="https://○○○.supabase.co"></div>
+          <div class="field"><label for="sbKey">공개(anon) 키</label><input id="sbKey" type="password" autocomplete="off" placeholder="eyJ…"></div>
+        </div>
+      </div>
+      <div id="cloudLogin">
+        <div class="row">
+          <div class="field"><label for="sbEmail">이메일</label><input id="sbEmail" type="email" autocomplete="username"></div>
+          <div class="field"><label for="sbPw">비밀번호</label><input id="sbPw" type="password" autocomplete="current-password" minlength="6"></div>
+        </div>
+        <div class="row" style="align-items:center">
+          <button id="sbSignIn" class="btn primary" type="button">로그인</button>
+          <button id="sbSignUp" class="btn" type="button">처음이면 가입</button>
+        </div>
+      </div>
+      <div id="cloudUser" style="display:none">
+        <div class="row" style="align-items:center">
+          <button id="sbSync" class="btn" type="button">지금 동기화</button>
+          <button id="sbSignOut" class="btn" type="button">로그아웃</button>
+        </div>
+      </div>
+      <div id="cloudMsg" class="hint"></div>
+    </div>
     <div class="packbox" id="packBox">
       <div class="field packonly">
         <label for="packSel">회의 묶음</label>
@@ -1126,7 +1158,7 @@ function termCandidate(before, after) {
 // ---------------------------------------------------------------------------
 const WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 // 앱 버전: 고칠 때마다 올린다. 설정 창 아래에 보이고, 새 버전이 올라왔는지 확인할 때 쓴다
-const APP_VERSION = "2026.11.15-6";
+const APP_VERSION = "2026.11.15-7";
 const STORE_KEY = "meeting-interpreter.settings.v1";
 const DEFAULTS = {
   apiKey: "", hint: "en", target: "ko", terms: "", fontSize: "18",
@@ -1137,7 +1169,7 @@ const DEFAULTS = {
   packId: "", autoSave: true, micClean: false,
   stable: false, lastBackupAt: 0, backupNagAt: 0,
   assist: true, assistAuto: true, assistOpen: true, me: "", autoDigest: true,
-  assistEngine: "", digestEngine: "", myNames: "", marks: true, keepKeys: true, openAfterStop: true
+  assistEngine: "", digestEngine: "", myNames: "", marks: true, keepKeys: true, openAfterStop: true, sbUrl: "", sbKey: ""
 };
 
 // API 키 보관: 기본은 이 브라우저(localStorage)에 기억한다
@@ -2461,6 +2493,7 @@ async function finishMeeting(sess) {
   }
   if (id) await autoDigest(id);
   checkBackup();
+  Cloud.schedule(1000);   // 끝난 회의를 바로 올린다
 }
 
 // ---------------------------------------------------------------------------
@@ -2586,6 +2619,228 @@ const Store = {
   }
 };
 
+
+// ---- Supabase 동기화 ----
+// 기록은 먼저 이 기기(IndexedDB)에 저장하고, 로그인돼 있으면 Supabase 에도 올린다(같은 계정의 다른 기기와 맞춘다).
+// 인터넷이 끊겨도 회의는 그대로 되고, 올리지 못한 것은 기억해 두었다가 연결되면 올린다.
+// 서버에는 표 두 개(packs, meetings)에 기록을 통째로(JSON) 둔다. 내 기록만 보이게 하는 보안 규칙은 docs/supabase.sql
+// 외부 라이브러리 없이 Supabase 의 웹 주소(REST)를 직접 부른다
+const Cloud = {
+  S_KEY: "meetingassit.sb.session", O_KEY: "meetingassit.sb.outbox", C_KEY: "meetingassit.sb.cursor",
+  session: null, busy: false, timer: null, pulledAt: 0, lastOk: 0, err: "",
+  url() { return (settings.sbUrl || "").trim().replace(/\/+$/, ""); },
+  key() { return (settings.sbKey || "").trim(); },
+  ready() { return !!(this.url() && this.key()); },
+  on() { return this.ready() && !!this.session && Store.ok; },
+  load() {
+    try { this.session = JSON.parse(localStorage.getItem(this.S_KEY) || "null"); } catch (e) { this.session = null; }
+    if (this.session && this.session.url !== this.url()) this.session = null;   // 다른 프로젝트로 바꿨으면 다시 로그인
+  },
+  keep(sess) {
+    this.session = sess;
+    try { if (sess) localStorage.setItem(this.S_KEY, JSON.stringify(sess)); else localStorage.removeItem(this.S_KEY); } catch (e) {}
+  },
+  outbox() { try { return JSON.parse(localStorage.getItem(this.O_KEY) || "{}") || {}; } catch (e) { return {}; } },
+  setOutbox(o) { try { localStorage.setItem(this.O_KEY, JSON.stringify(o)); } catch (e) {} },
+  cursorKey() { return this.C_KEY + "." + (this.session ? this.session.user.id : ""); },
+  cursor() { try { return JSON.parse(localStorage.getItem(this.cursorKey()) || "null"); } catch (e) { return null; } },
+  setCursor(c) { try { localStorage.setItem(this.cursorKey(), JSON.stringify(c)); } catch (e) {} },
+
+  // ---- 로그인 ----
+  async auth(path, body) {
+    const res = await fetch(this.url() + "/auth/v1/" + path, { method: "POST",
+      headers: { "content-type": "application/json", apikey: this.key() }, body: JSON.stringify(body) });
+    let j = null;
+    try { j = await res.json(); } catch (e) {}
+    if (!res.ok) { const e = new Error((j && (j.msg || j.error_description || j.message || j.error)) || ("HTTP " + res.status)); e.status = res.status; throw e; }
+    return j || {};
+  },
+  fromAuth(j) {
+    return { url: this.url(), access: j.access_token, refresh: j.refresh_token, exp: Date.now() + (j.expires_in || 3600) * 1000,
+      user: { id: j.user && j.user.id, email: j.user && j.user.email } };
+  },
+  async signIn(email, pw) {
+    this.keep(this.fromAuth(await this.auth("token?grant_type=password", { email, password: pw })));
+    await this.firstSync();
+  },
+  async signUp(email, pw) {
+    const j = await this.auth("signup", { email, password: pw });
+    if (j.access_token) { this.keep(this.fromAuth(j)); await this.firstSync(); return "in"; }
+    return "confirm";   // 이메일 확인이 켜져 있으면, 메일의 링크를 누른 뒤 로그인한다
+  },
+  async signOut() {
+    try { if (this.session) await fetch(this.url() + "/auth/v1/logout", { method: "POST", headers: { apikey: this.key(), authorization: "Bearer " + this.session.access } }); } catch (e) {}
+    this.keep(null);
+  },
+  async token() {
+    if (!this.session) throw new Error("로그인이 필요합니다");
+    if (Date.now() > this.session.exp - 60000) {
+      try { this.keep(this.fromAuth(await this.auth("token?grant_type=refresh_token", { refresh_token: this.session.refresh }))); }
+      catch (e) { if (e.status === 400 || e.status === 401) { this.keep(null); renderCloud(); } throw e; }
+    }
+    return this.session.access;
+  },
+  async rest(path, opts) {
+    opts = opts || {};
+    const res = await fetch(this.url() + "/rest/v1/" + path, { method: opts.method || "GET",
+      headers: Object.assign({ apikey: this.key(), authorization: "Bearer " + await this.token(), "content-type": "application/json" }, opts.headers || {}),
+      body: opts.body ? JSON.stringify(opts.body) : undefined });
+    if (!res.ok) {
+      let j = null; try { j = await res.json(); } catch (e) {}
+      const e = new Error((j && (j.message || j.hint)) || ("HTTP " + res.status)); e.status = res.status; throw e;
+    }
+    return res.status === 204 ? null : res.json().catch(() => null);
+  },
+
+  // ---- 올리기: 바뀐 것을 표시해 두었다가 몇 초 뒤 한꺼번에 올린다 ----
+  mark(store, id, deleted) {
+    if (!id) return;
+    const o = this.outbox();
+    o[store + ":" + id] = deleted ? 1 : 0;
+    this.setOutbox(o);
+    this.schedule(R.running ? 60000 : 3000);   // 회의 중에는 1분에 한 번만 올린다
+  },
+  schedule(ms) {
+    if (!this.on()) return;
+    if (this.timer && ms > 1000) return;
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => { this.timer = null; this.sync(); }, ms);
+  },
+  async push() {
+    const o = this.outbox();
+    const keys = Object.keys(o);
+    if (!keys.length) return 0;
+    const rows = { packs: [], meetings: [] };
+    for (const k of keys) {
+      const i = k.indexOf(":"), store = k.slice(0, i), id = k.slice(i + 1);
+      if (!rows[store]) continue;
+      const data = o[k] ? null : await StoreRaw.get(store, id);
+      rows[store].push(data ? { id, data, deleted: false } : { id, data: {}, deleted: true });
+    }
+    for (const store of ["packs", "meetings"]) {
+      // 한 번에 너무 크지 않게 나눠 올린다
+      for (let i = 0; i < rows[store].length; i += 20) {
+        await this.rest(store + "?on_conflict=user_id,id", { method: "POST", body: rows[store].slice(i, i + 20),
+          headers: { prefer: "resolution=merge-duplicates,return=minimal" } });
+      }
+    }
+    // 올리는 사이 새로 바뀐 것은 남겨 둔다
+    const now = this.outbox();
+    for (const k of keys) if (now[k] === o[k]) delete now[k];
+    this.setOutbox(now);
+    return keys.length;
+  },
+  // ---- 받기: 마지막으로 받은 뒤 서버에서 바뀐 것만 받아 이 기기에 반영한다 ----
+  async pull() {
+    const cur = Object.assign({ packs: "1970-01-01T00:00:00Z", meetings: "1970-01-01T00:00:00Z" }, this.cursor() || {});
+    const pending = this.outbox();
+    let changed = 0;
+    for (const store of ["packs", "meetings"]) {
+      for (;;) {
+        const list = (await this.rest(store + "?select=id,data,deleted,updated_at&updated_at=gt." + encodeURIComponent(cur[store]) + "&order=updated_at.asc&limit=200")) || [];
+        for (const r of list) {
+          if (r.updated_at > cur[store]) cur[store] = r.updated_at;
+          if (pending[store + ":" + r.id] !== undefined) continue;   // 이 기기에서 고친 것이 아직 안 올라갔으면 이 기기 것이 이긴다
+          if (r.deleted) await StoreRaw.del(store, r.id); else await StoreRaw.put(store, Object.assign({}, r.data, { id: r.id }));
+          changed++;
+        }
+        this.setCursor(cur);
+        if (list.length < 200) break;
+      }
+    }
+    return changed;
+  },
+  // 처음 이 기기에서 로그인했을 때: 서버 것을 먼저 받고, 이 기기에만 있던 기록을 올린다
+  // 이 기기의 빈 "기본" 묶음은 서버에 묶음이 있으면 버린다 (기본 묶음이 둘이 되지 않게)
+  async firstSync() {
+    if (this.cursor()) return this.sync();
+    // 이 기기의 기록이 다른 계정으로 동기화되던 것이면 새 계정에 올리지 않는다 (같은 PC를 다른 사람이 쓸 때)
+    const OWN = "meetingassit.sb.owner";
+    let owner = null; try { owner = localStorage.getItem(OWN); } catch (e) {}
+    if (owner && owner !== this.session.user.id) {
+      this.err = "이 기기에 있던 기록은 다른 계정의 것이라 이 계정에 올리지 않았습니다.";
+      await this.pull(); await afterCloudPull(); this.lastOk = Date.now(); renderCloud();
+      return;
+    }
+    try { localStorage.setItem(OWN, this.session.user.id); } catch (e) {}
+    const local = { packs: await StoreRaw.all("packs"), meetings: await StoreRaw.all("meetings") };
+    await this.pull();
+    const remotePacks = (await this.rest("packs?select=id&deleted=eq.false&limit=1000")) || [];
+    const remoteIds = new Set(remotePacks.map((x) => x.id));
+    const o = this.outbox();
+    for (const p of local.packs) {
+      const empty = p.name === "기본" && !local.meetings.some((m) => m.packId === p.id);
+      if (empty && remotePacks.length && !remoteIds.has(p.id)) { await StoreRaw.del("packs", p.id); continue; }
+      o["packs:" + p.id] = 0;
+    }
+    for (const m of local.meetings) o["meetings:" + m.id] = 0;
+    this.setOutbox(o);
+    await this.sync();
+    await afterCloudPull();   // 처음 받은 것을 화면에 반영한다
+  },
+  async sync() {
+    if (!this.on() || this.busy) return;
+    this.busy = true; this.err = "";
+    try {
+      await this.push();
+      const changed = await this.pull();
+      this.lastOk = Date.now();
+      if (changed) await afterCloudPull();
+    } catch (e) {
+      this.err = e.status === 401 || e.status === 403 ? "로그인이 만료되었거나 권한이 없습니다. 다시 로그인해 주세요."
+        : e.status === 404 || /relation|does not exist|schema cache/i.test(e.message || "") ? "Supabase에 표가 아직 없습니다. 설정 안내(docs/supabase.sql)대로 표를 만들어 주세요."
+        : e.name === "TypeError" ? "인터넷 연결이 없어 동기화하지 못했습니다. 연결되면 다시 시도합니다."
+        : "동기화하지 못했습니다: " + (e.message || "원인 미상");
+    } finally { this.busy = false; renderCloud(); }
+  }
+};
+
+// 동기화와 상관없이 이 기기에만 읽고 쓰는 길 (서버에서 받은 것을 반영할 때 다시 올리지 않으려고)
+const StoreRaw = { all: Store.all.bind(Store), put: Store.put.bind(Store), del: Store.del.bind(Store), get: Store.get.bind(Store) };
+// 앱의 다른 부분이 쓰는 Store 는 바뀐 것을 동기화 대상으로 표시한다
+{
+  const put = Store.put.bind(Store), del = Store.del.bind(Store), update = Store.update.bind(Store);
+  Store.put = async (store, v) => { const r = await put(store, v); if (Cloud.on() && v && v.id) Cloud.mark(store, v.id); return r; };
+  Store.del = async (store, id) => { const r = await del(store, id); if (Cloud.on()) Cloud.mark(store, id, true); return r; };
+  Store.update = async (store, id, fn) => { const r = await update(store, id, fn); if (r && Cloud.on()) Cloud.mark(store, id); return r; };
+}
+
+// 서버에서 받은 것을 화면에 반영한다
+async function afterCloudPull() {
+  try { packs = await StoreRaw.all("packs"); } catch (e) { return; }
+  packs.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  if (!packs.length) {
+    const p = { id: newId(), name: "기본", brief: "", terms: "", facts: "", qa: "", createdAt: Date.now(), updatedAt: Date.now() };
+    await Store.put("packs", p); packs = [p];
+  }
+  if (!currentPack() && !R.running) {
+    settings.packId = packs[0].id;
+    const p = currentPack(); settings.brief = p.brief || ""; settings.terms = p.terms || "";
+    saveSettings(settings);
+  }
+  updatePackPill();
+  if (el.dlg.open) openPackUI();
+  refreshMeetingViews();
+}
+
+function renderCloud() {
+  const st = $("cloudState"), on = !!Cloud.session;
+  $("cloudLogin").style.display = on ? "none" : "";
+  $("cloudUser").style.display = on ? "" : "none";
+  const pend = Object.keys(Cloud.outbox()).length;
+  if (!Cloud.ready()) st.textContent = "Supabase 주소와 공개(anon) 키를 넣고 로그인하면, exe·브라우저·폰 어디서 열어도 같은 회의 기록을 봅니다. API 키는 올리지 않습니다.";
+  else if (!on) st.textContent = "로그인하면 이 기기의 회의 묶음과 기록을 Supabase에 올리고, 같은 계정의 다른 기기와 맞춥니다.";
+  else st.textContent = Cloud.session.user.email + " 로그인됨 · " + (Cloud.busy ? "동기화 중…" : Cloud.lastOk ? "마지막 동기화 " + new Date(Cloud.lastOk).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "아직 동기화 전") +
+    (pend ? " · 올릴 것 " + pend + "건" : "");
+  $("cloudMsg").textContent = Cloud.err;
+  $("cloudMsg").style.color = Cloud.err ? "var(--warn)" : "";
+  const side = $("sideCloud");
+  if (side) {
+    side.textContent = !Cloud.ready() || !on ? "☁ 동기화 꺼짐" : Cloud.err ? "☁ 동기화 문제" : Cloud.busy ? "☁ 동기화 중…" : "☁ " + Cloud.session.user.email;
+    side.classList.toggle("warn", !!(on && Cloud.err));
+  }
+}
+
 let packs = [];                 // { id, name, brief, terms, createdAt, updatedAt }
 let dlgPacks = [], dlgSel = ""; // 설정 창에서 고치는 중인 사본과 고른 묶음
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -2632,6 +2887,9 @@ async function initPacks() {
   if (el.dlg.open) openPackUI();
   checkBackup();
   if (document.body.classList.contains("idle")) renderHome(); else renderSide();
+  // 로그인돼 있으면 서버와 맞춘다
+  Cloud.load(); renderCloud();
+  if (Cloud.on()) Cloud.sync();
 }
 
 // ---- 회의 기록 자동 저장 ----
@@ -3780,6 +4038,7 @@ function openSettingsDialog() {
   $("stable").checked = !!settings.stable; syncStable();
   $("assistOn").checked = settings.assist !== false; $("assistAuto").checked = settings.assistAuto !== false; $("me").value = settings.me || "";
   $("keepKeys").checked = settings.keepKeys !== false;
+  $("sbUrl").value = settings.sbUrl || ""; $("sbKey").value = settings.sbKey || ""; renderCloud();
   $("openAfterStop").checked = settings.openAfterStop !== false;
   $("myNames").value = settings.myNames || ""; $("assistEngine").value = settings.assistEngine || ""; $("digestEngine").value = settings.digestEngine || "";
   $("marks").checked = settings.marks !== false;
@@ -3837,6 +4096,7 @@ $("saveSettings").addEventListener("click", () => {
     draft: $("draft").checked, preview: $("preview").checked,
     refine: $("refine").checked, compare: $("compare").checked, brief: $("brief").value.trim(), stable: $("stable").checked,
     assist: $("assistOn").checked, assistAuto: $("assistAuto").checked, me: $("me").value.trim().slice(0, 1500), autoDigest: $("autoDigest").checked, openAfterStop: $("openAfterStop").checked,
+    sbUrl: $("sbUrl").value.trim(), sbKey: $("sbKey").value.trim(),
     keepKeys: $("keepKeys").checked, myNames: $("myNames").value.trim().slice(0, 120), assistEngine: $("assistEngine").value, digestEngine: $("digestEngine").value, marks: $("marks").checked,
     groqKey: $("groqKey").value.trim(), groqModel: $("groqModel").value, draftFast: $("draftFast").checked
   });
@@ -4086,6 +4346,49 @@ if (POPUP) {
     };
     LIVE.postMessage({ type: "hello" });
   }
+}
+
+// ---- 계정·동기화 단추 ----
+function cloudCfgFromInputs() {
+  settings.sbUrl = $("sbUrl").value.trim(); settings.sbKey = $("sbKey").value.trim();
+  saveSettings(settings);
+  if (!Cloud.ready()) { Cloud.err = "Supabase 주소와 공개(anon) 키를 먼저 넣어 주세요."; renderCloud(); return false; }
+  if (!/^https:\/\/[^/]+$/.test(Cloud.url())) { Cloud.err = "Supabase 주소는 https://○○○.supabase.co 형태여야 합니다."; renderCloud(); return false; }
+  return true;
+}
+async function cloudAuth(kind) {
+  if (!cloudCfgFromInputs()) return;
+  const email = $("sbEmail").value.trim(), pw = $("sbPw").value;
+  if (!email || pw.length < 6) { Cloud.err = "이메일과 6자 이상 비밀번호를 넣어 주세요."; renderCloud(); return; }
+  Cloud.err = ""; $("cloudMsg").textContent = kind === "up" ? "가입하는 중…" : "로그인하는 중…";
+  try {
+    if (kind === "up") {
+      const r = await Cloud.signUp(email, pw);
+      if (r === "confirm") { $("cloudMsg").textContent = email + " 로 확인 메일을 보냈습니다. 메일의 링크를 누른 뒤 여기서 로그인해 주세요."; return; }
+    } else await Cloud.signIn(email, pw);
+    $("sbPw").value = "";
+  } catch (e) {
+    Cloud.err = /invalid login|invalid_grant|credentials/i.test(e.message) ? "이메일 또는 비밀번호가 맞지 않습니다."
+      : /not confirmed/i.test(e.message) ? "가입 확인 메일의 링크를 먼저 눌러 주세요."
+      : /already registered|exists/i.test(e.message) ? "이미 가입된 이메일입니다. 로그인을 눌러 주세요."
+      : e.name === "TypeError" ? "Supabase에 연결하지 못했습니다. 주소와 인터넷 연결을 확인해 주세요."
+      : "실패했습니다: " + e.message;
+  }
+  renderCloud();
+}
+$("sbSignIn").addEventListener("click", () => cloudAuth("in"));
+$("sbSignUp").addEventListener("click", () => cloudAuth("up"));
+$("sbSync").addEventListener("click", () => Cloud.sync());
+$("sbSignOut").addEventListener("click", async () => {
+  if (Object.keys(Cloud.outbox()).length && !window.confirm("아직 올리지 못한 기록이 있습니다. 그래도 로그아웃할까요?\n(이 기기의 기록은 지워지지 않습니다.)")) return;
+  await Cloud.signOut(); Cloud.err = ""; renderCloud();
+});
+$("sideCloud").addEventListener("click", () => { if (narrow()) setSide(false); openSettingsDialog(); });
+if (!POPUP) {
+  // 다른 기기에서 바뀐 것을 받는다: 5분마다, 이 창으로 돌아왔을 때, 인터넷이 다시 이어졌을 때
+  setInterval(() => Cloud.schedule(1000), 5 * 60 * 1000);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && Date.now() - Cloud.lastOk > 30000) Cloud.schedule(500); });
+  window.addEventListener("online", () => Cloud.schedule(1000));
 }
 
 // ---- 버전 표시와 새 버전 알림 ----

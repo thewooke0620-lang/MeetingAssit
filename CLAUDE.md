@@ -26,7 +26,8 @@
 - 앱 전체가 `index.html` 한 파일이다. 빌드 과정이 없고, 외부 라이브러리를 쓰지 않는다.
 - 음성 인식: Soniox 실시간 API (웹소켓). 번역: Soniox 내장, Claude, Groq 중 선택.
 - API 키는 사용자가 설정 화면에 넣고, 그 브라우저의 localStorage에만 저장된다. 키를 코드나 저장소에 넣지 않는다.
-- 회의 묶음과 회의 기록은 브라우저 IndexedDB에 저장한다. 저장소 접근은 `Store` 객체 한 곳에 모아 두었다. 설치형 앱이나 서버 DB로 옮길 때 이 객체만 바꾼다.
+- 회의 묶음과 회의 기록은 브라우저 IndexedDB에 저장한다. 저장소 접근은 `Store` 객체 한 곳에 모아 두었다.
+- Supabase 동기화(`Cloud` 객체): 로그인하면 `Store` 의 put·update·del 이 바뀐 것을 표시해 두고 Supabase 표(packs, meetings, 기록을 통째로 JSON)에 올린다. 받을 때는 `StoreRaw` 로 써서 다시 올리지 않는다. 라이브러리 없이 Auth·REST 주소를 fetch 로 부른다. 표·보안 규칙은 `docs/supabase.sql`. Supabase 주소와 anon 키는 설정 화면에서 넣는다(서비스 키는 절대 앱에 넣지 않는다). 테스트는 `tests/cloud.e2e.js` 의 가짜 서버로 한다.
 - Soniox가 선택 설정(확정 대기 시간, 번역어 지정, 회의 배경)을 거부하면 그 설정만 빼고 다시 연결한다. 새 선택 설정을 추가할 때도 같은 방식으로 한다.
 
 ## 데스크톱 앱 (desktop/)
@@ -37,5 +38,5 @@
 
 ## 정해 둔 방향
 - 순서: 웹 기능 안정 → 설치형(exe, 2026.11 시작) → 폰 앱. 폰 앱도 같은 index.html 을 감싸는 방식(예: Capacitor)으로 만든다.
-- 기기 간 동기화가 필요해지면 Supabase(PostgreSQL)를 붙일 계획이다.
+- 기기 간 동기화는 Supabase(PostgreSQL)로 한다 (2026.11 연결). 나중에 API 키도 Supabase Edge Functions 뒤로 옮길 수 있다.
 - 참고 제품은 Smooth AI(trysmooth.ai)다. 디자인이나 문구를 그대로 가져오지 않는다.
