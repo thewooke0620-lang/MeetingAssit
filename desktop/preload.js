@@ -2,7 +2,10 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("desktop", {
-  compact: (on) => ipcRenderer.invoke("compact", !!on),   // 작은 창 켜기·끄기
-  opacity: (v) => ipcRenderer.invoke("opacity", v),       // 작은 창 투명도
-  info: () => ipcRenderer.invoke("info")                  // 앱 버전, 운영체제
+  popup: (on) => ipcRenderer.invoke("popup", !!on),           // 자막 팝업 열기·닫기
+  popupBlur: (on) => ipcRenderer.invoke("popupBlur", !!on),   // 팝업 뒤 흐림(블러)
+  popupOpacity: (v) => ipcRenderer.invoke("popupOpacity", v), // 팝업 투명도
+  focusMain: () => ipcRenderer.invoke("focusMain"),           // 본 창을 앞으로
+  onPopupClosed: (fn) => ipcRenderer.on("popup-closed", () => fn()),
+  info: () => ipcRenderer.invoke("info")                      // 앱 버전, 운영체제
 });

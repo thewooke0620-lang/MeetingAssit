@@ -1,7 +1,7 @@
 {
   "name": "meetingassit-desktop",
   "productName": "MeetingAssit",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "회의 통역 도우미 데스크톱 앱",
   "author": "thewooke0620-lang",
   "main": "main.js",

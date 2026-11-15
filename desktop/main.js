@@ -1,15 +1,15 @@
 // 회의 통역 도우미 데스크톱 앱 (Windows)
 // 화면은 웹 앱(GitHub Pages)을 그대로 불러온다. 그래서 웹을 고치면 exe를 다시 깔지 않아도 다음 실행부터 반영된다.
-// 이 껍데기가 더하는 것: 컴퓨터 소리(회의 프로그램 소리) 바로 듣기, 회의 창 위에 늘 떠 있는 작은 창
+// 이 껍데기가 더하는 것: 컴퓨터 소리(회의 프로그램 소리) 바로 듣기, 회의 창 위에 늘 떠 있는 반투명(블러) 자막 팝업
 const { app, BrowserWindow, session, desktopCapturer, ipcMain, shell, Menu, screen } = require("electron");
 const path = require("path");
 
 const APP_URL = process.env.MEETINGASSIT_URL || "https://thewooke0620-lang.github.io/MeetingAssit/";
 const ORIGIN = new URL(APP_URL).origin;
 const BG = "#10161f", FG = "#e9edf2";
-const BAR_H = 48, BAR_H_SMALL = 34;
+const BAR_H = 48;
 
-let win = null, normalBounds = null, compact = false;
+let win = null, popupWin = null, popupBlur = true, popupOpacity = 0.92;
 
 // 같은 앱을 두 번 열면 이미 열린 창을 앞으로 가져온다
 if (!app.requestSingleInstanceLock()) app.quit();
@@ -52,7 +52,7 @@ function createWindow() {
     if (input.type !== "keyDown") return;
     if (input.key === "F5" || (input.control && input.key.toLowerCase() === "r")) { e.preventDefault(); win.webContents.reload(); }
   });
-  win.on("closed", () => { win = null; });
+  win.on("closed", () => { win = null; if (popupWin) popupWin.close(); });
 }
 
 // 보낸 쪽이 우리 앱 화면인지 확인한다 (다른 페이지가 창을 조작하지 못하게)
@@ -74,36 +74,60 @@ app.whenReady().then(() => {
     } catch (err) { cb({}); }
   });
 
-  // 작은 창: 회의 창 위에 늘 떠 있는 자막 띠. 화면 아래 가운데에 놓고, 끄면 원래 크기로 돌아간다
-  ipcMain.handle("compact", (e, on) => {
+  // 자막 팝업: 본 창과 따로 떠 있는 반투명(블러) 창. 회의 창(Teams 등) 위에 늘 떠 있고, 뒤가 흐리게 비친다
+  // 화면은 같은 웹 앱 주소의 #popup 이고, 본 창과는 BroadcastChannel 로 자막을 주고받는다
+  ipcMain.handle("popup", (e, on) => {
     if (!trusted(e) || !win) return false;
-    on = !!on;
-    if (on === compact) return true;
-    compact = on;
-    if (on) {
-      normalBounds = win.getBounds();
-      if (win.isMaximized()) win.unmaximize();
-      const wa = screen.getDisplayMatching(normalBounds).workArea;
-      const w = Math.min(720, wa.width - 40), h = 210;
-      win.setMinimumSize(320, 110);
-      win.setBounds({ x: Math.round(wa.x + (wa.width - w) / 2), y: wa.y + wa.height - h - 24, width: w, height: h });
-      win.setAlwaysOnTop(true, "floating");
-      win.setVisibleOnAllWorkspaces(true);
-      try { win.setTitleBarOverlay({ color: BG, symbolColor: FG, height: BAR_H_SMALL }); } catch (err) {}
-    } else {
-      win.setAlwaysOnTop(false);
-      win.setVisibleOnAllWorkspaces(false);
-      win.setOpacity(1);
-      win.setMinimumSize(360, 140);
-      if (normalBounds) win.setBounds(normalBounds);
-      try { win.setTitleBarOverlay({ color: BG, symbolColor: FG, height: BAR_H }); } catch (err) {}
+    if (!on) { if (popupWin) popupWin.close(); return true; }
+    if (popupWin) { popupWin.show(); popupWin.focus(); return true; }
+    const wa = screen.getDisplayMatching(win.getBounds()).workArea;
+    const w = Math.min(760, wa.width - 40), h = 230;
+    popupWin = new BrowserWindow({
+      x: Math.round(wa.x + (wa.width - w) / 2), y: wa.y + wa.height - h - 24, width: w, height: h,
+      minWidth: 360, minHeight: 120, title: "자막", icon: path.join(__dirname, "icon.png"),
+      alwaysOnTop: true, fullscreenable: false, maximizable: false, minimizable: false,
+      titleBarStyle: "hidden",                 // 창 테두리(크기 조절)는 남기고 제목 막대만 없앤다
+      backgroundMaterial: popupBlur ? "acrylic" : "none",   // Windows 11: 뒤가 흐리게 비치는 유리 효과
+      backgroundColor: popupBlur ? "#00000000" : BG,
+      webPreferences: {
+        preload: path.join(__dirname, "preload.js"),
+        contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false
+      }
+    });
+    popupWin.setAlwaysOnTop(true, "screen-saver");   // 전체 화면으로 띄운 회의 창보다도 위
+    popupWin.setVisibleOnAllWorkspaces(true);
+    popupWin.setOpacity(popupOpacity);
+    popupWin.loadURL(APP_URL.split("#")[0] + "#popup");
+    popupWin.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+    popupWin.webContents.on("will-navigate", (ev, url) => { if (!fromApp(url)) ev.preventDefault(); });
+    popupWin.on("closed", () => {
+      popupWin = null;
+      if (win) win.webContents.send("popup-closed");
+    });
+    return true;
+  });
+  // 팝업 흐림(블러) 켜기·끄기. 끄면 어두운 바탕에 투명도만 적용된다
+  ipcMain.handle("popupBlur", (e, on) => {
+    if (!trusted(e)) return false;
+    popupBlur = !!on;
+    if (popupWin) {
+      try { popupWin.setBackgroundMaterial(popupBlur ? "acrylic" : "none"); } catch (err) {}
+      popupWin.setBackgroundColor(popupBlur ? "#00000000" : BG);
     }
     return true;
   });
-  // 작은 창 투명도 (0.4 ~ 1)
-  ipcMain.handle("opacity", (e, v) => {
+  // 팝업 투명도 (0.35 ~ 1)
+  ipcMain.handle("popupOpacity", (e, v) => {
+    if (!trusted(e)) return false;
+    popupOpacity = Math.min(1, Math.max(0.35, Number(v) || 1));
+    if (popupWin) popupWin.setOpacity(popupOpacity);
+    return true;
+  });
+  // 팝업에서 "본 화면" 을 누르면 본 창을 앞으로
+  ipcMain.handle("focusMain", (e) => {
     if (!trusted(e) || !win) return false;
-    win.setOpacity(Math.min(1, Math.max(0.4, Number(v) || 1)));
+    if (win.isMinimized()) win.restore();
+    win.show(); win.focus();
     return true;
   });
   ipcMain.handle("info", (e) => (trusted(e) ? { version: app.getVersion(), platform: process.platform } : null));

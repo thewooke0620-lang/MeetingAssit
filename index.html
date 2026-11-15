@@ -22,6 +22,7 @@
     display: flex; flex-direction: column;
   }
   button, select, input, textarea { font: inherit; color: inherit; }
+  input { accent-color: var(--lamp); }
   header {
     display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
     padding: 10px 12px; background: var(--panel); border-bottom: 1px solid var(--line);
@@ -198,22 +199,62 @@
   body.idle #pip, body.idle #digestBtn, body.idle #save, body.idle #clear, body.idle #toggle, body.idle #source,
   body.idle #lat, body.idle #timer, body.idle #work > #assist, body.idle #assist { display: none !important; }
 
-  /* 가운데: 자막 기둥(읽기 좋은 폭) + 넓은 화면에서는 오른쪽에 답변 제안 */
-  #work { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+  /* 가운데: 왼쪽 메뉴(트리) | 자막 기둥(읽기 좋은 폭) | 넓은 화면에서는 오른쪽에 답변 제안 */
+  #work { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  #side { grid-column: 1; grid-row: 1 / span 2; }
+  #stageHome { grid-column: 2; grid-row: 1; min-height: 0; }
+  #work > #assist { grid-column: 2; grid-row: 2; }
   #stage { padding: 18px 20px 72px; }
   #transcript { max-width: 860px; margin: 0 auto; }
   .block { padding: 14px 0 16px; border-bottom-color: #1a2330; }
   .en { font-size: .8em; line-height: 1.55; }
   .ko { font-size: 1.04em; line-height: 1.6; font-weight: 500; }
   .spk { background: transparent; border: 1px solid var(--line); padding: 1px 9px; }
-  @media (min-width: 1120px) {
-    #work { flex-direction: row; }
-    #stageHome { flex: 1 1 auto; min-width: 0; }
-    #work > #assist { flex: 0 0 380px; width: 380px; border-top: 0; border-left: 1px solid var(--line); display: flex; flex-direction: column; padding: 14px 16px; }
+  @media (min-width: 1180px) {
+    #work { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: minmax(0, 1fr); }
+    #side { grid-row: 1; }
+    #work > #assist { grid-column: 3; grid-row: 1; width: 360px; border-top: 0; border-left: 1px solid var(--line); display: flex; flex-direction: column; padding: 14px 16px; min-height: 0; }
     #work > #assist[style*="display: none"] { display: none !important; }
     #work > #assist .as-body { max-height: none; flex: 1 1 auto; }
-    #work > #assist.closed { flex-basis: auto; width: auto; }
-    #work > #assist.closed .as-head b { writing-mode: vertical-rl; }
+    #work > #assist.closed { width: auto; }
+  }
+
+  /* 왼쪽 메뉴: 새 회의, 묶음 ▸ 회의 목록(트리), 설정 */
+  #side { width: 248px; border-right: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; gap: 2px;
+    padding: 12px 8px; overflow-y: auto; min-height: 0; }
+  body.side-closed #side { display: none; }
+  .side-item { display: block; width: 100%; text-align: left; background: none; border: 0; border-radius: 8px; padding: 8px 10px; font-size: 14px; color: var(--text); cursor: pointer; }
+  .side-item:hover { background: var(--panel2); }
+  .side-item.strong { font-weight: 700; }
+  .side-item.now { color: var(--lamp); }
+  .side-item.sub { color: var(--muted); font-size: 13px; }
+  .side-item:disabled { opacity: .45; cursor: default; background: none; }
+  .side-h { font-size: 12px; color: var(--muted); padding: 14px 10px 4px; }
+  .tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+  .tree ul { margin-left: 16px; border-left: 1px solid var(--line); padding-left: 4px; }
+  .tw { display: flex; align-items: center; border-radius: 8px; }
+  .tw:hover { background: var(--panel2); }
+  .twisty { flex: 0 0 22px; height: 30px; background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 11px; transition: transform .15s; }
+  li[aria-expanded="true"] > .tw > .twisty { transform: rotate(90deg); }
+  li[aria-expanded="false"] > ul { display: none; }
+  .tname { flex: 1 1 auto; min-width: 0; text-align: left; background: none; border: 0; padding: 6px 4px; font-size: 14px; color: var(--text); cursor: pointer;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  li.cur > .tw .tname { font-weight: 700; }
+  li.cur > .tw { box-shadow: inset 2px 0 0 var(--lamp); }
+  .tcount { flex: 0 0 auto; font-size: 12px; color: var(--muted); padding-right: 8px; font-variant-numeric: tabular-nums; }
+  .tmeet { display: block; width: 100%; text-align: left; background: none; border: 0; border-radius: 6px; padding: 5px 8px; cursor: pointer; color: var(--text); }
+  .tmeet:hover { background: var(--panel2); }
+  .tmeet .tt { display: block; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tmeet .tt.pending { color: var(--muted); }
+  .tmeet .td { display: block; font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tmeet.on .tt { color: var(--lamp); }
+  .tempty { font-size: 12.5px; color: var(--muted); padding: 4px 8px; }
+  .btn.icon { padding: 6px 10px; font-size: 15px; line-height: 1; }
+  @media (max-width: 760px) {
+    /* 폰·좁은 화면: 메뉴는 왼쪽에서 밀려 나오는 서랍 */
+    #side { position: fixed; z-index: 40; top: 0; bottom: 0; left: 0; width: min(300px, 84vw); box-shadow: 8px 0 30px rgba(0,0,0,.45); }
+    #work { grid-template-columns: minmax(0, 1fr); }
+    #stageHome, #work > #assist { grid-column: 1; }
   }
   .assist { background: var(--bg); }
 
@@ -264,27 +305,38 @@
   body.desktop header#bar { -webkit-app-region: drag; padding-right: 150px; min-height: 48px; }
   body.desktop header#bar button, body.desktop header#bar select, body.desktop header#bar .pill { -webkit-app-region: no-drag; }
 
-  /* 작은 창(데스크톱): 회의 창 위에 늘 떠 있는 자막 띠. 마지막 두 줄만 크게 보인다 */
-  body.compact header#bar { min-height: 34px; padding: 3px 10px; padding-right: 120px; gap: 8px; border-bottom: 0; }
-  body.compact .title, body.compact #lat, body.compact #packPill, body.compact #saveState,
-  body.compact #source, body.compact #digestBtn, body.compact #save, body.compact #clear, body.compact #openSettings { display: none !important; }
-  body.compact .btn { padding: 3px 10px; font-size: 12px; }
-  body.compact #work > #assist, body.compact #assist, body.compact #empty, body.compact #jump { display: none !important; }
-  body.compact #banner { padding: 4px 10px; font-size: 12px; }
-  body.compact #stage { padding: 2px 16px 8px; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; }
-  body.compact #transcript { max-width: none; width: 100%; }
-  body.compact #transcript > .block { display: none; border: 0; padding: 4px 0; }
-  body.compact #transcript > .block:nth-last-child(-n+2) { display: block; }
-  body.compact .block .spk, body.compact .block .star, body.compact .block .edit, body.compact .block .cmp { display: none !important; }
-  body.compact .ko { font-size: 22px; line-height: 1.45; }
-  body.compact .en { font-size: 14px; }
-  body.compact .gapmark { display: none; }
+  /* 자막 팝업(데스크톱): 뒤가 흐리게 비치는 반투명 창. 마지막 두 줄만 크게 */
+  #popupView { display: none; }
+  body.popup { background: transparent; }
+  body.popup > *:not(#popupView):not(script) { display: none !important; }
+  body.popup #popupView { display: flex; flex-direction: column; height: 100vh; background: rgba(16, 22, 31, .42); color: var(--text); }
+  body.popup.solid #popupView { background: var(--bg); }
+  .pv-bar { display: flex; align-items: center; gap: 8px; padding: 6px 10px; -webkit-app-region: drag; font-size: 12.5px; }
+  .pv-bar button, .pv-bar input, .pv-bar label { -webkit-app-region: no-drag; }
+  body.popup.live .lamp { background: var(--lamp); box-shadow: 0 0 10px rgba(242,184,75,.6); }
+  .pv-status { color: var(--muted); }
+  .pv-timer { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .pv-ctl { display: flex; align-items: center; gap: 4px; color: var(--muted); }
+  .pv-ctl input[type=range] { width: 70px; }
+  .pv-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .pv-btn { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); color: var(--text); border-radius: 7px; padding: 3px 9px; font-size: 12px; cursor: pointer; }
+  .pv-btn:hover { background: rgba(255,255,255,.16); }
+  .pv-btn.stop { background: var(--lamp); border-color: var(--lamp); color: #1b1305; font-weight: 700; }
+  .pv-btn.start { background: var(--text); border-color: var(--text); color: var(--bg); font-weight: 700; }
+  .pv-lines { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; padding: 2px 16px 12px; text-shadow: 0 1px 2px rgba(0,0,0,.55); }
+  .pv-line { padding: 4px 0; }
+  .pv-line .en { font-size: 14px; margin: 0 0 2px; color: #c9d2de; }
+  .pv-line .ko { font-size: 22px; line-height: 1.42; margin: 0; }
+  .pv-line.tome .ko, .pv-line.tome .en { color: #fff; }
+  .pv-line.star { border-left: 3px solid #facc15; padding-left: 8px; }
+  .pv-wait { color: var(--muted); font-size: 14px; margin: 0; }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
 
 <header id="bar">
+  <button id="sideBtn" class="btn icon" type="button" title="메뉴 열기·닫기" aria-label="메뉴" aria-controls="side">☰</button>
   <span class="lamp" aria-hidden="true"></span>
   <span class="title">회의 통역 도우미</span>
   <span id="status" class="pill">대기</span>
@@ -310,6 +362,15 @@
 <div id="banner"></div>
 
 <div id="work">
+<nav id="side" aria-label="메뉴">
+  <button id="sideNew" class="side-item strong" type="button">＋ 새 회의</button>
+  <button id="sideNow" class="side-item now" type="button" style="display:none">지금 화면의 회의</button>
+  <div class="side-h">회의 묶음</div>
+  <ul id="sideTree" class="tree" role="tree" aria-label="회의 묶음과 회의"></ul>
+  <button id="sidePackNew" class="side-item sub" type="button">＋ 새 묶음</button>
+  <span class="spacer"></span>
+  <button id="sideSettings" class="side-item" type="button">설정</button>
+</nav>
 <div id="stageHome">
   <div id="stage">
     <div id="empty">
@@ -324,10 +385,6 @@
           <button id="homeStart" class="btn primary big" type="button">회의 시작</button>
           <span id="homeKey" class="home-warn" style="display:none">먼저 Soniox API 키를 넣어야 합니다. <button id="homeKeyBtn" class="btn sm" type="button">설정 열기</button></span>
         </div>
-      </section>
-      <section class="recent" id="homeRecentBox" style="display:none">
-        <h2 class="recent-h">최근 회의</h2>
-        <div id="homeRecent"></div>
       </section>
       <details class="howto">
         <summary>처음 쓰는 방법</summary>
@@ -361,6 +418,22 @@
     <button class="btn" type="submit">영어로</button>
   </form>
 </div>
+</div>
+
+<div id="popupView" aria-live="polite">
+  <div class="pv-bar">
+    <span class="lamp" aria-hidden="true"></span>
+    <span id="pvStatus" class="pv-status">대기</span>
+    <span id="pvTimer" class="pv-timer">00:00</span>
+    <span class="spacer"></span>
+    <label class="pv-ctl" title="뒤가 흐리게 비치는 효과"><input id="pvBlur" type="checkbox" checked> 흐림</label>
+    <label class="pv-ctl" title="팝업 투명도"><span class="pv-sr">투명도</span><input id="pvOpacity" type="range" min="35" max="100" value="92"></label>
+    <button id="pvStar" class="pv-btn" type="button" title="방금 끝난 줄에 중요 표시 (B)">★</button>
+    <button id="pvMain" class="pv-btn" type="button" title="본 화면 열기">본 화면</button>
+    <button id="pvToggle" class="pv-btn stop" type="button">정지</button>
+    <button id="pvClose" class="pv-btn" type="button" title="팝업 닫기" aria-label="팝업 닫기">✕</button>
+  </div>
+  <div id="pvLines" class="pv-lines"><p class="pv-wait">회의를 시작하면 여기에 자막이 나옵니다.</p></div>
 </div>
 
 <dialog id="meetDlg">
@@ -1053,7 +1126,7 @@ function termCandidate(before, after) {
 // ---------------------------------------------------------------------------
 const WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 // 앱 버전: 고칠 때마다 올린다. 설정 창 아래에 보이고, 새 버전이 올라왔는지 확인할 때 쓴다
-const APP_VERSION = "2026.11.15-5";
+const APP_VERSION = "2026.11.15-6";
 const STORE_KEY = "meeting-interpreter.settings.v1";
 const DEFAULTS = {
   apiKey: "", hint: "en", target: "ko", terms: "", fontSize: "18",
@@ -1118,12 +1191,16 @@ function setStatus(kind, text) {
   el.status.className = "pill" + (kind ? " " + kind : "");
   el.status.textContent = text;
   updateMode();
+  queueLive();
 }
 
-// ---- 화면 모드: 시작 화면(idle) / 듣는 중(live) / 데스크톱 앱 / 작은 창(compact) ----
+// ---- 화면 모드: 시작 화면(idle) / 듣는 중(live) / 데스크톱 앱 / 자막 팝업(popup) ----
 // 데스크톱 앱(exe)에서는 window.desktop 이 있다 (desktop/preload.js)
-const DESKTOP = !!(window.desktop && window.desktop.compact);
+const DESKTOP = !!(window.desktop && window.desktop.popup);
+// 자막 팝업 창(데스크톱): 같은 앱을 #popup 으로 연 것. 본 창이 보내 주는 자막만 보여 준다
+const POPUP = DESKTOP && location.hash === "#popup";
 if (DESKTOP) document.body.classList.add("desktop");
+if (POPUP) document.body.classList.add("popup");
 function updateMode() {
   const live = R.running || R.starting;
   document.body.classList.toggle("live", live);
@@ -1131,7 +1208,10 @@ function updateMode() {
   const was = document.body.classList.contains("idle");
   document.body.classList.toggle("idle", idle);
   if (idle && !was) renderHome();
+  else if (live !== modeLive) renderSide();
+  modeLive = live;
 }
+let modeLive = false;
 function showBanner(text, info) {
   el.banner.textContent = text;
   el.banner.className = "show" + (info ? " info" : "");
@@ -1287,6 +1367,7 @@ function render() {
   if (n || ghostNeeded) el.empty.style.display = "none";
   if (stick) el.stage.scrollTop = el.stage.scrollHeight;
   else el.jump.classList.add("show");
+  queueLive();
 }
 
 // 중요 표시: 줄의 ☆를 누르거나, 단축키 B 로 방금 끝난 줄에 표시한다
@@ -2296,7 +2377,7 @@ async function start() {
   el.toggle.textContent = "정지"; el.toggle.className = "btn stop";
   el.source.disabled = true;
   R.startedAt = Date.now();
-  R.tick = setInterval(() => { el.timer.textContent = fmt(Date.now() - R.startedAt); }, 500);
+  R.tick = setInterval(() => { el.timer.textContent = fmt(Date.now() - R.startedAt); queueLive(); }, 500);
   T.tick = setInterval(() => { pumpTranslations(); pumpExtras(); }, 200);
   clearInterval(R.saveTick);
   R.saveTick = setInterval(() => { saveMeeting(); }, 30000);
@@ -2375,7 +2456,7 @@ async function finishMeeting(sess) {
   if (id && R.meetingId === id) await saveMeeting(true, pendingTranslations(core));
   if (R.running && R.session !== sess) return;   // 그사이 다시 시작했으면 같은 회의가 이어지므로 정리는 다음 정지 때 한다
   // 회의가 끝나면 정리 화면으로 넘어간다 (작은 창이거나 다른 창이 열려 있으면 그대로 둔다)
-  if (id && settings.openAfterStop !== false && !R.running && !document.body.classList.contains("compact") && !$("meetDlg").open && !el.dlg.open) {
+  if (id && settings.openAfterStop !== false && !R.running && !$("meetDlg").open && !el.dlg.open) {
     try { const m = await Store.get("meetings", id); if (m && !R.running) openMeeting(m); } catch (e) {}
   }
   if (id) await autoDigest(id);
@@ -2421,20 +2502,19 @@ el.save.addEventListener("click", () => {
 let pipWin = null;
 if (!DESKTOP && !("documentPictureInPicture" in window)) el.pip.style.display = "none";
 
-// 데스크톱 앱의 작은 창: 앱 창 자체를 작게 줄여 회의 창 위에 늘 띄운다 (마지막 두 줄만 크게)
-function setCompact(on) {
-  document.body.classList.toggle("compact", on);
-  el.pip.textContent = on ? "크게" : "작은 창";
-  el.pip.title = on ? "원래 크기로 돌아가기 (Esc)" : "회의 창 위에 늘 떠 있는 작은 자막 창";
-  try { window.desktop.compact(on); } catch (e) {}
-  setTimeout(() => { el.stage.scrollTop = el.stage.scrollHeight; }, 120);
+// 데스크톱 앱의 작은 창: 본 창과 따로 떠 있는 반투명(블러) 자막 팝업을 연다
+let popupOpen = false;
+function setPopup(on) {
+  popupOpen = on;
+  el.pip.textContent = on ? "팝업 닫기" : "작은 창";
+  el.pip.title = on ? "자막 팝업을 닫습니다" : "회의 창 위에 늘 떠 있는 반투명 자막 팝업";
+  try { window.desktop.popup(on); } catch (e) {}
+  if (on) setTimeout(sendLive, 600);
 }
-document.addEventListener("keydown", (ev) => {
-  if (ev.key === "Escape" && document.body.classList.contains("compact") && !document.querySelector("dialog[open]")) setCompact(false);
-});
+if (DESKTOP && !POPUP) { try { window.desktop.onPopupClosed(() => { popupOpen = false; el.pip.textContent = "작은 창"; }); } catch (e) {} }
 
 el.pip.addEventListener("click", async () => {
-  if (DESKTOP) { setCompact(!document.body.classList.contains("compact")); return; }
+  if (DESKTOP) { setPopup(!popupOpen); return; }
   if (pipWin) { pipWin.close(); return; }
   try {
     pipWin = await window.documentPictureInPicture.requestWindow({ width: 520, height: 320 });
@@ -2551,7 +2631,7 @@ async function initPacks() {
   updatePackPill();
   if (el.dlg.open) openPackUI();
   checkBackup();
-  if (document.body.classList.contains("idle")) renderHome();
+  if (document.body.classList.contains("idle")) renderHome(); else renderSide();
 }
 
 // ---- 회의 기록 자동 저장 ----
@@ -2587,6 +2667,7 @@ async function saveMeeting(announce, pending) {
   const lines = meetingLines();
   if (!lines.length) return false;
   if (!Store.ok || !currentPack()) { setSaveState("off"); return false; }
+  const isNew = !R.meetingId;
   if (!R.meetingId) { R.meetingId = newId(); R.meetingStart = R.startedAt || Date.now(); }
   const secs = Math.round(R.meetingSecs + (R.running && R.startedAt ? (Date.now() - R.startedAt) / 1000 : 0));
   const id = R.meetingId;
@@ -2604,6 +2685,7 @@ async function saveMeeting(announce, pending) {
     return false;
   }
   setSaveState("ok");
+  if (isNew || !R.running) renderSide();   // 왼쪽 메뉴에 새 회의를 보인다
   if (announce && !R.running) setConnState("회의 기록을 '" + currentPack().name + "' 묶음에 저장했습니다" + (saved && saved.title ? ": " + saved.title : "") + " (" + lines.length + "줄)." +
     (pending ? " 마지막 " + pending + "줄은 번역이 끝나기 전에 저장했습니다. 영어 원문은 모두 저장했습니다." : ""));
   if (el.dlg.open) renderMeetList();
@@ -2912,7 +2994,7 @@ function previousBrief(p) {
 }
 
 function refreshMeetingViews() {
-  if (document.body.classList.contains("idle")) renderHome();
+  if (document.body.classList.contains("idle")) renderHome(); else renderSide();
   if (el.dlg.open) renderMeetList();
   if ($("meetDlg").open) renderMeeting();
 }
@@ -3794,7 +3876,7 @@ $("saveSettings").addEventListener("click", () => {
   }
   window.addEventListener("beforeunload", () => { if (R.running) stop(); });
   updateAssistUI();
-  initPacks();
+  if (!POPUP) initPacks();   // 자막 팝업은 저장소를 건드리지 않는다 (본 창이 맡는다)
 })();
 
 // ---- 백업에서 되살리기: 첫 화면에서 바로 백업 파일을 고른다 ----
@@ -3809,8 +3891,7 @@ if (DESKTOP) {
   el.source.querySelector('option[value="system"]').textContent = "컴퓨터 소리 (Zoom·Teams 등)";
   $("homeSub").textContent = "회의 프로그램을 켠 뒤 시작을 누르세요. 공유 창 없이 컴퓨터 소리를 바로 듣고, 영어로 들리는 말을 한국어 자막으로 이어 줍니다.";
 }
-let homeTick = 0;
-async function renderHome() {
+function renderHome() {
   // 들을 소리: 위쪽 막대의 선택과 같은 목록
   const hs = $("homeSource");
   hs.innerHTML = el.source.innerHTML; hs.value = el.source.value;
@@ -3821,26 +3902,102 @@ async function renderHome() {
   hp.value = settings.packId || "";
   hp.closest(".home-f").style.display = Store.ok && packs.length ? "" : "none";
   $("homeKey").style.display = settings.apiKey && settings.apiKey.trim() ? "none" : "";
-  // 최근 회의 (모든 묶음에서 최근 6건)
-  const t = ++homeTick;
+  renderSide();
+}
+
+// ---- 왼쪽 메뉴: 회의 묶음 ▸ 그 묶음의 회의 (트리) ----
+const sideOpenPacks = new Set();
+let sideTick = 0, sideInit = false;
+function choosePack(id) {
+  const p = packs.find((x) => x.id === id);
+  if (!p || R.running) return false;
+  if (settings.packId !== id) {
+    settings.packId = p.id; settings.brief = p.brief || ""; settings.terms = p.terms || "";
+    saveSettings(settings); updatePackPill();
+    if (document.body.classList.contains("idle")) $("homePack").value = p.id;
+  }
+  return true;
+}
+async function renderSide() {
+  const tree = $("sideTree");
+  const t = ++sideTick;
   let all = [];
   if (Store.ok) { try { all = await Store.all("meetings"); } catch (e) {} }
-  if (t !== homeTick) return;
+  if (t !== sideTick) return;
   all.sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0));
-  const box = $("homeRecent");
-  box.textContent = "";
-  for (const m of all.slice(0, 6)) {
-    const row = mk("button", "rrow"); row.type = "button";
-    const d = new Date(m.startedAt || m.endedAt || 0);
-    const pack = packs.find((p) => p.id === m.packId);
-    row.append(mk("span", "rd", (d.getMonth() + 1) + "월 " + d.getDate() + "일 " + pad2(d.getHours()) + ":" + pad2(d.getMinutes())),
-      mk("span", "rt" + (m.title ? "" : " pending"), m.title || "제목 정리 전 회의"),
-      mk("span", "rm", Math.max(1, Math.round((m.secs || 0) / 60)) + "분" + (pack && packs.length > 1 ? " · " + pack.name : "")));
-    row.addEventListener("click", () => openMeeting(m));
-    box.append(row);
+  if (!sideInit && settings.packId) { sideOpenPacks.add(settings.packId); sideInit = true; }   // 처음에는 지금 묶음을 펼쳐 둔다
+  tree.textContent = "";
+  for (const p of packs) {
+    const list = all.filter((m) => m.packId === p.id);
+    const open = sideOpenPacks.has(p.id);
+    const li = mk("li", p.id === settings.packId ? "cur" : "");
+    li.setAttribute("role", "treeitem"); li.setAttribute("aria-expanded", open ? "true" : "false");
+    const row = mk("div", "tw");
+    const tw = mk("button", "twisty", "▶"); tw.type = "button"; tw.setAttribute("aria-label", open ? "접기" : "펼치기");
+    const nm = mk("button", "tname", p.name); nm.type = "button";
+    nm.title = R.running ? "회의 중에는 묶음을 바꿀 수 없습니다" : "이 묶음으로 회의하기";
+    row.append(tw, nm, mk("span", "tcount", String(list.length)));
+    const toggleOpen = () => { if (sideOpenPacks.has(p.id)) sideOpenPacks.delete(p.id); else sideOpenPacks.add(p.id); renderSide(); };
+    tw.addEventListener("click", toggleOpen);
+    nm.addEventListener("click", () => { choosePack(p.id); sideOpenPacks.add(p.id); renderSide(); });
+    li.append(row);
+    const ul = mk("ul"); ul.setAttribute("role", "group");
+    if (!list.length) ul.append(mk("li", "tempty", "아직 회의가 없습니다"));
+    for (const m of list.slice(0, 50)) {
+      const it = mk("li"); it.setAttribute("role", "treeitem");
+      const btn = mk("button", "tmeet" + (m.id === R.meetingId ? " on" : "")); btn.type = "button";
+      const d = new Date(m.startedAt || m.endedAt || 0);
+      btn.append(mk("span", "tt" + (m.title ? "" : " pending"), m.title || "제목 정리 전 회의"),
+        mk("span", "td", (d.getMonth() + 1) + "월 " + d.getDate() + "일 " + pad2(d.getHours()) + ":" + pad2(d.getMinutes()) + " · " + Math.max(1, Math.round((m.secs || 0) / 60)) + "분"));
+      btn.addEventListener("click", () => { openMeeting(m); if (narrow()) setSide(false); });
+      it.append(btn); ul.append(it);
+    }
+    li.append(ul);
+    tree.append(li);
   }
-  $("homeRecentBox").style.display = all.length ? "" : "none";
+  if (!Store.ok) tree.append(mk("li", "tempty", "이 브라우저에서는 회의 기록을 저장할 수 없습니다"));
+  $("sideNow").style.display = document.body.classList.contains("idle") ? "none" : "";
+  $("sideNow").textContent = R.running ? "● 지금 듣는 회의" : "지금 화면의 회의";
+  $("sideNew").disabled = R.running;
+  $("sidePackNew").style.display = Store.ok ? "" : "none";
 }
+const narrow = () => window.matchMedia("(max-width: 760px)").matches;
+function setSide(open) {
+  document.body.classList.toggle("side-closed", !open);
+  $("sideBtn").setAttribute("aria-expanded", open ? "true" : "false");
+}
+// 처음에는 넓은 화면이면 펼치고, 좁은 화면(폰)이면 접어 둔다. 넓은 화면에서 접고 편 것은 기억한다
+setSide(narrow() ? false : settings.sideOpen !== false);
+$("sideBtn").addEventListener("click", () => {
+  const open = document.body.classList.contains("side-closed");
+  setSide(open);
+  if (!narrow()) { settings.sideOpen = open; saveSettings(settings); }
+});
+// 폰에서 메뉴 밖을 누르면 닫는다
+document.addEventListener("click", (ev) => {
+  if (!narrow() || document.body.classList.contains("side-closed")) return;
+  if (ev.target.closest("#side") || ev.target.closest("#sideBtn") || ev.target.closest("dialog")) return;
+  setSide(false);
+});
+$("sideNew").addEventListener("click", async () => {
+  if (R.running) return;
+  if (core.blocks.length) { el.clear.click(); return; }     // 지금 화면의 회의를 저장하고 시작 화면으로
+  if (narrow()) setSide(false);
+  $("homeStart").focus();
+});
+$("sideNow").addEventListener("click", () => { if (narrow()) setSide(false); el.stage.scrollTop = el.stage.scrollHeight; });
+$("sideSettings").addEventListener("click", () => { if (narrow()) setSide(false); openSettingsDialog(); });
+$("sidePackNew").addEventListener("click", async () => {
+  const name = (window.prompt("새 회의 묶음의 이름을 적어 주세요. (예: A사 공급 계약)", "") || "").trim().slice(0, 40);
+  if (!name) return;
+  const p = { id: newId(), name, brief: "", terms: "", facts: "", qa: "", createdAt: Date.now(), updatedAt: Date.now() };
+  try { await Store.put("packs", p); } catch (e) { showBanner("묶음을 만들지 못했습니다."); return; }
+  packs.push(p);
+  choosePack(p.id);
+  sideOpenPacks.add(p.id);
+  if (document.body.classList.contains("idle")) renderHome(); else renderSide();
+});
+
 $("homeSource").addEventListener("change", () => { el.source.value = $("homeSource").value; el.source.dispatchEvent(new Event("change")); });
 $("homePack").addEventListener("change", () => {
   const p = packs.find((x) => x.id === $("homePack").value);
@@ -3856,6 +4013,81 @@ $("homeKeyBtn").addEventListener("click", () => openSettingsDialog());
 new MutationObserver(updateMode).observe(el.empty, { attributes: true, attributeFilter: ["style"] });
 updateMode();
 
+// ---- 자막 팝업(데스크톱)과 주고받기 ----
+// 본 창 → 팝업: 마지막 두 줄(강조 표시 포함), 상태, 시간 / 팝업 → 본 창: 정지, 중요 표시
+const LIVE = "BroadcastChannel" in window ? new BroadcastChannel("meetingassit-live") : null;
+let liveTimer = null;
+function queueLive() {
+  if (!LIVE || POPUP || !popupOpen || liveTimer) return;
+  liveTimer = setTimeout(() => { liveTimer = null; sendLive(); }, 80);
+}
+function sendLive() {
+  if (!LIVE || POPUP) return;
+  const nodes = [...el.transcript.children].filter((n) => n.classList.contains("block")).slice(-2);
+  // innerHTML 은 이 앱이 글자를 넣어 만든 것이라(자막은 텍스트로만 넣는다) 그대로 넘긴다
+  const lines = nodes.map((n) => ({ en: n.children[1].innerHTML, ko: n.children[2].innerHTML,
+    tome: n.classList.contains("tome"), star: n.classList.contains("starred") }));
+  LIVE.postMessage({ type: "state", lines, status: el.status.textContent, timer: el.timer.textContent, running: !!(R.running || R.starting) });
+}
+function starLast() {
+  for (let i = core.blocks.length - 1; i >= 0; i--) { if (core.blocks[i].en.trim()) { toggleStar(core.blocks[i]); return; } }
+}
+if (LIVE && !POPUP) {
+  LIVE.onmessage = (ev) => {
+    const d = ev.data || {};
+    if (d.type === "hello") { popupOpen = true; el.pip.textContent = "팝업 닫기"; sendLive(); }
+    else if (d.type === "cmd" && d.cmd === "stop" && R.running) stop();
+    else if (d.type === "cmd" && d.cmd === "star") starLast();
+  };
+}
+
+if (POPUP) {
+  document.title = "자막";
+  const box = $("pvLines");
+  const pref = (() => { try { return JSON.parse(localStorage.getItem("meetingassit.popup") || "{}") || {}; } catch (e) { return {}; } })();
+  const blur = pref.blur !== false, op = Math.min(100, Math.max(35, pref.opacity || 92));
+  $("pvBlur").checked = blur; $("pvOpacity").value = String(op);
+  document.body.classList.toggle("solid", !blur);
+  try { window.desktop.popupBlur(blur); window.desktop.popupOpacity(op / 100); } catch (e) {}
+  const keep = () => { try { localStorage.setItem("meetingassit.popup", JSON.stringify({ blur: $("pvBlur").checked, opacity: Number($("pvOpacity").value) })); } catch (e) {} };
+  $("pvBlur").addEventListener("change", () => {
+    const on = $("pvBlur").checked;
+    document.body.classList.toggle("solid", !on);
+    try { window.desktop.popupBlur(on); } catch (e) {}
+    keep();
+  });
+  $("pvOpacity").addEventListener("input", () => { try { window.desktop.popupOpacity(Number($("pvOpacity").value) / 100); } catch (e) {} keep(); });
+  $("pvMain").addEventListener("click", () => { try { window.desktop.focusMain(); } catch (e) {} });
+  $("pvClose").addEventListener("click", () => { try { window.desktop.popup(false); } catch (e) {} });
+  $("pvToggle").addEventListener("click", () => LIVE && LIVE.postMessage({ type: "cmd", cmd: "stop" }));
+  $("pvStar").addEventListener("click", () => LIVE && LIVE.postMessage({ type: "cmd", cmd: "star" }));
+  document.addEventListener("keydown", (ev) => {
+    if ((ev.key === "b" || ev.key === "B") && !ev.ctrlKey && !ev.metaKey && !ev.altKey && LIVE) LIVE.postMessage({ type: "cmd", cmd: "star" });
+    if (ev.key === "Escape") { try { window.desktop.popup(false); } catch (e) {} }
+  });
+  if (LIVE) {
+    LIVE.onmessage = (ev) => {
+      const d = ev.data || {};
+      if (d.type !== "state") return;
+      document.body.classList.toggle("live", d.running);
+      $("pvStatus").textContent = d.status || "";
+      $("pvTimer").textContent = d.timer || "";
+      // 시작은 소리 권한 때문에 본 화면에서 한다. 팝업에는 정지만 둔다
+      $("pvToggle").style.display = d.running ? "" : "none";
+      box.textContent = "";
+      if (!d.lines.length) { box.append(mk("p", "pv-wait", d.running ? "말이 들리면 여기에 자막이 나옵니다." : "본 화면에서 회의를 시작하면 여기에 자막이 나옵니다.")); return; }
+      for (const l of d.lines) {
+        const row = mk("div", "pv-line" + (l.tome ? " tome" : "") + (l.star ? " star" : ""));
+        const en = mk("p", "en"), ko = mk("p", "ko");
+        en.innerHTML = l.en; ko.innerHTML = l.ko;
+        if (settings.showOriginal === false) en.style.display = "none";
+        row.append(en, ko); box.append(row);
+      }
+    };
+    LIVE.postMessage({ type: "hello" });
+  }
+}
+
 // ---- 버전 표시와 새 버전 알림 ----
 $("appVer").textContent = "버전 " + APP_VERSION;
 // 회의 중이 아닐 때, 올라와 있는 앱의 버전이 지금 열린 것과 다르면 새로고침하라고 알린다
@@ -3870,8 +4102,10 @@ async function checkNewVersion() {
     }
   } catch (e) {}
 }
-setTimeout(checkNewVersion, 5000);
-setInterval(checkNewVersion, 30 * 60 * 1000);
+if (!POPUP) {
+  setTimeout(checkNewVersion, 5000);
+  setInterval(checkNewVersion, 30 * 60 * 1000);
+}
 </script>
 </body>
 </html>
