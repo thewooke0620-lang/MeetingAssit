@@ -34,8 +34,13 @@ public class MeetingService extends Service {
       .setContentIntent(pi)
       .setOngoing(true)
       .build();
-    if (Build.VERSION.SDK_INT >= 30) startForeground(ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
-    else startForeground(ID, n);
+    // 마이크 권한이 없으면(폰 소리만 듣는 경우 등) 마이크 종류로 띄울 수 없으므로 종류 없이 띄운다
+    try {
+      if (Build.VERSION.SDK_INT >= 30) startForeground(ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
+      else startForeground(ID, n);
+    } catch (Throwable e) {
+      try { startForeground(ID, n); } catch (Throwable e2) { stopSelf(); }
+    }
     return START_NOT_STICKY;
   }
 

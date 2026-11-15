@@ -36,7 +36,7 @@ jobs:
           npx cap add android
           npx cap sync android
 
-      - name: 마이크 권한, 화면 켜 두기, 아이콘
+      - name: 권한(마이크·폰 소리·떠 있는 창), 화면 켜 두기, 아이콘
         working-directory: android
         run: |
           M=android/app/src/main/AndroidManifest.xml
@@ -48,6 +48,14 @@ jobs:
           sed -i 's#</application>#    <service android:name=".MeetingService" android:exported="false" android:foregroundServiceType="microphone" />\n    </application>#' "$M"
           grep -q FOREGROUND_SERVICE_MICROPHONE "$M"
           grep -q MeetingService "$M"
+          # 폰 소리 듣기(실험): 화면·소리 캡처 서비스 / 떠 있는 자막 창: 다른 앱 위에 표시
+          sed -i 's#<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />#<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />\n    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />#' "$M"
+          sed -i 's#</application>#    <service android:name=".CaptureService" android:exported="false" android:foregroundServiceType="mediaProjection" />\n    </application>#' "$M"
+          grep -q FOREGROUND_SERVICE_MEDIA_PROJECTION "$M"
+          grep -q SYSTEM_ALERT_WINDOW "$M"
+          grep -q CaptureService "$M"
+          cp CaptureService.java android/app/src/main/java/io/github/thewooke0620/meetingassit/CaptureService.java
+          cp FloatWindow.java android/app/src/main/java/io/github/thewooke0620/meetingassit/FloatWindow.java
           cp MainActivity.java android/app/src/main/java/io/github/thewooke0620/meetingassit/MainActivity.java
           cp MeetingService.java android/app/src/main/java/io/github/thewooke0620/meetingassit/MeetingService.java
           rm -rf android/app/src/main/res/mipmap-anydpi-v26
