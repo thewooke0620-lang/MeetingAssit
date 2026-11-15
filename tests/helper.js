@@ -107,11 +107,17 @@ async function speak(p, text, gap) {
 }
 
 // 시작·정지: 시작 화면에서는 큰 '회의 시작' 단추, 그 밖에는 위쪽 막대의 시작·정지 단추를 누른다
-const clickToggle = async (p) => { await p.click((await p.isVisible('#homeStart')) ? '#homeStart' : '#toggle'); };
+const clickToggle = async (p) => { await p.click((await p.isVisible('#homeStart')) ? '#homeStart' : (await p.isVisible('#fab')) ? '#fab' : '#toggle'); };
 const toggle = async (p) => { await clickToggle(p); await p.waitForTimeout(300); };
 // 시작 → 말하기 → 정지 → 자동 저장과 정리가 끝날 때까지 기다림
 async function meeting(p, text, after) { await toggle(p); await speak(p, text); await p.waitForTimeout(400); await clickToggle(p); await p.waitForTimeout(after || 4900); }
-const openSettings = async (p) => { await p.click('#openSettings'); await p.waitForTimeout(300); };
+// 설정 열기: 위쪽 막대의 '설정', 폰의 시작 화면처럼 막대가 없으면 계정 단추 → '설정'
+const clickSettings = async (p) => {
+  if (await p.isVisible('#openSettings')) { await p.click('#openSettings'); return; }
+  await p.click('#acctChip'); await p.waitForTimeout(150);
+  await p.click('#acctSheet .sh-list button:has-text("설정")');
+};
+const openSettings = async (p) => { await clickSettings(p); await p.waitForTimeout(300); };
 const closeSettings = (p) => p.click('#cancelSettings');
 const saveSettings = async (p) => { await p.click('#saveSettings'); await p.waitForTimeout(250); };
 const meets = (p) => p.evaluate(() => [...document.querySelectorAll('#meetList .mrow')].map((r) => r.querySelector('.mtitle').textContent + ' | ' + r.querySelector('.mmeta').textContent));
@@ -125,4 +131,4 @@ function run(name, fn) {
     .catch((e) => { console.error('FAILED', e); process.exit(1); });
 }
 
-module.exports = { launch, openApp, speak, toggle, meeting, openSettings, closeSettings, saveSettings, meets, reqs, stored, BASE, run, clickToggle };
+module.exports = { launch, openApp, speak, toggle, meeting, openSettings, closeSettings, saveSettings, meets, reqs, stored, BASE, run, clickToggle, clickSettings };

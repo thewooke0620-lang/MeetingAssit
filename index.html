@@ -322,6 +322,98 @@
   body.desktop header#bar { -webkit-app-region: drag; padding-right: 150px; min-height: 48px; }
   body.desktop header#bar button, body.desktop header#bar select, body.desktop header#bar .pill { -webkit-app-region: no-drag; }
 
+  /* ================= 탭 구성: 홈 · 준비 · 리포트 · 표현 ================= */
+  .page-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
+  .page-h { font-size: 30px; font-weight: 800; letter-spacing: -0.03em; margin: 0; color: var(--text); }
+  .acct-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px 4px 4px; cursor: pointer; color: var(--text); max-width: 60%; }
+  .acct-chip .av, .sheet .av { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 14px; background: #2c3747; color: var(--text); }
+  .acct-chip.on .av, .sheet .av.on { background: var(--lamp); color: #1b1305; }
+  .acct-chip .an { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .acct-chip .chev { color: var(--muted); font-size: 11px; }
+  .pane[hidden] { display: none !important; }
+  .pane-sub { margin: -8px 0 18px; font-size: 14px; line-height: 1.6; }
+  .sec-h { font-size: 15px; font-weight: 700; color: var(--text); margin: 0 0 6px; }
+  .home-h { font-size: 22px; }
+  .linkbtn { background: none; border: 0; color: var(--accent); font-size: 13.5px; padding: 10px 0; cursor: pointer; }
+
+  /* 처음 시작하기: 체크리스트 한 장. 이 화면에서 테두리가 있는 상자는 이것 하나다 */
+  .setup { border: 1px solid var(--line); background: var(--panel); border-radius: 18px; padding: 16px 18px 6px; margin-bottom: 28px; }
+  .setup-head { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: 0; padding: 0; color: var(--text); cursor: pointer; font-size: 16px; text-align: left; }
+  .setup-head b { flex: 1; }
+  .setup-count { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+  .setup-head[aria-expanded="false"] .chev { transform: rotate(-90deg); }
+  .meter { height: 4px; border-radius: 4px; background: #263243; margin: 12px 0 4px; overflow: hidden; }
+  .meter i { display: block; height: 100%; width: 0; background: var(--lamp); border-radius: 4px; transition: width .3s; }
+  .setup-sub { font-size: 13px; margin: 8px 0 4px; }
+  .setup-list { list-style: none; margin: 0; padding: 0; }
+  .setup-list button { display: flex; align-items: center; gap: 12px; width: 100%; background: none; border: 0; padding: 11px 0; color: var(--text); font-size: 15px; cursor: pointer; text-align: left; }
+  .setup-list .ck { flex: 0 0 22px; height: 22px; border-radius: 50%; border: 2px solid #3a4859; display: grid; place-items: center; font-size: 12px; font-weight: 800; }
+  .setup-list li.done .ck { background: var(--ok); border-color: var(--ok); color: #0b2a1c; }
+  .setup-list li.done .tx { color: var(--muted); }
+  .setup-list .tx { flex: 1; }
+  .setup-list .go { color: var(--muted); }
+  .setup-list li.done .go { visibility: hidden; }
+
+  /* 준비: 묶음 목록 */
+  .prow { border-top: 1px solid var(--line); padding: 14px 0; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; }
+  .prow:last-of-type { border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+  .prow .pn { font-size: 16px; font-weight: 700; color: var(--text); }
+  .prow .pn .cur { font-size: 11.5px; font-weight: 600; color: var(--lamp); margin-left: 6px; }
+  .prow .pb { grid-column: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .prow .pm { grid-column: 1; font-size: 12.5px; }
+  .prow .pa { grid-column: 2; grid-row: 1 / span 3; display: flex; flex-direction: column; gap: 6px; }
+
+  /* 리포트: 찾기 + 달별 목록 */
+  .search { width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px; font-size: 15px; color: var(--text); margin-bottom: 14px; }
+  .month-h { font-size: 13px; color: var(--muted); margin: 18px 0 2px; font-weight: 600; }
+  .rrow .rp { display: block; font-size: 12px; color: var(--muted); font-weight: 400; }
+
+  /* 표현 */
+  .wsec { margin-bottom: 26px; }
+  .wterm { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 15px; }
+  .wterm .we { color: var(--text); font-weight: 600; }
+  .wqa { white-space: pre-wrap; font-size: 14px; line-height: 1.65; color: var(--text); border-left: 3px solid var(--line); padding: 4px 0 4px 12px; margin: 8px 0; }
+  .wstar { display: block; width: 100%; text-align: left; background: none; border: 0; border-top: 1px solid var(--line); padding: 10px 0; cursor: pointer; color: var(--text); }
+  .wstar .en { font-size: 14.5px; margin: 0 0 2px; }
+  .wstar .ko { font-size: 13.5px; color: var(--muted); margin: 0; font-weight: 400; }
+  .wstar .src { font-size: 12px; color: var(--muted); }
+  .wempty { font-size: 13.5px; padding: 6px 0; }
+
+  /* 계정 시트 */
+  dialog.sheet { width: min(520px, 100vw); max-width: 100vw; margin: auto auto 0; border-radius: 22px 22px 0 0; padding: 8px 18px max(18px, env(safe-area-inset-bottom)); max-height: 88vh; overflow-y: auto; }
+  @media (min-width: 761px) { dialog.sheet { margin: auto; border-radius: 18px; } }
+  .sheet .grab { width: 44px; height: 4px; border-radius: 4px; background: #3a4859; margin: 4px auto 16px; }
+  .sh-who { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+  .sh-who .av { width: 52px; height: 52px; font-size: 22px; }
+  .sh-who b { display: block; font-size: 19px; color: var(--text); }
+  .sh-who span { font-size: 13.5px; color: var(--muted); }
+  .sh-box { background: var(--panel2); border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; }
+  .sh-box .row2 { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; }
+  .sh-box .big { font-size: 20px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+  .sh-box p { margin: 6px 0 0; font-size: 13px; line-height: 1.55; }
+  .sh-list { margin-top: 6px; }
+  .sh-list button, .sh-list a { display: flex; justify-content: space-between; width: 100%; background: none; border: 0; border-top: 1px solid var(--line); padding: 14px 2px; color: var(--text); font-size: 15px; cursor: pointer; text-decoration: none; text-align: left; }
+  .sh-list .chev { color: var(--muted); }
+  a.btn { color: var(--text); text-decoration: none; display: inline-block; }
+  .sh-ver { font-size: 12px; color: var(--muted); padding: 12px 2px 0; }
+
+  /* 아래 탭 막대와 시작 단추: 좁은 화면(폰)의 시작 화면에서만 */
+  #tabbar, #fab { display: none; }
+  .side-item.nav.on { background: var(--panel2); }
+  @media (max-width: 760px) {
+    body.idle header#bar { display: none; }
+    body.idle #tabbar { display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; z-index: 30; left: 0; right: 0; bottom: 0;
+      background: var(--panel); border-top: 1px solid var(--line); padding: 6px 6px max(6px, env(safe-area-inset-bottom)); }
+    #tabbar button { background: none; border: 0; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 0; font-size: 11.5px; cursor: pointer; border-radius: 12px; }
+    #tabbar svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+    #tabbar button.on { color: var(--text); background: var(--panel2); }
+    body.idle #fab { display: inline-flex; align-items: center; gap: 9px; position: fixed; z-index: 31; right: 16px; bottom: calc(76px + env(safe-area-inset-bottom));
+      background: var(--text); color: var(--bg); border: 0; border-radius: 16px; padding: 14px 20px; font-size: 15.5px; font-weight: 800; box-shadow: 0 8px 26px rgba(0,0,0,.45); cursor: pointer; }
+    #fab .lamp { background: var(--lamp); box-shadow: none; }
+    body.idle #stage { padding-top: max(18px, env(safe-area-inset-top)); padding-bottom: 170px; }
+    body.idle #empty { margin-top: 0; }
+    body.idle #homeStart { display: none; }   /* 폰에서는 아래쪽 '회의 시작' 단추를 쓴다 */
+  }
   /* 자막 팝업(데스크톱): 뒤가 흐리게 비치는 반투명 창. 마지막 두 줄만 크게 */
   #popupView { display: none; }
   body.popup { background: transparent; }
@@ -380,7 +472,10 @@
 
 <div id="work">
 <nav id="side" aria-label="메뉴">
-  <button id="sideNew" class="side-item strong" type="button">＋ 새 회의</button>
+  <button id="sideNew" class="side-item strong nav" type="button" data-tab="home">홈 · 새 회의</button>
+  <button class="side-item nav" type="button" data-tab="prep">준비</button>
+  <button class="side-item nav" type="button" data-tab="report">리포트</button>
+  <button class="side-item nav" type="button" data-tab="words">표현</button>
   <button id="sideNow" class="side-item now" type="button" style="display:none">지금 화면의 회의</button>
   <div class="side-h">회의 묶음</div>
   <ul id="sideTree" class="tree" role="tree" aria-label="회의 묶음과 회의"></ul>
@@ -393,8 +488,26 @@
 <div id="stageHome">
   <div id="stage">
     <div id="empty">
+      <div class="page-head">
+        <h1 id="pageTitle" class="page-h">홈</h1>
+        <button id="acctChip" class="acct-chip" type="button" aria-haspopup="dialog" title="계정·동기화·설정">
+          <span id="acctAv" class="av" aria-hidden="true">?</span><span id="acctName" class="an">로그인</span><span class="chev" aria-hidden="true">▾</span>
+        </button>
+      </div>
+
+      <section id="tabHome" class="pane" data-tab="home">
+        <div id="setupCard" class="setup" style="display:none">
+          <button id="setupToggle" class="setup-head" type="button" aria-expanded="true">
+            <b>처음 시작하기</b><span id="setupCount" class="setup-count">0/4</span><span class="chev" aria-hidden="true">▾</span>
+          </button>
+          <div class="meter" aria-hidden="true"><i id="setupBar"></i></div>
+          <div id="setupBody">
+            <p class="setup-sub">하나씩 끝낼수록 자막과 답변 제안이 내 회의에 맞춰집니다.</p>
+            <ul id="setupList" class="setup-list"></ul>
+          </div>
+        </div>
       <section class="home">
-        <h1 class="home-h">새 회의</h1>
+        <h2 class="home-h">새 회의</h2>
         <p class="home-sub" id="homeSub">회의 프로그램을 켠 뒤 시작을 누르세요. 영어로 들리는 말이 한국어 자막으로 이어집니다.</p>
         <div class="home-form">
           <label class="home-f"><span>회의 묶음</span><select id="homePack"></select></label>
@@ -406,6 +519,11 @@
         </div>
       </section>
       <div id="installTip" class="install-tip" style="display:none"></div>
+        <section class="recent" id="homeRecentBox" style="display:none">
+          <h2 class="sec-h">최근 회의</h2>
+          <div id="homeRecent"></div>
+          <button id="homeAllReports" class="linkbtn" type="button">리포트에서 모두 보기</button>
+        </section>
       <details class="howto">
         <summary>처음 쓰는 방법</summary>
         <ol id="howtoList">
@@ -419,6 +537,23 @@
         <p>정지를 누르면 요금이 더 이상 발생하지 않습니다. 화면은 녹화되거나 전송되지 않고 소리만 사용합니다.</p>
         <p class="restore">브라우저 기록을 지웠거나 다른 컴퓨터에서 쓰던 회의 기록이 있으면 <button id="restoreBtn" class="btn sm" type="button">백업 파일에서 되살리기</button></p>
       </details>
+      </section>
+
+      <section id="tabPrep" class="pane" data-tab="prep" hidden>
+        <p class="pane-sub">회의 묶음마다 배경, 용어집, 자주 받는 질문을 적어 두면 번역과 답변 제안이 그 회의에 맞춰집니다.</p>
+        <div id="prepList"></div>
+        <button id="prepNew" class="btn" type="button">＋ 새 묶음</button>
+      </section>
+
+      <section id="tabReport" class="pane" data-tab="report" hidden>
+        <input id="reportSearch" class="search" type="search" placeholder="제목이나 회의 내용으로 찾기" aria-label="회의 찾기">
+        <div id="reportList"></div>
+      </section>
+
+      <section id="tabWords" class="pane" data-tab="words" hidden>
+        <p class="pane-sub">회의에서 쓸 표현을 모아 봅니다. 용어집과 자주 받는 질문은 '준비'에서, 중요 표시는 회의 중 ☆ 나 B 키로 더합니다.</p>
+        <div id="wordsBody"></div>
+      </section>
     </div>
     <div id="transcript"></div>
     <button id="jump">최신으로 ↓</button>
@@ -440,6 +575,19 @@
   </form>
 </div>
 </div>
+
+<nav id="tabbar" aria-label="화면 바꾸기">
+  <button type="button" data-tab="home" class="on"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5h-5v5H5a1 1 0 0 1-1-1z"/></svg><span>홈</span></button>
+  <button type="button" data-tab="prep"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8M7 6h10a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zM9 11h6M9 15h4"/></svg><span>준비</span></button>
+  <button type="button" data-tab="report"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10M10 20V5M15 20v-7M20 20V8"/></svg><span>리포트</span></button>
+  <button type="button" data-tab="words"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6a2 2 0 0 1 2-2h11v14H7a2 2 0 0 0-2 2zM5 20V6M9 8h5"/></svg><span>표현</span></button>
+</nav>
+<button id="fab" type="button"><span class="lamp" aria-hidden="true"></span>회의 시작</button>
+
+<dialog id="acctSheet" class="sheet" aria-label="계정">
+  <div class="grab" aria-hidden="true"></div>
+  <div id="acctBody"></div>
+</dialog>
 
 <div id="popupView" aria-live="polite">
   <div class="pv-bar">
@@ -1177,7 +1325,7 @@ function termCandidate(before, after) {
 // ---------------------------------------------------------------------------
 const WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 // 앱 버전: 고칠 때마다 올린다. 설정 창 아래에 보이고, 새 버전이 올라왔는지 확인할 때 쓴다
-const APP_VERSION = "2026.11.15-9";
+const APP_VERSION = "2026.11.15-10";
 const STORE_KEY = "meeting-interpreter.settings.v1";
 const DEFAULTS = {
   apiKey: "", hint: "en", target: "ko", terms: "", fontSize: "18",
@@ -2858,6 +3006,7 @@ function renderCloud() {
     (pend ? " · 올릴 것 " + pend + "건" : "");
   $("cloudMsg").textContent = Cloud.err;
   $("cloudMsg").style.color = Cloud.err ? "var(--warn)" : "";
+  if ($("acctChip")) renderAcctChip();
   const side = $("sideCloud");
   if (side) {
     side.textContent = !Cloud.ready() || !on ? "☁ 동기화 꺼짐" : Cloud.err ? "☁ 동기화 문제" : Cloud.busy ? "☁ 동기화 중…" : "☁ " + Cloud.session.user.email;
@@ -4188,7 +4337,233 @@ function renderHome() {
   hp.closest(".home-f").style.display = Store.ok && packs.length ? "" : "none";
   $("homeKey").style.display = settings.apiKey && settings.apiKey.trim() ? "none" : "";
   renderSide();
+  renderAcctChip();
+  renderTab();
 }
+
+// ---- 탭: 홈 · 준비 · 리포트 · 표현 (회의 중이 아닐 때의 화면) ----
+const TABS = { home: "홈", prep: "준비", report: "리포트", words: "표현" };
+let curTab = "home", tabTick = 0;
+function showTab(name) {
+  if (!TABS[name]) name = "home";
+  if (!document.body.classList.contains("idle")) {
+    if (R.running) { showBanner("회의 중에는 다른 화면으로 갈 수 없습니다. 정지한 뒤 눌러 주세요.", true); return; }
+    // 회의 기록이 화면에 남아 있으면 저장하고 지운 뒤 간다 (지우기를 취소하면 그대로)
+    el.clear.click();
+    if (el.empty.style.display === "none") return;
+    curTab = name;   // 시작 화면으로 바뀌면서 이 탭을 그린다
+    return;
+  }
+  curTab = name;
+  if (narrow()) setSide(false);
+  renderTab();
+  el.stage.scrollTop = 0;
+}
+async function renderTab() {
+  $("pageTitle").textContent = TABS[curTab];
+  for (const pane of document.querySelectorAll("#empty .pane")) pane.hidden = pane.dataset.tab !== curTab;
+  for (const b of document.querySelectorAll("#tabbar button, #side .nav")) b.classList.toggle("on", b.dataset.tab === curTab);
+  const t = ++tabTick;
+  let all = [];
+  if (Store.ok) { try { all = await Store.all("meetings"); } catch (e) {} }
+  if (t !== tabTick) return;
+  all.sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0));
+  if (curTab === "home") { renderSetup(all); renderRecent(all); }
+  else if (curTab === "prep") renderPrep(all);
+  else if (curTab === "report") renderReport(all);
+  else renderWords(all);
+}
+document.querySelectorAll("#tabbar button, #side .nav:not(#sideNew)").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
+$("fab").addEventListener("click", () => $("homeStart").click());
+$("homeAllReports").addEventListener("click", () => showTab("report"));
+
+function meetRow(m, withPack) {
+  const row = mk("button", "rrow"); row.type = "button";
+  const d = new Date(m.startedAt || m.endedAt || 0);
+  const pack = packs.find((p) => p.id === m.packId);
+  const t = mk("span", "rt" + (m.title ? "" : " pending"), m.title || "제목 정리 전 회의");
+  if (withPack && pack) t.append(mk("span", "rp", pack.name));
+  row.append(mk("span", "rd", (d.getMonth() + 1) + "월 " + d.getDate() + "일 " + pad2(d.getHours()) + ":" + pad2(d.getMinutes())), t,
+    mk("span", "rm", Math.max(1, Math.round((m.secs || 0) / 60)) + "분"));
+  row.addEventListener("click", () => openMeeting(m));
+  return row;
+}
+
+// 처음 시작하기: 4가지를 끝내면 사라진다
+let setupOpen = true;
+function renderSetup(all) {
+  const items = [
+    ["Soniox API 키 넣기", !!(settings.apiKey && settings.apiKey.trim()), () => { openSettingsDialog(); setTimeout(() => $("apiKey").focus(), 50); }],
+    ["계정 만들고 기기끼리 맞추기", !!Cloud.session, () => { openSettingsDialog(); setTimeout(() => $("sbEmail").focus(), 50); }],
+    ["첫 회의 묶음 준비하기", packs.some((p) => ((p.brief || "") + (p.terms || "") + (p.qa || "")).trim()), () => showTab("prep")],
+    ["첫 회의 해 보기", all.length > 0, () => $("fab").offsetParent ? $("fab").click() : $("homeStart").click()]
+  ];
+  const done = items.filter((x) => x[1]).length;
+  const card = $("setupCard");
+  card.style.display = done === items.length ? "none" : "";
+  $("setupCount").textContent = done + "/" + items.length;
+  $("setupBar").style.width = (done / items.length * 100) + "%";
+  $("setupBody").style.display = setupOpen ? "" : "none";
+  $("setupToggle").setAttribute("aria-expanded", setupOpen ? "true" : "false");
+  const ul = $("setupList"); ul.textContent = "";
+  for (const [label, ok, act] of items) {
+    const li = mk("li", ok ? "done" : "");
+    const b = mk("button"); b.type = "button";
+    b.append(mk("span", "ck", ok ? "✓" : ""), mk("span", "tx", label), mk("span", "go", "›"));
+    b.addEventListener("click", act);
+    li.append(b); ul.append(li);
+  }
+}
+$("setupToggle").addEventListener("click", () => { setupOpen = !setupOpen; renderTab(); });
+
+function renderRecent(all) {
+  const box = $("homeRecent"); box.textContent = "";
+  for (const m of all.slice(0, 5)) box.append(meetRow(m, packs.length > 1));
+  $("homeRecentBox").style.display = all.length ? "" : "none";
+  $("homeAllReports").style.display = all.length > 5 ? "" : "none";
+}
+
+// 준비: 묶음마다 배경·용어집·질문을 얼마나 적었는지 보이고, 눌러서 고친다
+function openPackEditor(id) {
+  openSettingsDialog();
+  const sel = $("packSel");
+  if (sel && sel.value !== id) { sel.value = id; sel.dispatchEvent(new Event("change")); }
+  setTimeout(() => { const n = $("packName") || $("brief"); if (n) n.scrollIntoView({ block: "start" }); }, 60);
+}
+function renderPrep(all) {
+  const box = $("prepList"); box.textContent = "";
+  for (const p of packs) {
+    const n = all.filter((m) => m.packId === p.id).length;
+    const terms = parseTerms(p.terms || "").length;
+    const qa = ((p.qa || "").match(/^\s*Q\s*[:：]/gim) || []).length;
+    const row = mk("div", "prow");
+    const name = mk("div", "pn", p.name);
+    if (p.id === settings.packId) name.append(mk("span", "cur", "지금 묶음"));
+    row.append(name,
+      mk("div", "pb", (p.brief || "").trim() ? p.brief.trim().split("\n")[0] : "회의 배경을 아직 적지 않았습니다"),
+      mk("div", "pm", "회의 " + n + "건 · 용어 " + terms + "개 · 질문 " + qa + "개"));
+    const acts = mk("div", "pa");
+    const edit = mk("button", "btn sm", "준비하기"); edit.type = "button"; edit.addEventListener("click", () => openPackEditor(p.id));
+    acts.append(edit);
+    if (p.id !== settings.packId) {
+      const use = mk("button", "btn sm", "이 묶음 쓰기"); use.type = "button";
+      use.addEventListener("click", () => { choosePack(p.id); renderTab(); renderSide(); });
+      acts.append(use);
+    }
+    row.append(acts);
+    box.append(row);
+  }
+}
+$("prepNew").addEventListener("click", () => $("sidePackNew").click());
+
+// 리포트: 지난 회의 전체를 달별로, 제목이나 내용으로 찾기
+function renderReport(all) {
+  const q = $("reportSearch").value.trim().toLowerCase();
+  const list = !q ? all : all.filter((m) => ((m.title || "") + "\n" + (m.lines || []).map((l) => (l.en || "") + " " + (l.ko || "")).join("\n")).toLowerCase().includes(q));
+  const box = $("reportList"); box.textContent = "";
+  if (!list.length) { box.append(mk("p", "wempty", q ? "찾는 말이 들어간 회의가 없습니다." : "아직 회의 기록이 없습니다. 회의를 마치면 여기에 쌓입니다.")); return; }
+  let month = "";
+  for (const m of list) {
+    const d = new Date(m.startedAt || m.endedAt || 0);
+    const mh = d.getFullYear() + "년 " + (d.getMonth() + 1) + "월";
+    if (mh !== month) { month = mh; box.append(mk("div", "month-h", mh)); }
+    box.append(meetRow(m, packs.length > 1));
+  }
+}
+$("reportSearch").addEventListener("input", () => renderTab());
+
+// 표현: 용어집, 자주 받는 질문과 내 답변, 중요 표시한 발언
+function renderWords(all) {
+  const box = $("wordsBody"); box.textContent = "";
+  const sec = (title) => { const s = mk("section", "wsec"); s.append(mk("h2", "sec-h", title)); box.append(s); return s; };
+  const t = sec("용어집");
+  let any = false;
+  for (const p of packs) {
+    const terms = parseTerms(p.terms || "");
+    if (!terms.length) continue;
+    any = true;
+    if (packs.length > 1) t.append(mk("div", "month-h", p.name));
+    for (const x of terms) { const r = mk("div", "wterm"); r.append(mk("span", "we", x.src), mk("span", "", x.dst || "(영어 그대로)")); t.append(r); }
+  }
+  if (!any) t.append(mk("p", "wempty", "아직 없습니다. '준비'에서 묶음의 용어집에 적거나, 회의 중 자막을 ✎로 고치면 쌓입니다."));
+  const q = sec("자주 받는 질문과 내 답변");
+  any = false;
+  for (const p of packs) {
+    if (!(p.qa || "").trim()) continue;
+    any = true;
+    if (packs.length > 1) q.append(mk("div", "month-h", p.name));
+    q.append(mk("div", "wqa", p.qa.trim()));
+  }
+  if (!any) q.append(mk("p", "wempty", "아직 없습니다. '준비'에서 묶음마다 적어 두면 비슷한 질문이 나올 때 이 답으로 영어 답변을 제안합니다."));
+  const st = sec("중요 표시한 발언");
+  const stars = [];
+  for (const m of all) (m.lines || []).forEach((l) => { if (l.star) stars.push([m, l]); });
+  if (!stars.length) st.append(mk("p", "wempty", "아직 없습니다. 회의 중 줄의 ☆를 누르거나 B 키를 누르면 여기에 모입니다."));
+  for (const [m, l] of stars.slice(0, 40)) {
+    const b = mk("button", "wstar"); b.type = "button";
+    b.append(mk("p", "en", l.en || ""), mk("p", "ko", l.ko || ""), mk("span", "src", (m.title || "회의") + (l.at ? " · " + hhmm(l.at) : "")));
+    b.addEventListener("click", () => openMeeting(m));
+    st.append(b);
+  }
+}
+
+// ---- 계정 단추와 계정 시트 ----
+function renderAcctChip() {
+  const on = !!Cloud.session, email = on ? Cloud.session.user.email || "" : "";
+  $("acctAv").textContent = on ? (email[0] || "?").toUpperCase() : "?";
+  $("acctName").textContent = on ? email.split("@")[0] : "로그인";
+  $("acctChip").classList.toggle("on", on);
+}
+async function openAcct() {
+  const body = $("acctBody"); body.textContent = "";
+  const on = !!Cloud.session, email = on ? Cloud.session.user.email || "" : "";
+  const who = mk("div", "sh-who");
+  who.append(mk("div", "av" + (on ? " on" : ""), on ? (email[0] || "?").toUpperCase() : "?"));
+  const nm = mk("div"); nm.append(mk("b", "", on ? email.split("@")[0] : "로그인하지 않음"), mk("span", "", on ? email : "로그인하면 PC·폰의 회의 기록을 맞춥니다"));
+  who.append(nm); body.append(who);
+  // 이번 달 회의
+  let all = []; try { if (Store.ok) all = await Store.all("meetings"); } catch (e) {}
+  const now = new Date(), m0 = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  const month = all.filter((m) => (m.startedAt || 0) >= m0);
+  const mins = Math.round(month.reduce((t, m) => t + (m.secs || 0), 0) / 60);
+  const b1 = mk("div", "sh-box"), r1 = mk("div", "row2");
+  const secs = month.reduce((t, m) => t + (m.secs || 0), 0);
+  r1.append(mk("span", "", "이번 달 회의"), mk("span", "big", secs && !mins ? "1분 미만" : mins + "분"));
+  b1.append(r1, mk("p", "", month.length + "건 · 지금까지 모두 " + all.length + "건"));
+  body.append(b1);
+  // 동기화
+  const b2 = mk("div", "sh-box"), r2 = mk("div", "row2");
+  r2.append(mk("span", "", "기기끼리 맞추기"), mk("span", "", !on ? "꺼짐" : Cloud.err ? "문제 있음" : Cloud.lastOk ? new Date(Cloud.lastOk).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + " 맞춤" : "켜짐"));
+  b2.append(r2);
+  if (Cloud.err) b2.append(mk("p", "", Cloud.err));
+  const sb = mk("button", "btn sm", on ? "지금 맞추기" : "로그인·가입"); sb.type = "button"; sb.style.marginTop = "10px";
+  sb.addEventListener("click", async () => { if (on) { await Cloud.sync(); openAcct(); } else { $("acctSheet").close(); openSettingsDialog(); setTimeout(() => $("sbEmail").focus(), 50); } });
+  b2.append(sb); body.append(b2);
+  // 앱 받기
+  const native = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent), android = /Android/i.test(navigator.userAgent);
+  if (!native && !DESKTOP) {
+    const b3 = mk("div", "sh-box"), r3 = mk("div", "row2");
+    r3.append(mk("b", "", android ? "안드로이드 앱 받기" : ios ? "아이폰 홈 화면에 두기" : "Windows 앱(exe)"));
+    if (android) { const a = mk("a", "btn sm", "받기"); a.href = "https://github.com/thewooke0620-lang/MeetingAssit/raw/apk/MeetingAssit.apk"; r3.append(a); }
+    b3.append(r3, mk("p", "", android ? "설치하면 홈 화면에서 바로 열고, 회의 중 화면이 꺼지지 않습니다."
+      : ios ? "사파리 아래쪽 공유 단추(□↑) → 홈 화면에 추가."
+      : "PC에서는 Windows 앱으로 쓰면 공유 창 없이 회의 소리를 바로 듣고, 회의 창 위에 반투명 자막 팝업을 띄웁니다."));
+    body.append(b3);
+  }
+  // 목록
+  const list = mk("div", "sh-list");
+  const item = (label, fn) => { const b = mk("button", "", label); b.type = "button"; b.append(mk("span", "chev", "›")); b.addEventListener("click", () => { $("acctSheet").close(); fn(); }); list.append(b); };
+  item("설정", () => openSettingsDialog());
+  item("회의 묶음 준비", () => showTab("prep"));
+  item("백업 파일로 내보내기·가져오기", () => { openSettingsDialog(); setTimeout(() => { const n = $("packExport"); if (n) n.scrollIntoView({ block: "center" }); }, 60); });
+  item("처음 쓰는 방법", () => { showTab("home"); const d = document.querySelector("#empty details.howto"); if (d) { d.open = true; d.scrollIntoView({ block: "start" }); } });
+  if (on) item("로그아웃", async () => { await Cloud.signOut(); Cloud.err = ""; renderCloud(); renderAcctChip(); renderTab(); });
+  body.append(list, mk("div", "sh-ver", "버전 " + APP_VERSION));
+  if (!$("acctSheet").open) $("acctSheet").showModal();
+}
+$("acctChip").addEventListener("click", openAcct);
+$("acctSheet").addEventListener("click", (ev) => { if (ev.target === $("acctSheet")) $("acctSheet").close(); });   // 바깥을 누르면 닫기
 
 // ---- 왼쪽 메뉴: 회의 묶음 ▸ 그 묶음의 회의 (트리) ----
 const sideOpenPacks = new Set();
@@ -4264,11 +4639,10 @@ document.addEventListener("click", (ev) => {
   if (ev.target.closest("#side") || ev.target.closest("#sideBtn") || ev.target.closest("dialog")) return;
   setSide(false);
 });
-$("sideNew").addEventListener("click", async () => {
+$("sideNew").addEventListener("click", () => {
   if (R.running) return;
-  if (core.blocks.length) { el.clear.click(); return; }     // 지금 화면의 회의를 저장하고 시작 화면으로
-  if (narrow()) setSide(false);
-  $("homeStart").focus();
+  showTab("home");     // 지금 화면의 회의가 있으면 저장하고 지운 뒤 시작 화면으로
+  if (document.body.classList.contains("idle")) $("homeStart").focus();
 });
 $("sideNow").addEventListener("click", () => { if (narrow()) setSide(false); el.stage.scrollTop = el.stage.scrollHeight; });
 $("sideSettings").addEventListener("click", () => { if (narrow()) setSide(false); openSettingsDialog(); });

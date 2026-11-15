@@ -1,3 +1,4 @@
+const { clickSettings } = require('./helper');   // 설정 열기 (폰 화면이면 계정 단추로)
 const { clickToggle } = require('./helper');   // 시작 화면이면 '회의 시작', 아니면 위쪽 시작·정지 단추
 const { chromium, devices } = require('playwright'); const fs = require('fs'); const assert = require('assert');
 const HTML = fs.readFileSync(require('path').join(__dirname, '..', 'index.html'), 'utf8');
@@ -18,7 +19,7 @@ const HTML = fs.readFileSync(require('path').join(__dirname, '..', 'index.html')
     await clickToggle(p); await p.waitForTimeout(500);
     const status1 = await p.textContent('#status');
     await clickToggle(p); await p.waitForTimeout(200);
-    await p.click('#openSettings'); await p.check('#micClean'); await p.click('#saveSettings'); await p.waitForTimeout(200);
+    await clickSettings(p); await p.check('#micClean'); await p.click('#saveSettings'); await p.waitForTimeout(200);
     await clickToggle(p); await p.waitForTimeout(500);
     const gum = await p.evaluate(() => window.GUM.map((c) => c.audio));
     console.log(name, '| 입력 선택지:', opts2, '| 상태:', status1, '\n  기본:', JSON.stringify(gum[0]), '\n  제거 켬:', JSON.stringify(gum[1]));

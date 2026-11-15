@@ -1,3 +1,4 @@
+const { clickSettings } = require('./helper');   // 설정 열기 (폰 화면이면 계정 단추로)
 const { clickToggle } = require('./helper');   // 시작 화면이면 '회의 시작', 아니면 위쪽 시작·정지 단추
 const assert = require('assert');
 const { chromium } = require('playwright');
@@ -51,7 +52,7 @@ const speak = async (p, sents, lagMs) => {
     await p.waitForTimeout(1300);
   }
 };
-const stats = async (p) => { await p.click('#openSettings'); await p.waitForTimeout(150); const t = await p.evaluate(() => document.getElementById('statBox').textContent); await p.click('#cancelSettings'); return t; };
+const stats = async (p) => { await clickSettings(p); await p.waitForTimeout(150); const t = await p.evaluate(() => document.getElementById('statBox').textContent); await p.click('#cancelSettings'); return t; };
 const rows = (p) => p.evaluate(() => [...document.querySelectorAll('#transcript .block')].map((b) => b.querySelector('.ko').innerText + '  || ' + b.querySelector('.cmp').innerText.replace(/\n+/g, ' / ')));
 
 (async () => {

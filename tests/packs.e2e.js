@@ -1,3 +1,4 @@
+const { clickSettings } = require('./helper');   // 설정 열기 (폰 화면이면 계정 단추로)
 const { clickToggle } = require('./helper');   // 시작 화면이면 '회의 시작', 아니면 위쪽 시작·정지 단추
 const { chromium } = require('playwright');
 const fs = require('fs'), assert = require('assert');
@@ -20,7 +21,7 @@ const speak = async (p, text) => { for (const w of text.match(/\s*\S+/g)) { awai
 const packsOf = (p) => p.evaluate(() => [...document.querySelectorAll('#packSel option')].map((o) => o.textContent));
 const meets = (p) => p.evaluate(() => [...document.querySelectorAll('#meetList .mrow .minfo, #meetList .none')].map((x) => x.textContent));
 const pill = (p) => p.evaluate(() => document.getElementById('packPill').textContent);
-const openDlg = async (p) => { await p.click('#openSettings'); await p.waitForTimeout(250); };
+const openDlg = async (p) => { await clickSettings(p); await p.waitForTimeout(250); };
 const save = async (p) => { await p.click('#saveSettings'); await p.waitForTimeout(250); };
 
 (async () => {
