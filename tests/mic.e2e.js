@@ -8,7 +8,7 @@ const HTML = fs.readFileSync(require('path').join(__dirname, '..', 'index.html')
     const ctx = await b.newContext(Object.assign({}, opts, { permissions: ['microphone'] }));
     await ctx.route('https://x.test/', (r) => r.fulfill({ body: HTML, contentType: 'text/html' }));
     await ctx.addInitScript(() => { if (location.protocol !== 'https:') return;
-      localStorage.setItem('meeting-interpreter.settings.v1', JSON.stringify({ apiKey: 'k', engine: 'soniox', target: 'ko', source: 'mic', ver: 2 }));
+      localStorage.setItem('meeting-interpreter.settings.v1', JSON.stringify({ apiKey: 'k', engine: 'soniox', target: 'ko', source: 'mic', ver: 2, askBg: false }));
       window.GUM = []; const orig = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
       navigator.mediaDevices.getUserMedia = (c) => { window.GUM.push(c); return orig(c); };
       window.WebSocket = class { constructor() { this.readyState = 0; setTimeout(() => { this.readyState = 1; this.onopen && this.onopen(); }, 20); } send() {} close() { this.readyState = 3; setTimeout(() => this.onclose && this.onclose(), 5); } };

@@ -18,13 +18,13 @@ run('NAV TESTS', async (b) => {
 
   // 2) 창: 준비 탭에서 폴더 창을 열고 뒤로 → 창만 닫히고 탭은 그대로
   await p.click('#tabbar button[data-tab="prep"]'); await p.waitForTimeout(200);
-  await p.click('#prepList .prow button:has-text("준비하기")'); await p.waitForTimeout(250);
+  await p.click('#prepList .prow button:has-text("고치기")'); await p.waitForTimeout(250);
   assert.deepStrictEqual(await openDlgs(p), ['packDlg']);
   await back(p);
   assert.deepStrictEqual(await openDlgs(p), [], '뒤로 → 창 닫힘');
   assert.strictEqual(await tab(p), 'prep', '탭은 그대로');
   // 단추로 닫은 창은 기록에 남지 않는다: 열고 '취소'로 닫은 뒤 뒤로 → 이전 탭
-  await p.click('#prepList .prow button:has-text("준비하기")'); await p.waitForTimeout(250);
+  await p.click('#prepList .prow button:has-text("고치기")'); await p.waitForTimeout(250);
   await p.click('#pdCancel'); await p.waitForTimeout(300);
   await back(p);
   assert.strictEqual(await tab(p), 'home', '닫은 창을 건너뛰고 이전 탭');

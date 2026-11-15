@@ -48,6 +48,9 @@
 - 화면에서는 '폴더'라고 부른다 (코드와 저장소 이름은 예전대로 pack). 폴더 내용(이름·주제·참여자·배경·용어집·쌓인 내용·질문)과 그 폴더의 지난 회의(#meetList)는 폴더 창(#packDlg, `openPackDlg`·`openPackEditor`)에서만 고친다. 설정에는 계정·API·그 외 설정·백업만 둔다.
 - 뒤로가기(`Nav`, `navPush`): 탭을 바꾸거나 창(dialog)을 열 때 history 에 기록하고, popstate 에서 열린 창 → 폰 왼쪽 메뉴 → 이전 탭 순으로 되돌린다. 단추로 닫은 창은 기록을 하나 지운다. 안드로이드 앱은 MainActivity 의 뒤로 단추가 웹 기록을 되돌리고, 더 없으면 앱을 뒤로 보낸다(끄지 않음).
 - 폰 시작 화면의 '회의 시작'(#fab)은 아래 탭 막대 가운데에 있다 (내용을 가리지 않게).
+- 홈에는 '새 회의' 칸이 없다. 시작하면 `startFlow()` 가 시작 창(#startDlg)을 띄운다: '배경 정보를 등록할까요?' → 그냥 진행하기 / 등록하기(폴더·들을 소리·이번 회의 주제·참여자, 칸 id 는 homePack·homeSource·meetTopic·meetPeople). `settings.askBg === false` 면 묻지 않는다 (테스트 BASE 는 false). 폴더 보기의 '이 폴더에서 새 회의'는 `startFlow(true)` 로 바로 등록 화면.
+- 폴더 탭(TABS.prep = '폴더'): 폴더 목록 → 누르면 폴더 보기(`FV.id`, 그 폴더 회의를 날짜순, 제목·태그·내용으로 찾기). 뒤로가기 기록에 folder 를 남긴다.
+- 리포트 이름은 `reportName(m)` = 날짜_제목(제목만 고칠 수 있음). 태그는 회의 정리(DIGEST_SYSTEM 의 tags)로 5개까지 달고 m.tags 에 둔다. 손으로 고치면 tagsManual 이라 다시 덮어쓰지 않는다. 찾기는 `meetMatch`.
 
 ## 데스크톱 앱 (desktop/)
 - Electron 껍데기다. 화면은 GitHub Pages의 웹 앱 주소를 불러온다(`desktop/main.js` 의 `APP_URL`). 웹을 배포하면 exe에도 반영된다.

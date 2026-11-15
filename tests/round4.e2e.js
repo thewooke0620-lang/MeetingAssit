@@ -55,6 +55,7 @@ run('ROUND4 TESTS', async (b) => {
   assert.strictEqual(await p.isVisible('#homeKey'), false, '키를 넣으면 안내가 사라짐');
   await p.evaluate(async () => { const x = { id: 'pB', name: 'B사', brief: '', terms: 'widget', facts: '', qa: '', createdAt: Date.now() + 1, updatedAt: Date.now() }; await Store.put('packs', x); packs.push(x); renderHome(); });
   await p.waitForTimeout(200);
+  await p.evaluate(() => startFlow(true)); await p.waitForTimeout(200);   // 시작 → 등록하기 화면에서 폴더를 고른다
   await p.selectOption('#homePack', 'pB');
   assert.deepStrictEqual(await p.evaluate(() => [settings.packId, settings.terms]), ['pB', 'widget']);
   assert(/B사/.test(await p.textContent('#packPill')));

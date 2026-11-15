@@ -49,7 +49,7 @@ const rows = (p) => p.evaluate(() => [...document.querySelectorAll('#transcript 
 
 (async () => {
   const b = await chromium.launch({ args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] });
-  const base = { apiKey: 'k', claudeKey: 'c', engine: 'claude', target: 'ko', source: 'mic', draft: true, preview: true, ver: 2,
+  const base = { apiKey: 'k', claudeKey: 'c', engine: 'claude', target: 'ko', source: 'mic', draft: true, preview: true, ver: 2, askBg: false,
     terms: 'Acme Corp\nescrow = 에스크로', brief: 'A사와 공급 계약 조건 협의' };
 
   // ---- 1) 다듬기 + 비교 모드 ----

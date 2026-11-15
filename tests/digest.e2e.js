@@ -112,7 +112,7 @@ run('DIGEST TESTS', async (b) => {
   await p.context().close();
 
   // 10) AI 키가 없으면 임시 제목만 붙고 안내가 나온다
-  p = await openApp(b, { apiKey: 'k', engine: 'soniox', target: 'ko', source: 'mic', ver: 2 });
+  p = await openApp(b, { apiKey: 'k', engine: 'soniox', target: 'ko', source: 'mic', ver: 2, askBg: false });
   await meeting(p, S1);
   assert.strictEqual((await reqs(p)).length, 0);
   await openFolder(p); m = await meets(p);

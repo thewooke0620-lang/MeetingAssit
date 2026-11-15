@@ -5,7 +5,7 @@ const fs = require('fs'), assert = require('assert');
 const HTML = fs.readFileSync(require('path').join(__dirname, '..', 'index.html'), 'utf8');
 const mock = () => {
   if (location.protocol !== 'https:') return;
-  if (!localStorage.getItem('meeting-interpreter.settings.v1')) localStorage.setItem('meeting-interpreter.settings.v1', JSON.stringify({ apiKey: 'soniox-SECRETKEY', claudeKey: 'sk-ant-SECRETKEY', engine: 'claude', target: 'ko', source: 'mic', draft: false, preview: false, ver: 2, openAfterStop: false, brief: '예전 배경', terms: 'Acme Corp' }));
+  if (!localStorage.getItem('meeting-interpreter.settings.v1')) localStorage.setItem('meeting-interpreter.settings.v1', JSON.stringify({ apiKey: 'soniox-SECRETKEY', claudeKey: 'sk-ant-SECRETKEY', engine: 'claude', target: 'ko', source: 'mic', draft: false, preview: false, ver: 2, askBg: false, openAfterStop: false, brief: '예전 배경', terms: 'Acme Corp' }));
   window.REQ = []; window.SOCKS = []; window.CFG = [];
   window.WebSocket = class { constructor() { this.readyState = 0; window.SOCKS.push(this); setTimeout(() => { this.readyState = 1; this.onopen && this.onopen(); }, 20); }
     send(d) { if (typeof d === 'string' && d) window.CFG.push(JSON.parse(d)); if (d === '') setTimeout(() => this.onmessage && this.onmessage({ data: '{"finished":true}' }), 40); } close() { this.readyState = 3; setTimeout(() => this.onclose && this.onclose(), 5); }

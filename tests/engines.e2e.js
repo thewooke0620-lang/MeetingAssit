@@ -66,7 +66,7 @@ const summary = async (p, title) => {
 
 (async () => {
   const b = await chromium.launch({ args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] });
-  const base = { apiKey: 'k', target: 'ko', source: 'mic', draft: true, preview: true, ver: 2 };
+  const base = { apiKey: 'k', target: 'ko', source: 'mic', draft: true, preview: true, ver: 2, askBg: false };
   const run = async (st, title, groqStatus) => {
     const p = await open(b, Object.assign({}, base, st), groqStatus);
     await clickToggle(p); await p.waitForTimeout(400);

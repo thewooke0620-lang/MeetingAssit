@@ -11,7 +11,7 @@ const assistReqs = async (p) => (await reqs(p)).filter((r) => r.kind.indexOf('as
 
 run('ASSIST TESTS', async (b) => {
   // 1) 키가 없으면 칸이 보이지 않는다
-  let p = await openApp(b, { apiKey: 'k', engine: 'soniox', target: 'ko', source: 'mic', ver: 2 });
+  let p = await openApp(b, { apiKey: 'k', engine: 'soniox', target: 'ko', source: 'mic', ver: 2, askBg: false });
   assert.strictEqual((await panel(p)).shown, false);
   await p.context().close();
 
@@ -113,13 +113,13 @@ run('ASSIST TESTS', async (b) => {
   await p.context().close();
 
   // 11) 번역은 Soniox 내장이어도 Claude 키가 있으면 제안한다. Groq 방식이면 Groq 이 제안한다
-  p = await openApp(b, { apiKey: 'k', claudeKey: 'ck', engine: 'soniox', target: 'ko', source: 'mic', ver: 2 });
+  p = await openApp(b, { apiKey: 'k', claudeKey: 'ck', engine: 'soniox', target: 'ko', source: 'mic', ver: 2, askBg: false });
   await toggle(p); await speak(p, "Can you send the revised draft tomorrow?"); await p.waitForTimeout(800);
   ar = await assistReqs(p);
   assert(ar.length === 1 && ar[0].p === 'claude' && ar[0].model === 'claude-haiku-5-5');
   assert.strictEqual((await panel(p)).opts.length, 2);
   await p.context().close();
-  p = await openApp(b, { apiKey: 'k', groqKey: 'gk', engine: 'groq', target: 'ko', source: 'mic', draft: false, preview: false, ver: 2 });
+  p = await openApp(b, { apiKey: 'k', groqKey: 'gk', engine: 'groq', target: 'ko', source: 'mic', draft: false, preview: false, ver: 2, askBg: false });
   await toggle(p); await speak(p, "Can you send the revised draft tomorrow?"); await p.waitForTimeout(800);
   ar = await assistReqs(p);
   assert(ar.length === 1 && ar[0].p === 'groq' && ar[0].model === 'openai/gpt-oss-120b');

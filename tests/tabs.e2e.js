@@ -40,13 +40,13 @@ run('TABS TESTS', async (b) => {
   assert(/계약 초안 검토/.test(await p.textContent('#homeRecent')));
   assert.strictEqual(await p.textContent('#setupCount'), '2/5', '첫 회의를 하면 하나 더');
 
-  // 3) 준비: 폴더 목록, '준비하기'는 그 폴더 창을 연다
+  // 3) 폴더: 폴더 목록, '고치기'는 그 폴더 창을 연다
   await p.click('#tabbar button[data-tab="prep"]'); await p.waitForTimeout(300);
-  assert.strictEqual(await p.textContent('#pageTitle'), '준비');
+  assert.strictEqual(await p.textContent('#pageTitle'), '폴더');
   const prow = await p.textContent('#prepList .prow');
   console.log('3 준비:', prow);
   assert(/기본/.test(prow) && /지금 폴더/.test(prow) && /회의 1건/.test(prow));
-  await p.click('#prepList .prow button:has-text("준비하기")'); await p.waitForTimeout(300);
+  await p.click('#prepList .prow button:has-text("고치기")'); await p.waitForTimeout(300);
   assert.strictEqual(await p.evaluate(() => document.getElementById('packDlg').open), true);
   await p.fill('#pdBrief', 'A사와 공급 계약 협상'); await p.fill('#pdTerms', 'escrow = 에스크로'); await p.click('#pdOk'); await p.waitForTimeout(400);
   assert(/A사와 공급 계약 협상/.test(await p.textContent('#prepList')));

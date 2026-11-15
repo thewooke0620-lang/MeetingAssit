@@ -67,14 +67,15 @@ run('VOICE TESTS', async (b) => {
   // 처음 시작하기: 키, 이름·목소리, 계정, 폴더 = 4/5
   assert.strictEqual(await p.textContent('#setupCount'), '4/5');
 
-  // 6) 이번 회의 주제·참여자 (폴더의 참여자는 눌러서 고름)
+  // 6) 이번 회의 주제·참여자: 시작할 때 '등록하기' 화면에서 적는다 (폴더의 참여자는 눌러서 고름)
+  await p.evaluate(() => startFlow(true)); await p.waitForTimeout(200);
   await p.fill('#meetTopic', '역할 매핑 검토');
   const chips = await p.$$eval('#peopleChips .chip', (n) => n.map((x) => x.textContent));
   assert.deepStrictEqual(chips, ['John Smith', 'Emily Park']);
   await p.click('#peopleChips .chip:first-child'); await p.waitForTimeout(100);
   assert.strictEqual(await p.inputValue('#meetPeople'), 'John Smith');
   await p.fill('#meetPeople', 'John Smith, Tom Baker (SAP PM)'); await p.dispatchEvent('#meetPeople', 'change');
-  await toggle(p); await p.waitForTimeout(200);
+  await p.click('#sdGo'); await p.waitForTimeout(500);
   const cfg = await p.evaluate(() => window.CFG[window.CFG.length - 1]);   // 앞의 것은 연결 시험
   console.log('6 Soniox 설정:', JSON.stringify(cfg.context));
   assert.strictEqual(cfg.enable_speaker_diarization, true);
@@ -134,7 +135,10 @@ run('VOICE TESTS', async (b) => {
   assert(dg && /\[2\] Me \(김민수\): Can you send me the list\?/.test(dg.user) && /This meeting's topic: 역할 매핑 검토/.test(dg.user), '회의 정리에도 나와 주제');
   // 다음 회의를 위해 지우면 주제·참여자는 비워진다
   await p.click('#clear'); await p.waitForTimeout(500);
-  assert.deepStrictEqual(await p.evaluate(() => [settings.meetTopic, settings.meetPeople, document.getElementById('meetTopic').value]), ['', '', '']);
+  assert.deepStrictEqual(await p.evaluate(() => [settings.meetTopic, settings.meetPeople]), ['', '']);
+  await p.evaluate(() => startFlow(true)); await p.waitForTimeout(150);
+  assert.strictEqual(await p.inputValue('#meetTopic'), '', '다음 회의 등록 화면은 비어 있음');
+  await p.click('#sdCancel'); await p.waitForTimeout(150);
 
   // 9) 목소리 구분을 끄면 앞에 보내지 않는다
   await p.evaluate(() => { settings.voiceMe = false; saveSettings(settings); });

@@ -15,7 +15,7 @@ const HTML = fs.readFileSync(require('path').join(__dirname, '..', 'index.html')
     const p = await b.newPage(); p.on('pageerror', (e) => console.log('PAGEERR', e.message));
     await p.route('https://x.test/', (r) => r.fulfill({ body: HTML, contentType: 'text/html' }));
     await p.addInitScript(() => { if (location.protocol !== 'https:') return;
-      localStorage.setItem('meeting-interpreter.settings.v1', JSON.stringify({ apiKey: 'k', engine: 'soniox', target: 'ko', source: 'mic', ver: 2, terms: 'escrow = 에스크로', brief: '배경' }));
+      localStorage.setItem('meeting-interpreter.settings.v1', JSON.stringify({ apiKey: 'k', engine: 'soniox', target: 'ko', source: 'mic', ver: 2, askBg: false, terms: 'escrow = 에스크로', brief: '배경' }));
       window.CFG = []; window.SOCKS = [];
       window.WebSocket = class { constructor() { this.readyState = 0; window.SOCKS.push(this); setTimeout(() => { this.readyState = 1; this.onopen && this.onopen(); }, 20); }
         send(d) { if (typeof d === 'string' && d) window.CFG.push(JSON.parse(d)); if (d === '') setTimeout(() => this.onmessage && this.onmessage({ data: '{"finished":true}' }), 40); } close() { this.readyState = 3; setTimeout(() => this.onclose && this.onclose(), 5); } };

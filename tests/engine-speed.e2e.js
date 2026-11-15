@@ -57,7 +57,7 @@ const rows = (p) => p.evaluate(() => [...document.querySelectorAll('#transcript 
 
 (async () => {
   const b = await chromium.launch({ args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] });
-  const base = { apiKey: 'k', target: 'ko', source: 'mic', draft: true, preview: true, ver: 2 };
+  const base = { apiKey: 'k', target: 'ko', source: 'mic', draft: true, preview: true, ver: 2, askBg: false };
 
   let p = await open(b, Object.assign({}, base, { engine: 'claude', claudeKey: 'ck', groqKey: 'gk', compare: true }));
   await clickToggle(p); await p.waitForTimeout(400);

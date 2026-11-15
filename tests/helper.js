@@ -131,7 +131,7 @@ const meets = (p) => p.evaluate(() => [...document.querySelectorAll('#meetList .
 const reqs = (p, kind) => p.evaluate((kind) => window.REQ.filter((r) => !kind || r.kind === kind), kind);
 const stored = (p) => p.evaluate(() => JSON.parse(localStorage.getItem('meeting-interpreter.settings.v1')));
 
-const BASE = { apiKey: 'k', claudeKey: 'ck', engine: 'claude', target: 'ko', source: 'mic', draft: false, preview: false, ver: 2, openAfterStop: false, onboarded: true };   // 정지 후 정리 화면 자동 열기와 사용자 등록 창은 따로 시험한다
+const BASE = { apiKey: 'k', claudeKey: 'ck', engine: 'claude', target: 'ko', source: 'mic', draft: false, preview: false, ver: 2, openAfterStop: false, onboarded: true, askBg: false };   // 정지 후 정리 화면 자동 열기, 사용자 등록 창, 시작할 때 묻는 창은 따로 시험한다
 
 function run(name, fn) {
   (async () => { const b = await launch(); try { await fn(b); console.log(name + ' PASSED'); } finally { await b.close(); } })()
