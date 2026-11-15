@@ -36,6 +36,9 @@
   .pill.saved { color: var(--muted); } .pill.saved::before { background: var(--ok); }
   .block { position: relative; }
   .block .star { position: absolute; top: 2px; right: 0; background: none; border: 0; color: var(--muted); font-size: 16px; cursor: pointer; opacity: .35; padding: 2px 4px; }
+  .block .edit { position: absolute; top: 24px; right: 0; background: none; border: 0; color: var(--muted); font-size: 14px; cursor: pointer; opacity: 0; padding: 2px 4px; }
+  .block:hover .edit { opacity: .8; }
+  @media (hover: none) { .block .edit { opacity: .5; } }
   .block:hover .star, .block.starred .star { opacity: 1; }
   .block.starred .star { color: #facc15; }
   .block.starred { border-left: 3px solid #facc15; padding-left: 8px; }
@@ -45,6 +48,9 @@
   mark.hl-num { color: #7dd3fc; font-weight: 600; }
   mark.hl-neg { color: #fda4af; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
   mark.hl-me { background: rgba(79,140,255,.35); color: #fff; border-radius: 3px; padding: 0 2px; }
+  .mvline { position: relative; }
+  .mvedit { position: absolute; top: 0; right: 0; background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 13px; opacity: .5; }
+  .mvedit:hover { opacity: 1; }
   .srcbtn { background: none; border: 1px solid var(--line); color: var(--accent); border-radius: 6px; font-size: 11.5px; padding: 1px 6px; cursor: pointer; }
   .mvline.star { border-left: 3px solid #facc15; padding-left: 8px; }
   .mvline.flash { animation: flash 1.6s ease-out; }
@@ -127,7 +133,10 @@
   .btn.sm { padding: 3px 9px; font-size: 12px; flex: 0 0 auto; }
   /* 답변 제안 */
   .assist { flex: 0 0 auto; border-top: 1px solid var(--line); background: var(--panel); padding: 8px 12px 10px; }
-  .assist.closed .as-body, .assist.closed .as-form { display: none; }
+  .assist.closed .as-body, .assist.closed .as-form, .assist.closed .as-acts { display: none; }
+  .as-acts { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .as-acts button { background: var(--bg); border: 1px solid var(--line); color: var(--text); border-radius: 999px; padding: 4px 10px; font-size: 12.5px; cursor: pointer; }
+  .as-acts button:hover { border-color: var(--accent); }
   .as-head { display: flex; align-items: center; gap: 8px; font-size: 13px; }
   .as-state { color: var(--warn); font-size: 12px; }
   .as-body { max-height: 32vh; overflow-y: auto; margin: 8px 0; display: flex; flex-direction: column; gap: 6px; }
@@ -215,6 +224,7 @@
     <button id="asHide" class="btn sm" type="button">접기</button>
   </div>
   <div id="asBody" class="as-body"></div>
+  <div id="asActs" class="as-acts" title="지금 대화에 맞는 영어 문장을 만들어 줍니다"></div>
   <form id="asForm" class="as-form">
     <input id="asInput" type="text" autocomplete="off" maxlength="300" placeholder="하고 싶은 말을 한국어로 적고 Enter (영어 표현으로 바꿔 줍니다)">
     <button class="btn" type="submit">영어로</button>
@@ -886,6 +896,23 @@ function linesSig(lines) {
   }
   return (lines || []).length + "-" + h.toString(36);
 }
+
+// 자막을 고쳤을 때 바뀐 낱말을 찾아 용어집 후보로 돌려준다 (없거나 너무 길면 "")
+// 예) "the a scrow account" → "the escrow account" 이면 "escrow"
+function termCandidate(before, after) {
+  const w = (x) => (x || "").trim().split(/\s+/).filter(Boolean);
+  const a = w(before), b = w(after);
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  let j = 0;
+  while (j < a.length - i && j < b.length - i && a[a.length - 1 - j] === b[b.length - 1 - j]) j++;
+  const mid = b.slice(i, b.length - j).join(" ").replace(/^[^\w$€£₩]+|[^\w%)]+$/g, "");
+  if (!mid || mid.split(" ").length > 4 || mid.length > 40) return "";
+  // 앞뒤 문장부호만 바뀐 경우는 후보가 아니다
+  const old = a.slice(i, a.length - j).join(" ").replace(/^[^\w$€£₩]+|[^\w%)]+$/g, "");
+  if (old.toLowerCase() === mid.toLowerCase()) return "";
+  return mid;
+}
 /*CORE-END*/
 
 // ---------------------------------------------------------------------------
@@ -893,7 +920,7 @@ function linesSig(lines) {
 // ---------------------------------------------------------------------------
 const WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 // 앱 버전: 고칠 때마다 올린다. 설정 창 아래에 보이고, 새 버전이 올라왔는지 확인할 때 쓴다
-const APP_VERSION = "2026.11.15-2";
+const APP_VERSION = "2026.11.15-3";
 const STORE_KEY = "meeting-interpreter.settings.v1";
 const DEFAULTS = {
   apiKey: "", hint: "en", target: "ko", terms: "", fontSize: "18",
@@ -986,7 +1013,8 @@ function buildBlockEl() {
   const ko = document.createElement("p"); ko.className = "ko";
   const cmp = document.createElement("div"); cmp.className = "cmp"; cmp.style.display = "none";
   const star = document.createElement("button"); star.className = "star"; star.type = "button"; star.title = "중요 표시 (단축키 B: 방금 끝난 줄)"; star.textContent = "☆";
-  wrap.append(spk, en, ko, cmp, star);
+  const edit = document.createElement("button"); edit.className = "edit"; edit.type = "button"; edit.title = "잘못 알아들은 영어 고치기"; edit.textContent = "✎";
+  wrap.append(spk, en, ko, cmp, star, edit);
   return wrap;
 }
 
@@ -1012,7 +1040,8 @@ function speakerColor(sp) {
 }
 
 function fillBlockEl(node, enText, koText, speaker, nfEn, nfKo, showSpeaker, cmpLines, b) {
-  const [spk, en, ko, cmp, star] = node.children;
+  const [spk, en, ko, cmp, star, edit] = node.children;
+  edit.style.display = b && b.en.trim() ? "" : "none";
   // 중요 표시와 나에게 온 말 표시 (아직 줄이 아닌 임시 줄에는 없다)
   star.style.display = b ? "" : "none";
   star.textContent = b && b.star ? "★" : "☆";
@@ -1129,10 +1158,46 @@ function onStarKey(ev) {
 }
 document.addEventListener("keydown", onStarKey);
 
+// ---- 자막 고치기: 잘못 알아들은 영어를 고치고, 바뀐 말을 용어집에 넣어 다음부터 반영한다 ----
+async function editBlock(b) {
+  if (!b) return;
+  const before = b.en.trim();
+  const after = window.prompt("영어 자막을 고쳐 주세요.", before);
+  if (after == null) return;
+  const fixed = after.replace(/\s+/g, " ").trim();
+  if (!fixed || fixed === before) return;
+  if (core.blocks[core.blocks.length - 1] === b) core.breakNext = true;   // 이어지는 말이 고친 줄에 붙지 않게
+  b.en = (/^\s/.test(b.en) ? " " : "") + fixed;
+  b.edited = true; b.dirty = true; b.lastChange = Date.now();
+  // AI 번역 방식이면 고친 문장으로 다시 번역한다
+  if (core.mode === "llm") { b.trState = ""; pumpTranslations(); }
+  render();
+  saveMeeting();
+  await offerTerm(before, fixed);
+}
+
+// 고친 낱말을 지금 묶음의 용어집에 넣을지 묻는다
+async function offerTerm(before, after) {
+  const term = termCandidate(before, after);
+  if (!term) return;
+  const pack = currentPack();
+  if (parseTerms(pack ? pack.terms : settings.terms).some((t) => t.src.toLowerCase() === term.toLowerCase())) return;
+  if (!window.confirm("'" + term + "'을(를) 용어집에 넣을까요?\n넣으면 다음부터 이 말을 더 잘 알아듣고 번역합니다.")) return;
+  const ko = window.prompt("'" + term + "'의 한국어 표기를 적어 주세요. (영어 그대로 두려면 비워 두세요)", "");
+  if (ko == null) return;
+  const entry = term.replace(/[,=]/g, " ") + (ko.trim() ? " = " + ko.trim().replace(/[,=\n]/g, " ") : "");
+  const add = (p) => { p.terms = ((p.terms || "").trim() ? (p.terms || "").trim() + "\n" : "") + entry; };
+  let ok = true;
+  if (pack) ok = await patchPack(pack.id, add);
+  else { add(settings); saveSettings(settings); }
+  showBanner(ok ? "용어집에 '" + entry + "'을(를) 넣었습니다. 번역에는 바로, 음성 인식에는 다음 시작부터 반영됩니다." : "용어집에 넣지 못했습니다. 설정의 용어집 칸에 직접 적어 주세요.", ok);
+}
+
 // 화자 이름을 누르면 이름을 바꿀 수 있다
 el.transcript.addEventListener("click", (ev) => {
   const t = ev.target;
   if (t && t.classList && t.classList.contains("star")) { const node = t.closest(".block"); toggleStar(node && node._b); return; }
+  if (t && t.classList && t.classList.contains("edit")) { const node = t.closest(".block"); editBlock(node && node._b); return; }
   if (!t || !t.classList || !t.classList.contains("spk")) return;
   const sp = t.dataset.speaker;
   if (!sp) return;
@@ -2329,6 +2394,7 @@ function meetingLines() {
     if (en || ko) {
       const l = { who: b.speaker ? speakerLabel(b.speaker) : "", en, ko, at: b.at || 0 };
       if (b.star) l.star = true;
+      if (b.edited) l.edited = true;
       out.push(l);
     }
   }
@@ -2599,7 +2665,10 @@ const DIGEST_SYSTEM =
   "facts: array of up to 10 short Korean sentences with concrete things worth remembering for the next meeting in this series (numbers, dates, conditions, each side's position).\n" +
   "questions: array of up to 10 objects {\"en\", \"ko\", \"answer\"}: questions the other side asked. en is the question in English as asked, ko is its Korean meaning, " +
   "answer is the answer given in the meeting, in English, if the transcript contains it, otherwise an empty string.\n" +
-  "Use only what is in the transcript. Do not invent anything.";
+  "changes: array of objects {\"text\", \"line\"}. Fill it only when <previous_meeting> is given: one Korean sentence per thing that is now different from the previous meeting " +
+  "in schedule or deadline, owner, requirement or scope, price or numbers, or each side's position, written as 'before → now' (e.g. '납기: 6주 → 8주'). " +
+  "Include only differences the transcript states or clearly shows; do not list things that merely were not mentioned. line is the transcript line number where the new information was said. Empty array if none.\n" +
+  "Use only what is in the transcript (and <previous_meeting> for comparison). Do not invent anything.";
 
 // AI 에 보낼 회의 내용. 아주 긴 회의는 앞과 뒤를 남기고 가운데를 줄인다
 // numbered 면 줄마다 [번호] 를 붙인다 (정리의 결정 사항·할 일이 어느 줄에서 나왔는지 돌려받기 위해)
@@ -2629,7 +2698,9 @@ function parseDigest(raw) {
     title: cleanTitle(S(j.title, 80)),
     summary: list(j.summary, 8, 400), decisions: items(j.decisions).map((x) => x.text), todos: items(j.todos).map((x) => x.text),
     // 결정 사항·할 일이 나온 원문 줄 (0부터 센 번호, 모르면 -1)
-    refs: { decisions: items(j.decisions).map((x) => x.line), todos: items(j.todos).map((x) => x.line) },
+    refs: { decisions: items(j.decisions).map((x) => x.line), todos: items(j.todos).map((x) => x.line), changes: items(j.changes).map((x) => x.line) },
+    // 지난 회의와 달라진 점
+    changes: items(j.changes).map((x) => x.text),
     terms: (Array.isArray(j.terms) ? j.terms : []).map((t) => ({ en: noComma(S(t && t.en, 80)), ko: noComma(S(t && t.ko, 80)) })).filter((t) => t.en).slice(0, 20),
     facts: list(j.facts, 12, 300),
     questions: (Array.isArray(j.questions) ? j.questions : [])
@@ -2642,13 +2713,34 @@ async function makeDigest(m, pack) {
   const spec = helperSpec("digest");
   if (!spec) throw new Error("no engine");
   const glossary = pack ? parseTerms(pack.terms).map((t) => t.src).join(", ") : "";
+  // 같은 묶음에서 바로 앞 회의(정리가 있는 것)를 찾아 비교 기준으로 넘긴다
+  const prev = await previousMeeting(m);
   const user = (pack ? "Meeting series: " + pack.name + (pack.brief ? "\nBackground: " + pack.brief : "") + (glossary ? "\nExisting glossary: " + glossary : "") + "\n\n" : "") +
+    (prev ? previousBrief(prev) + "\n\n" : "") +
     "<transcript>\n" + transcriptForAI(m.lines, 100000, true) + "\n</transcript>";
   const d = parseDigest(await llmAsk(spec, DIGEST_SYSTEM, user, 3000));
   if (!d) throw new Error("bad format");
   const title = d.title;
   delete d.title;
+  if (prev) { d.prevId = prev.id; d.prevTitle = (prev.title || "") + " (" + stamp(prev.startedAt || prev.endedAt || 0) + ")"; }
+  else d.changes = [];
   return { title, digest: d };
+}
+
+// 같은 묶음에서 이 회의보다 먼저 열린 회의 가운데 정리가 있는 가장 최근 것
+async function previousMeeting(m) {
+  if (!m || !m.packId || !Store.ok) return null;
+  let all = [];
+  try { all = await Store.all("meetings"); } catch (e) { return null; }
+  const t = m.startedAt || 0;
+  const cand = all.filter((x) => x.packId === m.packId && x.id !== m.id && x.digest && (x.startedAt || 0) < t);
+  cand.sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0));
+  return cand[0] || null;
+}
+function previousBrief(p) {
+  const d = p.digest, sec = (name, v) => (v && v.length ? name + ":\n- " + v.join("\n- ") + "\n" : "");
+  return "<previous_meeting>\nTitle: " + (p.title || "") + "\nDate: " + new Date(p.startedAt || 0).toISOString().slice(0, 10) + "\n" +
+    sec("Summary", d.summary) + sec("Decisions", d.decisions) + sec("To-dos", d.todos) + sec("Facts", d.facts) + "</previous_meeting>";
 }
 
 function refreshMeetingViews() {
@@ -2718,7 +2810,11 @@ function meetingFile(m, pack) {
     const r = refs && refs[i], l = r >= 0 && m.lines[r];
     return x + (l && l.at ? " (" + hhmm(l.at) + " 발언)" : "");
   });
-  if (d) { const rf = d.refs || {}; sec("요약", d.summary); sec("결정 사항", withRef(d.decisions, rf.decisions)); sec("할 일", withRef(d.todos, rf.todos)); }
+  if (d) {
+    const rf = d.refs || {};
+    sec("요약", d.summary); sec("결정 사항", withRef(d.decisions, rf.decisions)); sec("할 일", withRef(d.todos, rf.todos));
+    if (d.prevTitle && d.changes && d.changes.length) sec("지난 회의 대비 변경점 (비교: " + d.prevTitle + ")", withRef(d.changes, rf.changes));
+  }
   const st = (m.lines || []).filter((l) => l.star);
   if (st.length) sec("중요 표시", st.map((l) => (l.at ? hhmm(l.at) + " " : "") + (l.who ? "[" + l.who + "] " : "") + (l.en || "") + (l.ko ? " / " + l.ko : "")));
   out.push("", d ? "[전체 기록]" : "", meetingText(m));
@@ -2728,6 +2824,34 @@ function meetingFile(m, pack) {
 // ---- 회의 보기 창 ----
 let viewM = null, viewNote = "", viewAddMsg = "", viewBusy = false;
 function mk(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+
+// 저장된 회의의 한 줄을 고친다. 고치면 정리를 다시 만들 수 있게 표시된다
+async function editSavedLine(m, i) {
+  const l = m.lines[i];
+  if (!l) return;
+  const en = window.prompt("영어 원문을 고쳐 주세요.", l.en || "");
+  if (en == null) return;
+  const ko = window.prompt("한국어 번역을 고쳐 주세요.", l.ko || "");
+  if (ko == null) return;
+  const before = l.en || "";
+  const nl = Object.assign({}, l, { en: en.replace(/\s+/g, " ").trim(), ko: ko.replace(/\s+/g, " ").trim(), edited: true });
+  let saved = null;
+  try {
+    saved = await Store.update("meetings", m.id, (cur) => {
+      if (!cur || !cur.lines[i]) return cur;
+      const lines = cur.lines.slice(); lines[i] = nl;
+      return Object.assign({}, cur, { lines, sig: linesSig(lines) });
+    });
+  } catch (e) {}
+  if (!saved) { $("mvBody").prepend(mk("div", "mvnote warn", "고친 내용을 저장하지 못했습니다.")); return; }
+  // 지금 화면에 띄운 회의라면 화면의 줄도 같이 고친다
+  if (m.id === R.meetingId) {
+    const b = core.blocks.filter((x) => x.en.trim() || x.ko.trim())[i];
+    if (b) { b.en = nl.en; b.ko = nl.ko; if (core.mode === "llm") b.trSrc = nl.en; b.dirty = true; render(); }
+  }
+  viewM = saved; renderMeeting();
+  if (nl.en !== before) await offerTerm(before, nl.en);
+}
 
 function hhmm(t) { return new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
 
@@ -2825,6 +2949,10 @@ function renderMeeting() {
     section("요약", d.summary, "요약할 내용이 없습니다.");
     section("결정 사항", d.decisions, "없음", refs.decisions);
     section("할 일", d.todos, "없음", refs.todos);
+    if (d.prevTitle) {
+      section("지난 회의 대비 변경점", d.changes || [], "달라진 점 없음", refs.changes);
+      body.append(mk("div", "mmeta", "비교한 회의: " + d.prevTitle));
+    }
     const items = pack && Store.ok ? harvestItems(d, pack) : [];
     if (items.length) {
       body.append(mk("h4", "mvh", "묶음에 쌓을 내용"));
@@ -2871,6 +2999,11 @@ function renderMeeting() {
     if (l.who || l.at) row.append(mk("span", "mvwho", (l.star ? "★ " : "") + (l.who || "") + (l.at ? " " + hhmm(l.at) : "")));
     if (l.en) row.append(mk("div", "mven", l.en));
     if (l.ko) row.append(mk("div", "mvko", l.ko));
+    if (m.id) {
+      const eb = mk("button", "mvedit", "✎"); eb.type = "button"; eb.title = "이 줄 고치기";
+      eb.addEventListener("click", () => editSavedLine(m, li));
+      row.append(eb);
+    }
     det.append(row);
   });
   for (const g of gq) det.append(mk("div", "gapmark", gapText(g)));
@@ -2982,6 +3115,23 @@ const ASSIST_KO =
   "Give exactly 2 options: the first plain and concise, the second more polite or formal. Keep the meaning and do not add new content. " +
   "Output this format and nothing else:\nEN: <English to say>\nKO: <short Korean meaning of that English>\nEN: <English to say>\nKO: <short Korean meaning of that English>";
 
+// 자주 쓰는 업무 답변: 누르면 방금 오간 대화에 맞춘 영어 문장 2개를 만든다
+const ASSIST_ACT =
+  "You help a Korean professional speak in a live business meeting held in English. The user wants to do what <action> describes, right now, " +
+  "in reply to the latest part of <conversation>. Make it fit that conversation: refer to the specific topic, point or number just discussed. " +
+  "Give exactly 2 options: the first short and plain, the second more polite or fuller. " +
+  "Never invent facts, dates, numbers or commitments: use a placeholder in square brackets such as [date] where something is needed. " +
+  "Keep each option to one or two natural spoken sentences. Output this format and nothing else:\nEN: <English to say>\nKO: <Korean meaning>\nEN: <English to say>\nKO: <Korean meaning>";
+const QUICK_ACTS = [
+  ["다시 설명 요청", "Ask them to repeat or explain more clearly what they just said, naming the point you did not catch."],
+  ["내 이해 확인", "Paraphrase briefly what you understood from the last point and ask them to confirm it is right."],
+  ["확인 후 회신", "Say you need to check internally before answering, name what you will check, and promise to get back by [date]."],
+  ["일정 조율", "Propose aligning on the schedule or setting a follow-up meeting about the topic just discussed, with [date] placeholders."],
+  ["잠시 생각", "Politely ask for a moment to think or to take the question offline, without refusing."],
+  ["동의", "Agree with the last point clearly, and restate what you agree to."],
+  ["정중한 반대", "Politely express a concern or disagreement about the last point, without committing to anything, and invite discussion."]
+];
+
 function assistOn() { return settings.assist !== false && !!helperSpec(); }
 
 function updateAssistUI() {
@@ -3024,10 +3174,12 @@ async function suggest(kind, text, block) {
   AS.ac = ac; AS.cur = cur; T.counts.assist++;
   renderAssist();
   const idx = block ? core.blocks.indexOf(block) : -1;
-  const user = assistContext(idx >= 0 ? idx : core.blocks.length) + "\n" + (kind === "ko" ? "<korean>" + text + "</korean>" : "<question>" + text + "</question>");
+  const act = kind === "act" ? (QUICK_ACTS.find((a) => a[0] === text) || [text, text])[1] : "";
+  const user = assistContext(idx >= 0 ? idx : core.blocks.length) + "\n" +
+    (kind === "ko" ? "<korean>" + text + "</korean>" : kind === "act" ? "<action>" + act + "</action>" : "<question>" + text + "</question>");
   try {
     await llmStream(spec, "", "", ac.signal, (delta) => { if (AS.ac !== ac) return; cur.out += delta; renderAssist(); }, false,
-      { system: kind === "ko" ? ASSIST_KO : ASSIST_Q, user, max: 500 });
+      { system: kind === "ko" ? ASSIST_KO : kind === "act" ? ASSIST_ACT : ASSIST_Q, user, max: 500 });
     if (AS.ac === ac) cur.state = "done";
   } catch (e) {
     if (e && e.name === "AbortError") return;
@@ -3061,9 +3213,9 @@ function renderAssist() {
     return;
   }
   const head = mk("div", "as-q");
-  head.append(mk("span", "as-tag", cur.kind === "ko" ? "내 말" : "들린 말"), cur.text);
+  head.append(mk("span", "as-tag", cur.kind === "ko" ? "내 말" : cur.kind === "act" ? "빠른 답변" : "들린 말"), cur.text);
   body.append(head);
-  if (cur.kind !== "ko" && cur.block && cur.block.ko && cur.block.ko.trim()) body.append(mk("div", "as-qko", cur.block.ko.trim()));
+  if (cur.kind === "q" && cur.block && cur.block.ko && cur.block.ko.trim()) body.append(mk("div", "as-qko", cur.block.ko.trim()));
   if (cur.state === "err") { body.append(mk("div", "as-empty", cur.err)); return; }
   for (const o of parseOptions(cur.out)) {
     const card = mk("button", "as-opt"); card.type = "button"; card.title = "눌러서 영어 문장 복사";
@@ -3073,6 +3225,13 @@ function renderAssist() {
     });
     body.append(card);
   }
+}
+
+for (const [label] of QUICK_ACTS) {
+  const btn = mk("button", "", label); btn.type = "button";
+  // 지금까지의 대화(마지막 10줄)를 맥락으로 쓴다
+  btn.addEventListener("click", () => suggest("act", label, null));
+  $("asActs").append(btn);
 }
 
 // 방금 끝난 줄이 나에게 묻거나 부탁하는 말이면 답변을 제안한다
@@ -3292,7 +3451,9 @@ function importDigest(d) {
   if (!clean) return undefined;
   delete clean.title;
   const nums = (a, n) => (Array.isArray(a) ? a : []).slice(0, n).map((x) => (typeof x === "number" && x >= 0 ? Math.floor(x) : -1));
-  if (d.refs && typeof d.refs === "object") clean.refs = { decisions: nums(d.refs.decisions, clean.decisions.length), todos: nums(d.refs.todos, clean.todos.length) };
+  if (d.refs && typeof d.refs === "object") clean.refs = { decisions: nums(d.refs.decisions, clean.decisions.length), todos: nums(d.refs.todos, clean.todos.length),
+    changes: nums(d.refs.changes, clean.changes.length) };
+  if (typeof d.prevTitle === "string") { clean.prevTitle = d.prevTitle.slice(0, 120); clean.prevId = typeof d.prevId === "string" ? d.prevId.slice(0, 40) : ""; }
   return Object.assign(clean, { lines: typeof d.lines === "number" ? d.lines : 0, at: typeof d.at === "number" ? d.at : 0,
     sig: typeof d.sig === "string" ? d.sig.slice(0, 40) : undefined });
 }
@@ -3329,6 +3490,7 @@ $("packFile").addEventListener("change", async () => {
       const lines = m.lines.slice(0, 20000).map((l) => {
         const x = { who: str(l && l.who, 60), en: str(l && l.en, 5000), ko: str(l && l.ko, 5000), at: l && typeof l.at === "number" ? l.at : 0 };
         if (l && l.star === true) x.star = true;
+        if (l && l.edited === true) x.edited = true;
         return x;
       });
       const gaps = (Array.isArray(m.gaps) ? m.gaps : []).slice(0, 200).filter((g) => g && typeof g.at === "number")

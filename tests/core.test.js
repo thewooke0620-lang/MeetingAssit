@@ -102,4 +102,12 @@ assert.deepStrictEqual(r2.markSegments('plain text', [], { marks: false }), [{ t
 const L = [{ en: 'a', ko: 'b' }, { en: 'c', ko: 'd' }];
 assert.strictEqual(r2.linesSig(L), r2.linesSig(JSON.parse(JSON.stringify(L))));
 assert.notStrictEqual(r2.linesSig(L), r2.linesSig([{ en: 'a', ko: 'b' }, { en: 'c', ko: 'e' }]), '줄 수가 같아도 내용이 다르면 다름');
+
+// 자막을 고쳤을 때 용어집 후보
+const tc = new Function(src + '; return termCandidate;')();
+assert.strictEqual(tc('We opened the a scrow account.', 'We opened the escrow account.'), 'escrow');
+assert.strictEqual(tc('Talk to Kim Jung soo.', 'Talk to Kim Jung-soo.'), 'Jung-soo');
+assert.strictEqual(tc('It is fine', 'It is fine.'), '', '문장부호만 바뀜');
+assert.strictEqual(tc('a b c', 'a b c'), '');
+assert.strictEqual(tc('We will ship it.', 'Actually we decided to delay the whole shipment until next quarter.'), '', '너무 길면 후보 아님');
 console.log('CORE TESTS PASSED');

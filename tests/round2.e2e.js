@@ -42,7 +42,7 @@ run('ROUND2 TESTS', async (b) => {
   let ms = await meetings(p);
   assert.deepStrictEqual(ms[0].lines.filter((l) => l.star).length, 2);
   assert(ms[0].lines.every((l) => l.at > 0), '줄마다 말한 시각');
-  assert.deepStrictEqual(ms[0].digest.refs, { decisions: [3], todos: [2, -1] });
+  assert.deepStrictEqual(ms[0].digest.refs, { decisions: [3], todos: [2, -1], changes: [] });
   assert(/Sonnet|sonnet/.test((await reqs(p, 'digest'))[0].model), '회의 정리는 고른 Sonnet 으로');
   assert(/\[1\] 화자 1: We reviewed/.test((await reqs(p, 'digest'))[0].user), '정리 요청에 줄 번호');
 

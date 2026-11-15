@@ -4,7 +4,7 @@ const fs = require('fs'), path = require('path');
 const HTML = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 
 // 브라우저 안에서 실행되는 부분. 요청 종류를 가려서 window.REQ 에 기록하고 가짜 답을 돌려준다
-//   translate: 번역 / digest: 회의 정리(한 번에 받는 요청) / assist-q: 질문에 대한 답변 제안 / assist-ko: 한국어를 영어로
+//   translate: 번역 / digest: 회의 정리(한 번에 받는 요청) / assist-q: 질문에 대한 답변 제안 / assist-ko: 한국어를 영어로 / assist-act: 빠른 답변 단추
 // window.MOCK 으로 테스트마다 응답을 바꿀 수 있다
 function pageMock(st) {
   if (location.protocol !== 'https:') return;
@@ -27,7 +27,7 @@ function pageMock(st) {
     const body = JSON.parse(opt.body);
     const system = groq ? body.messages[0].content : body.system;
     const user = groq ? body.messages[1].content : body.messages[0].content;
-    const kind = !body.stream ? 'digest' : /<translate>/.test(user) ? 'translate' : /<korean>/.test(user) ? 'assist-ko' : 'assist-q';
+    const kind = !body.stream ? 'digest' : /<translate>/.test(user) ? 'translate' : /<korean>/.test(user) ? 'assist-ko' : /<action>/.test(user) ? 'assist-act' : 'assist-q';
     const rec = { kind, p: groq ? 'groq' : 'claude', model: body.model, system, user, aborted: false };
     window.REQ.push(rec);
     if (kind === 'digest') {
