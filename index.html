@@ -1750,7 +1750,7 @@ function relabelVoice(core, sock, v) {
 // ---------------------------------------------------------------------------
 const WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 // 앱 버전: 고칠 때마다 올린다. 설정 창 아래에 보이고, 새 버전이 올라왔는지 확인할 때 쓴다
-const APP_VERSION = "2026.11.16-1";
+const APP_VERSION = "2026.11.16-2";
 const STORE_KEY = "meeting-interpreter.settings.v1";
 const DEFAULTS = {
   apiKey: "", hint: "en", target: "ko", terms: "", fontSize: "18",
@@ -5367,7 +5367,11 @@ async function openAcct() {
   const pk = mk("p"); pk.append(mk("b", "", lv.name), " · " + (lv.next ? "다음: " + lv.next : "가장 높은 단계"));
   const kb = mk("button", "btn wide", "개인화 관리하기 ›"); kb.type = "button";
   kb.addEventListener("click", () => { $("acctSheet").close(); openKnow(); });
-  bk.append(rk, lvBar(lv.level), pk, kb); body.append(bk);
+  bk.append(rk, lvBar(lv.level), pk, kb);
+  const al = swRow("회의 후 자동으로 배우기", "회의 정리가 끝나면 그 회의에서 쓴 용어와 내 말투를 저절로 기억합니다. (Claude 또는 Groq 키 필요)",
+    settings.autoLearn !== false, (v) => { settings.autoLearn = v; saveSettings(settings); });
+  al.style.marginTop = "12px";
+  bk.append(al); body.append(bk);
   // 이번 달 회의
   let all = []; try { if (Store.ok) all = await Store.all("meetings"); } catch (e) {}
   const now = new Date(), m0 = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
@@ -5419,7 +5423,6 @@ async function openAcct() {
   // 목록
   const list = mk("div", "sh-list");
   const item = (label, fn) => { const b = mk("button", "", label); b.type = "button"; b.append(mk("span", "chev", "›")); b.addEventListener("click", () => { $("acctSheet").close(); fn(); }); list.append(b); };
-  item("내 지식 (개인화)", () => openKnow());
   item("설정", () => openSettingsDialog());
   item("회의 묶음 준비", () => showTab("prep"));
   item("백업 파일로 내보내기·가져오기", () => { openSettingsDialog(); setTimeout(() => { const n = $("packExport"); if (n) n.scrollIntoView({ block: "center" }); }, 60); });
@@ -5454,11 +5457,6 @@ function md(t) { const d = new Date(t); return (d.getMonth() + 1) + "월 " + d.g
 async function renderKnow() {
   const body = $("knBody"); body.textContent = "";
   body.append(mk("p", "kn-intro", "번역과 답변 제안이 나에게 맞도록 내 일, 자주 쓰는 용어, 말투를 기억합니다. 이 기기와 내 계정(Supabase)에 저장하고, 번역·제안을 만들 때 고른 AI(Claude 또는 Groq)에 함께 보냅니다."));
-  const c0 = mk("div", "kn-card");
-  c0.append(swRow("회의 후 자동으로 배우기", "회의 정리가 끝나면 그 회의에서 쓴 용어와 내 말투를 저절로 기억합니다. 꺼도 아래에서 직접 등록하고 배울 수 있습니다. (Claude 또는 Groq 키 필요)",
-    settings.autoLearn !== false, (v) => { settings.autoLearn = v; saveSettings(settings); }));
-  c0.firstChild.style.borderTop = "0"; c0.firstChild.style.padding = "0";
-  body.append(c0);
   // 나와 개인화 수준
   const st = knowStats(), lv = knowledgeLevel(st);
   const c1 = mk("div", "kn-card kn-me");

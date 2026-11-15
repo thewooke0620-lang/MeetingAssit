@@ -13,6 +13,12 @@ run('KNOWLEDGE TESTS', async (b) => {
   const sheet = await p.textContent('#acctBody');
   console.log('1 계정 화면:', sheet.replace(/\s+/g, ' ').slice(0, 260));
   assert(/개인화 수준/.test(sheet) && /레벨 1 \/ 6/.test(sheet) && /개인화 관리하기/.test(sheet));
+  assert(/회의 후 자동으로 배우기/.test(sheet), '자동 배우기는 계정 화면에');
+  assert(!/내 지식 \(개인화\)/.test(sheet), '아래 목록의 내 지식 항목은 없음');
+  await p.click('#acctBody input[aria-label="회의 후 자동으로 배우기"]'); await p.waitForTimeout(100);
+  assert.strictEqual(await p.evaluate(() => settings.autoLearn), false);
+  await p.click('#acctBody input[aria-label="회의 후 자동으로 배우기"]'); await p.waitForTimeout(100);
+  assert.strictEqual(await p.evaluate(() => settings.autoLearn), true);
   assert(/내 목소리 등록/.test(sheet) && /미등록/.test(sheet));
   assert(/회의 기록에서 다시 듣기/.test(sheet) && /앱을 나가도 계속 기록하기/.test(sheet));
   assert.strictEqual(await p.$eval('#acctBody .sh-who b', (n) => n.textContent), '김민수');
@@ -25,7 +31,7 @@ run('KNOWLEDGE TESTS', async (b) => {
 
   // 2) 내 지식: 고유 용어 등록 → 받아 적기·번역에 쓰임
   const kn = await p.textContent('#knBody');
-  assert(/회의 후 자동으로 배우기/.test(kn) && /고유 용어/.test(kn) && /다른 AI에서 가져오기/.test(kn) && /저장된 지식/.test(kn));
+  assert(!/회의 후 자동으로 배우기/.test(kn) && /고유 용어/.test(kn) && /다른 AI에서 가져오기/.test(kn) && /저장된 지식/.test(kn));
   assert(/기본 정보/.test(kn) && /김민수 · Minsu/.test(kn) && /지금 하는 일/.test(kn) && /내 관점·말투/.test(kn));
   await p.waitForTimeout(100);
   await p.evaluate(() => { KN.open = 'terms'; renderKnow(); });

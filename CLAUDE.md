@@ -38,7 +38,7 @@
 - 실제 목소리로 화자를 잘 가리는지, 앞에 보낸 목소리 때문에 첫 자막이 얼마나 늦는지는 테스트로 알 수 없다 (연결 상태에 '내 목소리를 찾았습니다 (n초)'가 뜬다).
 
 ## 계정 화면·내 지식·소리 보관
-- 계정 시트(`openAcct`): 개인화 수준(`knowledgeLevel`, CORE) → `openKnow()`(#knowDlg, `renderKnow`), 목소리, 다시 듣기(`settings.keepAudio`), 앱을 나가도 계속 기록(`settings.bgKeep`).
+- 계정 시트(`openAcct`): 개인화 수준(`knowledgeLevel`, CORE) → `openKnow()`(#knowDlg, `renderKnow`), 회의 후 자동으로 배우기(`settings.autoLearn`, 계정 시트에만 둠), 목소리, 다시 듣기(`settings.keepAudio`), 앱을 나가도 계속 기록(`settings.bgKeep`).
 - 프로필 지식 필드: me(하는 일, settings.me 와 같이), style, terms(고유 용어, 묶음 용어집과 `mergeTermsText` 로 합쳐 번역·Soniox 에 씀), learned, kAt. 배우기는 `learnMeetings`·`importKnowledge`(AI 요청에 `<learn>` 표시, 테스트 가짜 응답 kind 'learn'). 회의 정리 뒤 `autoLearnAfter`.
 - 소리 보관(`AudioKeep`): IndexedDB 버전 2 의 audio 보관함, 10초 조각. 회의 기록에는 구간 { key, start, type } 만(m.audio). 서버에 올리지 않는다. 다시 듣기는 `playAt`.
 - 안드로이드: `window.MeetingNative.keepRecording(on)` → `android/MeetingService.java`(마이크 포그라운드 서비스). 매니페스트 권한·서비스는 워크플로가 sed 로 넣는다.
