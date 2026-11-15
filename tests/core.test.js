@@ -110,4 +110,58 @@ assert.strictEqual(tc('Talk to Kim Jung soo.', 'Talk to Kim Jung-soo.'), 'Jung-s
 assert.strictEqual(tc('It is fine', 'It is fine.'), '', '문장부호만 바뀜');
 assert.strictEqual(tc('a b c', 'a b c'), '');
 assert.strictEqual(tc('We will ship it.', 'Actually we decided to delay the whole shipment until next quarter.'), '', '너무 길면 후보 아님');
+
+// ---- 참여자, 회의 정보, 내 목소리 ----
+const V = new Function(src + '; return { splitPeople, parsePeople, mergePeople, peopleForMeeting, nameTerms, meetingContextText, muEncode, muDecode, resamplePcm, createVoiceMap, mapVoiceTokens, relabelVoice, createCore, processTokens };')();
+assert.deepStrictEqual(V.splitPeople('John Smith (Acme, 구매), Sarah Lee\nTom'), ['John Smith (Acme, 구매)', 'Sarah Lee', 'Tom'], '괄호 안 쉼표는 나누지 않음');
+assert.deepStrictEqual(V.parsePeople('John Smith (Acme 구매팀장)\nSarah Lee - 법무\njohn smith\n- 김민수'),
+  [{ name: 'John Smith', note: 'Acme 구매팀장' }, { name: 'Sarah Lee', note: '법무' }, { name: '김민수', note: '' }], '이름·설명, 같은 이름은 한 번');
+assert.strictEqual(V.mergePeople('John Smith (Acme)', 'john smith, Tom Baker'), 'John Smith (Acme)\nTom Baker', '새 사람만 더함');
+assert.strictEqual(V.mergePeople('John Smith', 'John Smith'), 'John Smith', '바뀐 것 없으면 그대로');
+const info = { topic: '납기 조정', packTopic: '공급 계약', people: 'Tom Baker, John Smith', packPeople: 'John Smith (Acme 구매)\n박지훈 (우리 팀)', brief: '작년 계약 갱신', facts: '납기 6주\n상한 5%', myName: '김민수', myNames: 'Minsu, Mr. Kim' };
+const pm = V.peopleForMeeting(info);
+assert.deepStrictEqual(pm.now.map((x) => x.name + '/' + x.note), ['Tom Baker/', 'John Smith/Acme 구매'], '이번 회의 참여자 + 묶음의 설명');
+assert.deepStrictEqual(pm.all.map((x) => x.name), ['Tom Baker', 'John Smith', '박지훈']);
+assert.deepStrictEqual(V.nameTerms(info), ['Tom Baker', 'John Smith', 'Minsu', 'Mr. Kim'], '로마자 이름만 받아 적기 용어로');
+const ctxText = V.meetingContextText(info, 1500);
+console.log('회의 정보:\n' + ctxText);
+assert(/^Meeting topic: 납기 조정\nSeries topic: 공급 계약\nParticipants: Tom Baker; John Smith \(Acme 구매\); 박지훈 \(우리 팀\)\nListener \(me\): 김민수/.test(ctxText));
+assert(/Background: 작년 계약 갱신\nKnown facts: 납기 6주; 상한 5%$/.test(ctxText));
+assert.strictEqual(V.meetingContextText({}, 100), '', '아무것도 없으면 빈 글');
+assert(V.meetingContextText(info, 40).length <= 40);
+// μ-law: 되돌렸을 때 오차가 작다
+const pcm = new Int16Array(1600).map((_, i) => Math.round(Math.sin(i / 10) * 12000));
+const back = V.muDecode(V.muEncode(pcm));
+let maxErr = 0; for (let i = 0; i < pcm.length; i++) maxErr = Math.max(maxErr, Math.abs(back[i] - pcm[i]));
+assert(maxErr < 600, 'μ-law 오차 ' + maxErr);
+assert.strictEqual(V.resamplePcm(pcm, 16000, 48000).length, 4800);
+assert.strictEqual(V.resamplePcm(pcm, 16000, 16000), pcm);
+// 내 목소리 구간(앞 3초): 글자·번역은 빼고, 그 화자(2)를 나로 정한다
+let vm = V.createVoiceMap(3000, true), vc = V.createCore();
+vc.diar = true;
+const T = (text, sp, s, extra) => Object.assign({ text, is_final: true, translation_status: 'original', speaker: sp, start_ms: s, end_ms: s + 300 }, extra || {});
+const TR = (text, fin) => ({ text, is_final: fin !== false, translation_status: 'translation' });
+const feedV = (toks) => { V.processTokens(vc, V.mapVoiceTokens(vm, toks)); for (const b of vc.blocks) if (b.sock === undefined) b.sock = 1; V.relabelVoice(vc, 1, vm); };
+feedV([T('Hello', '2', 100), T(' everyone.', '2', 600), T(' Thanks', '2', 1500), T(' for joining.', '2', 2000)]);
+assert.strictEqual(vm.me, '2', '내 목소리의 화자'); assert.strictEqual(vc.blocks.length, 0, '내 목소리 구간은 화면에 없음');
+feedV([TR('안녕', false)]);
+assert.strictEqual(vc.nf.ko, '', '내 목소리 번역(미확정)도 숨김');
+feedV([T(' So', '1', 4200), TR('안녕하세요 여러분.'), T(' the', '1', 4500), TR(' 참여해 주셔서'), TR(' 감사합니다.'), T(' price is fixed.', '1', 4800), TR('그래서 가격은 고정입니다.')]);
+console.log('voice blocks:', vc.blocks.map((b) => [b.speaker, b.en, b.ko]));
+assert.deepStrictEqual(vc.blocks.map((b) => [b.speaker, b.en.trim(), b.ko.trim()]), [['1', 'So the price is fixed.', '그래서 가격은 고정입니다.']], '상대 말과 그 번역만 남음');
+feedV([T(' Yes,', '2', 7000), T(' we agree.', '2', 7300)]);
+assert.strictEqual(vc.blocks[vc.blocks.length - 1].speaker, 'me', '내 목소리와 같은 화자 = 나');
+// 마이크 쪽 소리가 큰 구간의 화자를 나로 (목소리 등록 없이, 'PC 소리 + 내 마이크')
+vm = V.createVoiceMap(0, false); vc = V.createCore(); vc.diar = true;
+for (let i = 0; i < 100; i++) vm.log.push(i < 50 ? -1 : 1);   // 앞 5초는 컴퓨터 소리, 뒤 5초는 마이크
+feedV([T(' Hi', '1', 100), T(' there.', '1', 400), T(' I', '3', 5200)]);
+assert.strictEqual(vm.me, null, '아직 모름');
+feedV([T(' think', '3', 5600), T(' so.', '3', 6000)]);
+assert.strictEqual(vm.me, '3', '마이크가 큰 구간에서 세 번 → 나');
+assert.deepStrictEqual(vc.blocks.map((b) => [b.speaker, b.en]), [['1', ' Hi there.'], ['me', ' I think so.']], '앞서 나온 줄도 나로 고치고, 끊긴 문장은 다시 붙임');
+feedV([T(' Okay.', '1', 2000)]);
+assert.strictEqual(vc.blocks[vc.blocks.length - 1].speaker, '1');
+// 토큰에 시각이 없으면(예전 방식) 손대지 않는다
+vm = V.createVoiceMap(3000, true);
+assert.deepStrictEqual(V.mapVoiceTokens(vm, [{ text: 'a', is_final: true, speaker: '1' }]), [{ text: 'a', is_final: true, speaker: '1' }]);
 console.log('CORE TESTS PASSED');

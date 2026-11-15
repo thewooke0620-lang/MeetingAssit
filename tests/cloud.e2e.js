@@ -1,54 +1,7 @@
 // Supabase 동기화: 가입·로그인, 회의를 올리고 다른 기기(다른 브라우저)에서 받기, 지우기 전달, 끊겼을 때 나중에 올리기
 // 실제 Supabase 는 부르지 않는다. 이 테스트 안의 가짜 서버(인증 + 표 두 개)가 대신 응답한다
 const assert = require('assert');
-const { openApp, speak, toggle, openSettings, closeSettings, BASE, run } = require('./helper');
-
-const SB = 'https://sb.test';
-function fakeSupabase() {
-  const db = { users: {}, rows: { packs: new Map(), meetings: new Map() }, clock: 0, down: false, calls: [] };
-  const ts = () => new Date(Date.UTC(2026, 0, 1) + (++db.clock) * 1000).toISOString();
-  const tokenFor = (u) => ({ access_token: 'at-' + u.id + '-' + db.clock, refresh_token: 'rt-' + u.id, expires_in: 3600, user: { id: u.id, email: u.email } });
-  const userOf = (req) => { const m = /Bearer at-(u\d+)-/.exec(req.headers()['authorization'] || ''); return m && m[1]; };
-  async function handle(route) {
-    const req = route.request(), url = new URL(req.url()), path = url.pathname;
-    const json = (status, body) => route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: body === undefined ? '' : JSON.stringify(body) });
-    if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' } });
-    if (db.down) return route.abort('internetdisconnected');
-    if (req.headers()['apikey'] !== 'anon-key') return json(401, { message: 'Invalid API key' });
-    db.calls.push(req.method() + ' ' + path);
-    if (path === '/auth/v1/signup') {
-      const b = JSON.parse(req.postData());
-      if (db.users[b.email]) return json(422, { msg: 'User already registered' });
-      const u = db.users[b.email] = { id: 'u' + (Object.keys(db.users).length + 1), email: b.email, pw: b.password };
-      return json(200, tokenFor(u));
-    }
-    if (path === '/auth/v1/token') {
-      const b = JSON.parse(req.postData());
-      const u = url.searchParams.get('grant_type') === 'password' ? db.users[b.email] : Object.values(db.users).find((x) => 'rt-' + x.id === b.refresh_token);
-      if (!u || (b.email && u.pw !== b.password)) return json(400, { error: 'invalid_grant', error_description: 'Invalid login credentials' });
-      return json(200, tokenFor(u));
-    }
-    if (path === '/auth/v1/logout') return json(204);
-    const m = /^\/rest\/v1\/(packs|meetings)$/.exec(path);
-    if (m) {
-      const uid = userOf(req);
-      if (!uid) return json(401, { message: 'JWT expired' });
-      const table = db.rows[m[1]];
-      if (req.method() === 'POST') {
-        for (const r of JSON.parse(req.postData())) table.set(uid + '|' + r.id, { id: r.id, user_id: uid, data: r.data, deleted: !!r.deleted, updated_at: ts() });
-        return json(201);
-      }
-      let list = [...table.values()].filter((r) => r.user_id === uid);
-      const gt = url.searchParams.get('updated_at');
-      if (gt) list = list.filter((r) => r.updated_at > gt.replace(/^gt\./, ''));
-      if (url.searchParams.get('deleted') === 'eq.false') list = list.filter((r) => !r.deleted);
-      list.sort((a, b) => a.updated_at.localeCompare(b.updated_at));
-      return json(200, list.slice(0, Number(url.searchParams.get('limit') || 1000)).map((r) => ({ id: r.id, data: r.data, deleted: r.deleted, updated_at: r.updated_at })));
-    }
-    return json(404, { message: 'not found' });
-  }
-  return { db, handle };
-}
+const { openApp, speak, toggle, openSettings, closeSettings, BASE, run, newPack, fakeSupabase, SB } = require('./helper');
 
 run('CLOUD TESTS', async (b) => {
   const sb = fakeSupabase();
@@ -82,8 +35,7 @@ run('CLOUD TESTS', async (b) => {
   assert.strictEqual(sb.db.rows.packs.size, 1, '서버에도 묶음 하나');
 
   // 3) B 에서 새 묶음과 회의 → A 가 동기화하면 받는다
-  B.answer = 'A사 계약';
-  await B.click('#sidePackNew'); await B.waitForTimeout(400);
+  await newPack(B, 'A사 계약');
   await toggle(B); await speak(B, "Delivery will take 8 weeks."); await toggle(B); await B.waitForTimeout(5000);
   assert.strictEqual(sb.db.rows.packs.size, 2); assert.strictEqual(sb.db.rows.meetings.size, 2);
   await A.evaluate(() => Cloud.sync()); await A.waitForTimeout(800);

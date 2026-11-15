@@ -30,6 +30,13 @@
 - Supabase 동기화(`Cloud` 객체): 로그인하면 `Store` 의 put·update·del 이 바뀐 것을 표시해 두고 Supabase 표(packs, meetings, 기록을 통째로 JSON)에 올린다. 받을 때는 `StoreRaw` 로 써서 다시 올리지 않는다. 라이브러리 없이 Auth·REST 주소를 fetch 로 부른다. 표·보안 규칙은 `docs/supabase.sql`. 이 앱의 Supabase 프로젝트는 `MeetingAssit`(ref `iqyknmtkbdpsitxwdfia`, 서울)이고, 주소와 공개(publishable) 키는 사용자 결정(2026-11-15)으로 `index.html` 의 `SB_DEFAULT_URL`·`SB_DEFAULT_KEY` 에 넣어 두었다. 공개 키만 예외이며, 비밀(service_role) 키와 Soniox·Claude·Groq 키는 절대 코드에 넣지 않는다. 테스트는 `tests/cloud.e2e.js` 의 가짜 서버로 한다.
 - Soniox가 선택 설정(확정 대기 시간, 번역어 지정, 회의 배경)을 거부하면 그 설정만 빼고 다시 연결한다. 새 선택 설정을 추가할 때도 같은 방식으로 한다.
 
+## 사용자 등록·내 목소리·회의 정보
+- 사용자 등록 창(`#onboard`, `openOnboard(단계)`): 이름 → API 키 → Supabase 계정 → 목소리 → 첫 묶음. 키가 없고 `settings.onboarded` 가 아니면 처음에 저절로 뜬다. 테스트의 BASE 는 `onboarded: true`.
+- 프로필(이름, 부르는 이름, 내 정보, 목소리)은 localStorage `meetingassit.profile.v1`. Supabase 에는 packs 표의 id `__profile__` 줄로 올리고 받는다 (묶음 목록에는 넣지 않는다). API 키는 넣지 않는다.
+- 목소리: 16kHz μ-law, 6초까지. 연결마다 `voicePrefixPcm` 을 맨 앞에 보내고, `mapVoiceTokens`(CORE)가 그 구간 글자·번역을 빼고 같은 화자를 speaker "me" 로 바꾼다. 'PC 소리 + 내 마이크'(source "both")는 워크릿 입력 2에 마이크를 섞고 조각마다 어느 쪽이 컸는지(`log`)로도 나를 고른다.
+- 번역에 넘기는 회의 정보는 `meetInfo()` → `meetingContextText`·`nameTerms`(CORE). 묶음 필드: topic, people(한 줄에 한 명). 회의 기록 필드: topic, people, 줄의 me.
+- 실제 목소리로 화자를 잘 가리는지, 앞에 보낸 목소리 때문에 첫 자막이 얼마나 늦는지는 테스트로 알 수 없다 (연결 상태에 '내 목소리를 찾았습니다 (n초)'가 뜬다).
+
 ## 데스크톱 앱 (desktop/)
 - Electron 껍데기다. 화면은 GitHub Pages의 웹 앱 주소를 불러온다(`desktop/main.js` 의 `APP_URL`). 웹을 배포하면 exe에도 반영된다.
 - 껍데기가 더하는 것: 컴퓨터 소리 바로 듣기(getDisplayMedia → loopback), 자막 팝업(따로 떠 있는 항상 위 창, Windows 11 acrylic 블러). 화면 쪽은 `window.desktop` 이 있으면 `body.desktop`, 팝업 창은 같은 주소의 `#popup` 으로 열려 `body.popup` 으로 동작한다. 본 창과 팝업은 BroadcastChannel(`meetingassit-live`)로 자막·명령을 주고받는다.

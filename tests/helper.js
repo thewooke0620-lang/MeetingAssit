@@ -124,11 +124,68 @@ const meets = (p) => p.evaluate(() => [...document.querySelectorAll('#meetList .
 const reqs = (p, kind) => p.evaluate((kind) => window.REQ.filter((r) => !kind || r.kind === kind), kind);
 const stored = (p) => p.evaluate(() => JSON.parse(localStorage.getItem('meeting-interpreter.settings.v1')));
 
-const BASE = { apiKey: 'k', claudeKey: 'ck', engine: 'claude', target: 'ko', source: 'mic', draft: false, preview: false, ver: 2, openAfterStop: false };   // 정지 후 정리 화면 자동 열기는 따로 시험한다
+const BASE = { apiKey: 'k', claudeKey: 'ck', engine: 'claude', target: 'ko', source: 'mic', draft: false, preview: false, ver: 2, openAfterStop: false, onboarded: true };   // 정지 후 정리 화면 자동 열기와 사용자 등록 창은 따로 시험한다
 
 function run(name, fn) {
   (async () => { const b = await launch(); try { await fn(b); console.log(name + ' PASSED'); } finally { await b.close(); } })()
     .catch((e) => { console.error('FAILED', e); process.exit(1); });
 }
 
-module.exports = { launch, openApp, speak, toggle, meeting, openSettings, closeSettings, saveSettings, meets, reqs, stored, BASE, run, clickToggle, clickSettings };
+// 왼쪽 메뉴의 '＋ 새 묶음' → 묶음 만들기 창에 적고 만들기
+async function newPack(p, name, topic, people) {
+  await p.click('#sidePackNew'); await p.waitForTimeout(150);
+  await p.fill('#pdName', name);
+  if (topic) await p.fill('#pdTopic', topic);
+  if (people) await p.fill('#pdPeople', people);
+  await p.click('#pdOk'); await p.waitForTimeout(400);
+}
+
+// 가짜 Supabase 서버 (인증 + 표 두 개). 실제 Supabase 는 부르지 않는다
+const SB = 'https://sb.test';
+function fakeSupabase() {
+  const db = { users: {}, rows: { packs: new Map(), meetings: new Map() }, clock: 0, down: false, calls: [] };
+  const ts = () => new Date(Date.UTC(2026, 0, 1) + (++db.clock) * 1000).toISOString();
+  const tokenFor = (u) => ({ access_token: 'at-' + u.id + '-' + db.clock, refresh_token: 'rt-' + u.id, expires_in: 3600, user: { id: u.id, email: u.email } });
+  const userOf = (req) => { const m = /Bearer at-(u\d+)-/.exec(req.headers()['authorization'] || ''); return m && m[1]; };
+  async function handle(route) {
+    const req = route.request(), url = new URL(req.url()), path = url.pathname;
+    const json = (status, body) => route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: body === undefined ? '' : JSON.stringify(body) });
+    if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' } });
+    if (db.down) return route.abort('internetdisconnected');
+    if (req.headers()['apikey'] !== 'anon-key') return json(401, { message: 'Invalid API key' });
+    db.calls.push(req.method() + ' ' + path);
+    if (path === '/auth/v1/signup') {
+      const b = JSON.parse(req.postData());
+      if (db.users[b.email]) return json(422, { msg: 'User already registered' });
+      const u = db.users[b.email] = { id: 'u' + (Object.keys(db.users).length + 1), email: b.email, pw: b.password };
+      return json(200, tokenFor(u));
+    }
+    if (path === '/auth/v1/token') {
+      const b = JSON.parse(req.postData());
+      const u = url.searchParams.get('grant_type') === 'password' ? db.users[b.email] : Object.values(db.users).find((x) => 'rt-' + x.id === b.refresh_token);
+      if (!u || (b.email && u.pw !== b.password)) return json(400, { error: 'invalid_grant', error_description: 'Invalid login credentials' });
+      return json(200, tokenFor(u));
+    }
+    if (path === '/auth/v1/logout') return json(204);
+    const m = /^\/rest\/v1\/(packs|meetings)$/.exec(path);
+    if (m) {
+      const uid = userOf(req);
+      if (!uid) return json(401, { message: 'JWT expired' });
+      const table = db.rows[m[1]];
+      if (req.method() === 'POST') {
+        for (const r of JSON.parse(req.postData())) table.set(uid + '|' + r.id, { id: r.id, user_id: uid, data: r.data, deleted: !!r.deleted, updated_at: ts() });
+        return json(201);
+      }
+      let list = [...table.values()].filter((r) => r.user_id === uid);
+      const gt = url.searchParams.get('updated_at');
+      if (gt) list = list.filter((r) => r.updated_at > gt.replace(/^gt\./, ''));
+      if (url.searchParams.get('deleted') === 'eq.false') list = list.filter((r) => !r.deleted);
+      list.sort((a, b) => a.updated_at.localeCompare(b.updated_at));
+      return json(200, list.slice(0, Number(url.searchParams.get('limit') || 1000)).map((r) => ({ id: r.id, data: r.data, deleted: r.deleted, updated_at: r.updated_at })));
+    }
+    return json(404, { message: 'not found' });
+  }
+  return { db, handle };
+}
+
+module.exports = { fakeSupabase, SB, newPack, launch, openApp, speak, toggle, meeting, openSettings, closeSettings, saveSettings, meets, reqs, stored, BASE, run, clickToggle, clickSettings };

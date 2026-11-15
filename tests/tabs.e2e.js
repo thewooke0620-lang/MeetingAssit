@@ -11,14 +11,17 @@ run('TABS TESTS', async (b) => {
   assert.strictEqual(await p.isVisible('#fab'), true);
   assert.strictEqual(await p.textContent('#pageTitle'), '홈');
   assert.strictEqual(await p.textContent('#acctName'), '로그인');
-  // 처음 시작하기: 키가 없으면 0/4, 누르면 설정이 열린다
-  assert.strictEqual(await p.textContent('#setupCount'), '0/4');
+  // 처음 시작하기: 키가 없으면 0/5, 누르면 사용자 등록의 API 키 단계가 열린다
+  assert.strictEqual(await p.textContent('#setupCount'), '0/5');
   const items = await p.$$eval('#setupList li', (n) => n.map((x) => x.className + ':' + x.innerText.replace(/\s+/g, ' ')));
   console.log('1 처음 시작하기:', items);
   await p.click('#setupList li:first-child button'); await p.waitForTimeout(200);
-  assert.strictEqual(await p.evaluate(() => document.getElementById('settings').open), true);
-  await p.fill('#apiKey', 'k'); await p.click('#saveSettings'); await p.waitForTimeout(300);
-  assert.strictEqual(await p.textContent('#setupCount'), '1/4', '키를 넣으면 하나 끝남');
+  assert.strictEqual(await p.evaluate(() => document.getElementById('onboard').open), true);
+  assert.strictEqual(await p.isVisible('#obSoniox'), true);
+  await p.fill('#obSoniox', 'k'); await p.selectOption('#obEngine', 'claude'); await p.fill('#obClaude', 'ck');
+  await p.click('#obNext'); await p.waitForTimeout(200);
+  await p.click('#obLater'); await p.waitForTimeout(300);
+  assert.strictEqual(await p.textContent('#setupCount'), '1/5', '키를 넣으면 하나 끝남');
   // 접기
   await p.click('#setupToggle'); await p.waitForTimeout(150);
   assert.strictEqual(await p.isVisible('#setupList'), false);
@@ -35,7 +38,7 @@ run('TABS TESTS', async (b) => {
   await p.click('#clear'); await p.waitForTimeout(600);
   assert.strictEqual(await p.isVisible('#tabbar'), true, '지우면 다시 탭 화면');
   assert(/계약 초안 검토/.test(await p.textContent('#homeRecent')));
-  assert.strictEqual(await p.textContent('#setupCount'), '2/4', '첫 회의를 하면 하나 더');
+  assert.strictEqual(await p.textContent('#setupCount'), '2/5', '첫 회의를 하면 하나 더');
 
   // 3) 준비: 묶음 목록, '준비하기'는 그 묶음의 설정을 연다
   await p.click('#tabbar button[data-tab="prep"]'); await p.waitForTimeout(300);

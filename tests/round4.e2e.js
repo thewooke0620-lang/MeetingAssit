@@ -1,6 +1,6 @@
 // 새 화면: 시작 화면(묶음·소리 고르기), 왼쪽 메뉴(트리), 정지하면 정리 화면, 데스크톱 앱의 반투명 자막 팝업. 실제 API 는 부르지 않는다
 const assert = require('assert');
-const { openApp, speak, toggle, BASE, run } = require('./helper');
+const { openApp, speak, toggle, BASE, run, newPack } = require('./helper');
 
 run('ROUND4 TESTS', async (b) => {
   // 1) 시작 화면: 회의 중에만 쓰는 도구는 숨기고, 큰 '회의 시작' 단추로 시작한다
@@ -8,7 +8,7 @@ run('ROUND4 TESTS', async (b) => {
   assert.strictEqual(await p.evaluate(() => document.body.classList.contains('idle')), true);
   for (const id of ['#toggle', '#digestBtn', '#clear', '#save', '#assist']) assert.strictEqual(await p.isVisible(id), false, id + ' 숨김');
   assert.strictEqual(await p.isVisible('#homeKey'), false, '키가 있으면 키 안내 없음');
-  assert.deepStrictEqual(await p.$$eval('#homeSource option', (n) => n.map((o) => o.value)), ['system', 'mic']);
+  assert.deepStrictEqual(await p.$$eval('#homeSource option', (n) => n.map((o) => o.value)), ['system', 'both', 'mic']);
   assert.strictEqual(await p.inputValue('#homeSource'), 'mic');
   assert(/아직 회의가 없습니다/.test(await p.textContent('#sideTree')), '왼쪽 메뉴: 아직 회의 없음');
   await p.click('#homeStart'); await p.waitForTimeout(300);
@@ -40,8 +40,8 @@ run('ROUND4 TESTS', async (b) => {
   assert.strictEqual(await p.evaluate(() => settings.sideOpen), false);
   await p.click('#sideBtn');
   // 메뉴에서 새 묶음 만들기 → 그 묶음으로 바뀐다
-  p.answer = 'C사 협상';
-  await p.click('#sidePackNew'); await p.waitForTimeout(400);
+  await newPack(p, 'C사 협상', '단가 협상', 'Tom Baker (C사 구매)');
+  assert.deepStrictEqual(await p.evaluate(() => [currentPack().topic, currentPack().people]), ['단가 협상', 'Tom Baker (C사 구매)']);
   assert(/C사 협상/.test(await p.textContent('#packPill')));
   assert.strictEqual(await p.textContent('#sideTree li.cur .tname'), 'C사 협상');
   await p.context().close();
