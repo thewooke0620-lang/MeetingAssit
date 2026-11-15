@@ -1,6 +1,6 @@
 // 백업: 가져오기·내보내기에서 쌓인 내용과 회의 정리가 유지되는지, 백업 알림이 뜨는지
 const assert = require('assert'), fs = require('fs'), path = require('path'), os = require('os');
-const { openApp, openSettings, closeSettings, meets, stored, BASE, run } = require('./helper');
+const { openApp, openSettings, closeSettings, meets, stored, BASE, run, openFolder, closeFolder } = require('./helper');
 
 run('BACKUP TESTS', async (b) => {
   const now = Date.now();
@@ -17,12 +17,14 @@ run('BACKUP TESTS', async (b) => {
   await openSettings(p);
   assert(/아직 백업한 적이 없습니다 · 그 뒤 쌓인 회의 0건/.test(await p.textContent('#backupInfo')));
 
-  // 1) 가져오기: 쌓인 내용, 제목, 정리가 그대로 들어온다. 없는 묶음의 회의는 버린다
+  // 1) 가져오기: 쌓인 내용, 제목, 정리가 그대로 들어온다. 없는 폴더의 회의는 버린다
   await p.setInputFiles('#packFile', file); await p.waitForTimeout(600);
-  assert(/묶음 1개와 회의 5건을 가져왔습니다/.test(await p.textContent('#packMsg')), await p.textContent('#packMsg'));
-  await p.selectOption('#packSel', { label: 'A사 계약' }); await p.waitForTimeout(300);
-  assert.strictEqual(await p.inputValue('#packFacts'), '납기는 발주 후 6주다.');
-  assert.strictEqual(await p.inputValue('#packQa'), 'Q: lead time?\nA: 6주');
+  assert(/폴더 1개와 회의 5건을 가져왔습니다/.test(await p.textContent('#packMsg')), await p.textContent('#packMsg'));
+  assert(/그 뒤 쌓인 회의 5건/.test(await p.textContent('#backupInfo')));
+  await closeSettings(p);
+  await openFolder(p, 'A사 계약');
+  assert.strictEqual(await p.inputValue('#pdFacts'), '납기는 발주 후 6주다.');
+  assert.strictEqual(await p.inputValue('#pdQa'), 'Q: lead time?\nA: 6주');
   let m = await meets(p);
   assert.strictEqual(m.length, 5);
   assert(/^1차 가격 협의 \| .* 10분 · 1줄 · 정리 있음$/.test(m[0]), m[0]);
@@ -30,8 +32,7 @@ run('BACKUP TESTS', async (b) => {
   const v = await p.evaluate(() => document.getElementById('mvBody').innerText);
   assert(v.includes('가격 조정안을 협의했다.') && v.includes('CPI = 소비자물가지수') && v.includes('인상 상한은 연 5%다.'));
   await p.click('#mvClose');
-  assert(/그 뒤 쌓인 회의 5건/.test(await p.textContent('#backupInfo')));
-  await closeSettings(p);
+  await closeFolder(p);
 
   // 2) 다시 열면 백업 알림이 뜬다 (하루에 한 번)
   await p.reload(); await p.waitForTimeout(700);

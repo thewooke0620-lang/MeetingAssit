@@ -1,4 +1,4 @@
-// 새 화면: 시작 화면(묶음·소리 고르기), 왼쪽 메뉴(트리), 정지하면 정리 화면, 데스크톱 앱의 반투명 자막 팝업. 실제 API 는 부르지 않는다
+// 새 화면: 시작 화면(폴더·소리 고르기), 왼쪽 메뉴(트리), 정지하면 정리 화면, 데스크톱 앱의 반투명 자막 팝업. 실제 API 는 부르지 않는다
 const assert = require('assert');
 const { openApp, speak, toggle, BASE, run, newPack } = require('./helper');
 
@@ -20,7 +20,7 @@ run('ROUND4 TESTS', async (b) => {
   await toggle(p); await p.waitForTimeout(1200);
   assert.strictEqual(await p.evaluate(() => document.getElementById('meetDlg').open), true, '정지하면 정리 화면');
   await p.click('#mvClose');
-  // 3) 왼쪽 메뉴(트리): 묶음 아래에 회의가 보이고, 누르면 그 회의가 열린다. '새 회의'는 시작 화면으로 돌아간다
+  // 3) 왼쪽 메뉴(트리): 폴더 아래에 회의가 보이고, 누르면 그 회의가 열린다. '새 회의'는 시작 화면으로 돌아간다
   const item = await p.textContent('#sideTree li[aria-expanded="true"] .tmeet');
   console.log('3 메뉴의 회의:', item);
   assert(/계약 초안 검토/.test(item) && /1분/.test(item));
@@ -30,7 +30,7 @@ run('ROUND4 TESTS', async (b) => {
   await p.click('#sideTree .tmeet'); await p.waitForTimeout(300);
   assert.strictEqual(await p.evaluate(() => document.getElementById('meetDlg').open), true);
   await p.click('#mvClose');
-  // 묶음 접기·펴기
+  // 폴더 접기·펴기
   await p.click('#sideTree .twisty'); await p.waitForTimeout(200);
   assert.strictEqual(await p.getAttribute('#sideTree > li', 'aria-expanded'), 'false');
   assert.strictEqual(await p.isVisible('#sideTree .tmeet'), false);
@@ -39,14 +39,14 @@ run('ROUND4 TESTS', async (b) => {
   assert.strictEqual(await p.isVisible('#side'), false);
   assert.strictEqual(await p.evaluate(() => settings.sideOpen), false);
   await p.click('#sideBtn');
-  // 메뉴에서 새 묶음 만들기 → 그 묶음으로 바뀐다
+  // 메뉴에서 새 폴더 만들기 → 그 폴더로 바뀐다
   await newPack(p, 'C사 협상', '단가 협상', 'Tom Baker (C사 구매)');
   assert.deepStrictEqual(await p.evaluate(() => [currentPack().topic, currentPack().people]), ['단가 협상', 'Tom Baker (C사 구매)']);
   assert(/C사 협상/.test(await p.textContent('#packPill')));
   assert.strictEqual(await p.textContent('#sideTree li.cur .tname'), 'C사 협상');
   await p.context().close();
 
-  // 4) 키가 없으면 안내하고, '회의 시작'은 설정을 연다. 묶음을 바꾸면 그 묶음으로 저장된다
+  // 4) 키가 없으면 안내하고, '회의 시작'은 설정을 연다. 폴더를 바꾸면 그 폴더로 저장된다
   p = await openApp(b, Object.assign({}, BASE, { apiKey: '' }));
   assert.strictEqual(await p.isVisible('#homeKey'), true);
   await p.click('#homeStart'); await p.waitForTimeout(200);

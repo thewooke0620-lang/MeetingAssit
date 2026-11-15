@@ -120,7 +120,7 @@ assert.strictEqual(V.mergePeople('John Smith (Acme)', 'john smith, Tom Baker'), 
 assert.strictEqual(V.mergePeople('John Smith', 'John Smith'), 'John Smith', '바뀐 것 없으면 그대로');
 const info = { topic: '납기 조정', packTopic: '공급 계약', people: 'Tom Baker, John Smith', packPeople: 'John Smith (Acme 구매)\n박지훈 (우리 팀)', brief: '작년 계약 갱신', facts: '납기 6주\n상한 5%', myName: '김민수', myNames: 'Minsu, Mr. Kim' };
 const pm = V.peopleForMeeting(info);
-assert.deepStrictEqual(pm.now.map((x) => x.name + '/' + x.note), ['Tom Baker/', 'John Smith/Acme 구매'], '이번 회의 참여자 + 묶음의 설명');
+assert.deepStrictEqual(pm.now.map((x) => x.name + '/' + x.note), ['Tom Baker/', 'John Smith/Acme 구매'], '이번 회의 참여자 + 폴더의 설명');
 assert.deepStrictEqual(pm.all.map((x) => x.name), ['Tom Baker', 'John Smith', '박지훈']);
 assert.deepStrictEqual(V.nameTerms(info), ['Tom Baker', 'John Smith', 'Minsu', 'Mr. Kim'], '로마자 이름만 받아 적기 용어로');
 const ctxText = V.meetingContextText(info, 1500);

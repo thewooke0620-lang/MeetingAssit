@@ -122,6 +122,9 @@ const clickSettings = async (p) => {
   await p.click('#acctSheet .sh-list button:has-text("설정")');
 };
 const openSettings = async (p) => { await clickSettings(p); await p.waitForTimeout(300); };
+// 폴더 창 (이름이 없으면 지금 폴더). 폴더의 지난 회의 목록(#meetList)도 여기에 있다
+const openFolder = async (p, name) => { await p.evaluate((n) => openPackEditor((n ? packs.find((x) => x.name === n) : currentPack()).id), name || null); await p.waitForTimeout(350); };
+const closeFolder = async (p) => { await p.click('#pdCancel'); await p.waitForTimeout(150); };
 const closeSettings = (p) => p.click('#cancelSettings');
 const saveSettings = async (p) => { await p.click('#saveSettings'); await p.waitForTimeout(250); };
 const meets = (p) => p.evaluate(() => [...document.querySelectorAll('#meetList .mrow')].map((r) => r.querySelector('.mtitle').textContent + ' | ' + r.querySelector('.mmeta').textContent));
@@ -135,7 +138,7 @@ function run(name, fn) {
     .catch((e) => { console.error('FAILED', e); process.exit(1); });
 }
 
-// 왼쪽 메뉴의 '＋ 새 묶음' → 묶음 만들기 창에 적고 만들기
+// 왼쪽 메뉴의 '＋ 새 폴더' → 폴더 만들기 창에 적고 만들기
 async function newPack(p, name, topic, people) {
   await p.click('#sidePackNew'); await p.waitForTimeout(150);
   await p.fill('#pdName', name);
@@ -201,4 +204,4 @@ function fakeSupabase() {
   return { db, handle, tokenFor };
 }
 
-module.exports = { fakeSupabase, SB, newPack, launch, openApp, speak, toggle, meeting, openSettings, closeSettings, saveSettings, meets, reqs, stored, BASE, run, clickToggle, clickSettings };
+module.exports = { openFolder, closeFolder, fakeSupabase, SB, newPack, launch, openApp, speak, toggle, meeting, openSettings, closeSettings, saveSettings, meets, reqs, stored, BASE, run, clickToggle, clickSettings };

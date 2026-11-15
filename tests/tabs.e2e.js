@@ -1,4 +1,4 @@
-// 탭 구성: 홈(처음 시작하기·최근 회의) · 준비(묶음) · 리포트(찾기) · 표현, 아래 탭 막대와 '회의 시작' 단추, 계정 시트
+// 탭 구성: 홈(처음 시작하기·최근 회의) · 준비(폴더) · 리포트(찾기) · 표현, 아래 탭 막대와 '회의 시작' 단추, 계정 시트
 const assert = require('assert');
 const { openApp, speak, toggle, BASE, run } = require('./helper');
 const PHONE = { context: { viewport: { width: 390, height: 800 } } };
@@ -40,15 +40,15 @@ run('TABS TESTS', async (b) => {
   assert(/계약 초안 검토/.test(await p.textContent('#homeRecent')));
   assert.strictEqual(await p.textContent('#setupCount'), '2/5', '첫 회의를 하면 하나 더');
 
-  // 3) 준비: 묶음 목록, '준비하기'는 그 묶음의 설정을 연다
+  // 3) 준비: 폴더 목록, '준비하기'는 그 폴더 창을 연다
   await p.click('#tabbar button[data-tab="prep"]'); await p.waitForTimeout(300);
   assert.strictEqual(await p.textContent('#pageTitle'), '준비');
   const prow = await p.textContent('#prepList .prow');
   console.log('3 준비:', prow);
-  assert(/기본/.test(prow) && /지금 묶음/.test(prow) && /회의 1건/.test(prow));
+  assert(/기본/.test(prow) && /지금 폴더/.test(prow) && /회의 1건/.test(prow));
   await p.click('#prepList .prow button:has-text("준비하기")'); await p.waitForTimeout(300);
-  assert.strictEqual(await p.evaluate(() => document.getElementById('settings').open), true);
-  await p.fill('#brief', 'A사와 공급 계약 협상'); await p.fill('#terms', 'escrow = 에스크로'); await p.click('#saveSettings'); await p.waitForTimeout(400);
+  assert.strictEqual(await p.evaluate(() => document.getElementById('packDlg').open), true);
+  await p.fill('#pdBrief', 'A사와 공급 계약 협상'); await p.fill('#pdTerms', 'escrow = 에스크로'); await p.click('#pdOk'); await p.waitForTimeout(400);
   assert(/A사와 공급 계약 협상/.test(await p.textContent('#prepList')));
   assert(/용어 1개/.test(await p.textContent('#prepList')));
 

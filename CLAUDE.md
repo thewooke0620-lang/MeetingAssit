@@ -26,23 +26,28 @@
 - 앱 전체가 `index.html` 한 파일이다. 빌드 과정이 없고, 외부 라이브러리를 쓰지 않는다.
 - 음성 인식: Soniox 실시간 API (웹소켓). 번역: Soniox 내장, Claude, Groq 중 선택.
 - API 키는 사용자가 설정 화면에 넣고, 그 브라우저의 localStorage에만 저장된다. 키를 코드나 저장소에 넣지 않는다. (예외: Supabase 공개 키, 아래 참고)
-- 회의 묶음과 회의 기록은 브라우저 IndexedDB에 저장한다. 저장소 접근은 `Store` 객체 한 곳에 모아 두었다.
+- 회의 폴더와 회의 기록은 브라우저 IndexedDB에 저장한다. 저장소 접근은 `Store` 객체 한 곳에 모아 두었다.
 - Supabase 동기화(`Cloud` 객체): 로그인하면 `Store` 의 put·update·del 이 바뀐 것을 표시해 두고 Supabase 표(packs, meetings, 기록을 통째로 JSON)에 올린다. 받을 때는 `StoreRaw` 로 써서 다시 올리지 않는다. 라이브러리 없이 Auth·REST 주소를 fetch 로 부른다. 표·보안 규칙은 `docs/supabase.sql`. 이 앱의 Supabase 프로젝트는 `MeetingAssit`(ref `iqyknmtkbdpsitxwdfia`, 서울)이고, 주소와 공개(publishable) 키는 사용자 결정(2026-11-15)으로 `index.html` 의 `SB_DEFAULT_URL`·`SB_DEFAULT_KEY` 에 넣어 두었다. 공개 키만 예외이며, 비밀(service_role) 키와 Soniox·Claude·Groq 키는 절대 코드에 넣지 않는다. 테스트는 `tests/cloud.e2e.js` 의 가짜 서버로 한다.
 - Soniox가 선택 설정(확정 대기 시간, 번역어 지정, 회의 배경)을 거부하면 그 설정만 빼고 다시 연결한다. 새 선택 설정을 추가할 때도 같은 방식으로 한다.
 
 ## 사용자 등록·내 목소리·회의 정보
-- 사용자 등록 창(`#onboard`, `openOnboard(단계)`): 이름 → API 키 → Supabase 계정 → 목소리 → 첫 묶음. 키가 없고 `settings.onboarded` 가 아니면 처음에 저절로 뜬다. 테스트의 BASE 는 `onboarded: true`.
-- 프로필(이름, 부르는 이름, 내 정보, 목소리)은 localStorage `meetingassit.profile.v1`. Supabase 에는 packs 표의 id `__profile__` 줄로 올리고 받는다 (묶음 목록에는 넣지 않는다). API 키는 넣지 않는다.
+- 사용자 등록 창(`#onboard`, `openOnboard(단계)`): 이름 → API 키 → Supabase 계정 → 목소리 → 첫 폴더. 키가 없고 `settings.onboarded` 가 아니면 처음에 저절로 뜬다. 테스트의 BASE 는 `onboarded: true`.
+- 프로필(이름, 부르는 이름, 내 정보, 목소리)은 localStorage `meetingassit.profile.v1`. Supabase 에는 packs 표의 id `__profile__` 줄로 올리고 받는다 (폴더 목록에는 넣지 않는다). API 키는 넣지 않는다.
 - 목소리: 16kHz μ-law, 6초까지. 연결마다 `voicePrefixPcm` 을 맨 앞에 보내고, `mapVoiceTokens`(CORE)가 그 구간 글자·번역을 빼고 같은 화자를 speaker "me" 로 바꾼다. 'PC 소리 + 내 마이크'(source "both")는 워크릿 입력 2에 마이크를 섞고 조각마다 어느 쪽이 컸는지(`log`)로도 나를 고른다.
-- 번역에 넘기는 회의 정보는 `meetInfo()` → `meetingContextText`·`nameTerms`(CORE). 묶음 필드: topic, people(한 줄에 한 명). 회의 기록 필드: topic, people, 줄의 me.
+- 번역에 넘기는 회의 정보는 `meetInfo()` → `meetingContextText`·`nameTerms`(CORE). 폴더 필드: topic, people(한 줄에 한 명). 회의 기록 필드: topic, people, 줄의 me.
 - 실제 목소리로 화자를 잘 가리는지, 앞에 보낸 목소리 때문에 첫 자막이 얼마나 늦는지는 테스트로 알 수 없다 (연결 상태에 '내 목소리를 찾았습니다 (n초)'가 뜬다).
 
 ## 계정 화면·내 지식·소리 보관
-- 계정 시트(`openAcct`): 개인화 수준(`knowledgeLevel`, CORE) → `openKnow()`(#knowDlg, `renderKnow`), 회의 후 자동으로 배우기(`settings.autoLearn`, 계정 시트에만 둠), 목소리, 다시 듣기(`settings.keepAudio`), 앱을 나가도 계속 기록(`settings.bgKeep`).
-- 프로필 지식 필드: me(하는 일, settings.me 와 같이), style, terms(고유 용어, 묶음 용어집과 `mergeTermsText` 로 합쳐 번역·Soniox 에 씀), learned, kAt. 배우기는 `learnMeetings`·`importKnowledge`(AI 요청에 `<learn>` 표시, 테스트 가짜 응답 kind 'learn'). 회의 정리 뒤 `autoLearnAfter`.
+- 계정 시트(`openAcct`): 개인화 수준(`knowledgeLevel`, CORE) → `openKnow()`(표현 탭의 '내 지식' #knSec 로 이동, `renderKnow`), 회의 후 자동으로 배우기(`settings.autoLearn`, 계정 시트에만 둠), 목소리, 다시 듣기(`settings.keepAudio`), 앱을 나가도 계속 기록(`settings.bgKeep`).
+- 프로필 지식 필드: me(하는 일, settings.me 와 같이), style, terms(고유 용어, 폴더 용어집과 `mergeTermsText` 로 합쳐 번역·Soniox 에 씀), learned, kAt. 배우기는 `learnMeetings`·`importKnowledge`(AI 요청에 `<learn>` 표시, 테스트 가짜 응답 kind 'learn'). 회의 정리 뒤 `autoLearnAfter`.
 - 소리 보관(`AudioKeep`): IndexedDB 버전 2 의 audio 보관함, 10초 조각. 회의 기록에는 구간 { key, start, type } 만(m.audio). 서버에 올리지 않는다. 다시 듣기는 `playAt`.
 - 안드로이드: `window.MeetingNative.keepRecording(on)` → `android/MeetingService.java`(마이크 포그라운드 서비스). 매니페스트 권한·서비스는 워크플로가 sed 로 넣는다.
 - 가입 확인 링크: `Cloud.fromLink()` 가 주소 뒤 `#access_token=…` 을 받아 로그인. Supabase 의 Site URL·Redirect URLs 에 앱 주소가 있어야 한다 (사용자가 대시보드에서 설정).
+
+## 폴더·설정·뒤로가기
+- 화면에서는 '폴더'라고 부른다 (코드와 저장소 이름은 예전대로 pack). 폴더 내용(이름·주제·참여자·배경·용어집·쌓인 내용·질문)과 그 폴더의 지난 회의(#meetList)는 폴더 창(#packDlg, `openPackDlg`·`openPackEditor`)에서만 고친다. 설정에는 계정·API·그 외 설정·백업만 둔다.
+- 뒤로가기(`Nav`, `navPush`): 탭을 바꾸거나 창(dialog)을 열 때 history 에 기록하고, popstate 에서 열린 창 → 폰 왼쪽 메뉴 → 이전 탭 순으로 되돌린다. 단추로 닫은 창은 기록을 하나 지운다. 안드로이드 앱은 MainActivity 의 뒤로 단추가 웹 기록을 되돌리고, 더 없으면 앱을 뒤로 보낸다(끄지 않음).
+- 폰 시작 화면의 '회의 시작'(#fab)은 아래 탭 막대 가운데에 있다 (내용을 가리지 않게).
 
 ## 데스크톱 앱 (desktop/)
 - Electron 껍데기다. 화면은 GitHub Pages의 웹 앱 주소를 불러온다(`desktop/main.js` 의 `APP_URL`). 웹을 배포하면 exe에도 반영된다.

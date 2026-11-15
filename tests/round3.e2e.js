@@ -37,7 +37,7 @@ run('ROUND3 TESTS', async (b) => {
   assert.strictEqual(blk.en, 'We opened the escrow account yesterday.');
   assert.strictEqual(blk.ko, '번역[We opened the]', '고친 문장으로 다시 번역');
   assert(/escrow = 에스크로/.test(await p.evaluate(() => settings.terms)), '용어집(설정)에 들어감');
-  assert(/escrow = 에스크로/.test(await p.evaluate(async () => (await Store.all('packs'))[0].terms)), '묶음 용어집에 들어감');
+  assert(/escrow = 에스크로/.test(await p.evaluate(async () => (await Store.all('packs'))[0].terms)), '폴더 용어집에 들어감');
   assert(/용어집에 'escrow = 에스크로'/.test(await p.textContent('#banner')));
   // 이미 용어집에 있는 말이면 다시 묻지 않는다
   await answers(p, ['We opened the escrow account today.'], true);

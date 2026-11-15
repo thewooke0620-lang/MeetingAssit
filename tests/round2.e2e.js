@@ -1,4 +1,4 @@
-const { clickSettings } = require('./helper');   // 설정 열기 (폰 화면이면 계정 단추로)
+const { clickSettings, openFolder } = require('./helper');   // 설정 열기 (폰 화면이면 계정 단추로)
 // 2차 개선: 기능별 AI 고르기, 나에게 온 질문 알아채기, 강조 표시, 중요 표시, 원문 이동, 내용이 바뀌면 정리 갱신,
 // 키 보관 선택, 버전 표시와 새 버전 알림, 백업에서 되살리기. 실제 API 는 부르지 않는다
 const assert = require('assert');
@@ -70,7 +70,7 @@ run('ROUND2 TESTS', async (b) => {
   });
   assert.strictEqual(await p.evaluate(async () => digestStale((await Store.all('meetings'))[0])), true);
   await p.evaluate(() => { window.MOCK.digestDelay = 3000; });
-  await clickSettings(p); await p.waitForTimeout(300);
+  await openFolder(p);
   await p.click('#meetList .mrow button:has-text("열기")'); await p.waitForTimeout(200);
   assert(/정리하는 중/.test(await p.textContent('#mvBody')), '바뀐 내용으로 다시 정리');
   await p.context().close();

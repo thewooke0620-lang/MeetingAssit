@@ -1,6 +1,6 @@
-// 답변 제안: 질문 자동 감지, 한국어 → 영어 표현, 묶음에 쌓인 내용 활용
+// 답변 제안: 질문 자동 감지, 한국어 → 영어 표현, 폴더에 쌓인 내용 활용
 const assert = require('assert');
-const { openApp, speak, toggle, openSettings, saveSettings, reqs, stored, BASE, run } = require('./helper');
+const { openApp, speak, toggle, openSettings, saveSettings, reqs, stored, BASE, run, openFolder } = require('./helper');
 const panel = (p) => p.evaluate(() => ({
   shown: getComputedStyle(document.getElementById('assist')).display !== 'none',
   head: (document.querySelector('#asBody .as-q') || {}).innerText || '',
@@ -15,14 +15,14 @@ run('ASSIST TESTS', async (b) => {
   assert.strictEqual((await panel(p)).shown, false);
   await p.context().close();
 
-  // 2) 질문이 들리면 자동으로 제안한다. 내 정보와 묶음에 쌓인 내용이 함께 전달된다
+  // 2) 질문이 들리면 자동으로 제안한다. 내 정보와 폴더에 쌓인 내용이 함께 전달된다
   p = await openApp(b, Object.assign({}, BASE, { brief: 'A사 공급 계약', me: '구매팀 과장' }));
   // 시작 화면에서는 답변 제안 칸을 숨기고, 회의를 시작하면 보인다
   let s = await panel(p);
   assert(!s.shown && /상대가 질문하면/.test(s.text));
-  await openSettings(p);
-  await p.fill('#packFacts', '납기는 발주 후 6주다.'); await p.fill('#packQa', 'Q: lead time?\nA: 6주입니다');
-  await saveSettings(p);
+  await openFolder(p);
+  await p.fill('#pdFacts', '납기는 발주 후 6주다.'); await p.fill('#pdQa', 'Q: lead time?\nA: 6주입니다');
+  await p.click('#pdOk'); await p.waitForTimeout(300);
   await toggle(p);
   assert((await panel(p)).shown, '회의 중에는 답변 제안 칸이 보임');
   await speak(p, "We reviewed the draft agreement over the weekend.");

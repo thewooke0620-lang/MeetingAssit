@@ -27,7 +27,9 @@ run('KNOWLEDGE TESTS', async (b) => {
   await p.click('#acctBody input[aria-label="회의 기록에서 다시 듣기"]'); await p.waitForTimeout(100);
   assert.strictEqual(await p.evaluate(() => settings.keepAudio), true);
   await p.click('#acctBody button.btn.wide'); await p.waitForTimeout(400);
-  assert.strictEqual(await p.evaluate(() => document.getElementById('knowDlg').open), true, '개인화 관리하기 → 내 지식');
+  await p.waitForTimeout(300);
+  assert.strictEqual(await p.evaluate(() => curTab), 'words', '개인화 관리하기 → 표현 탭의 내 지식');
+  assert.strictEqual(await p.evaluate(() => document.getElementById('acctSheet').open), false);
 
   // 2) 내 지식: 고유 용어 등록 → 받아 적기·번역에 쓰임
   const kn = await p.textContent('#knBody');
@@ -65,7 +67,7 @@ run('KNOWLEDGE TESTS', async (b) => {
   assert(/role mapping = 역할 매핑/.test(await p.evaluate(() => profile.terms)));
 
   // 4) 번역 지시와 Soniox 용어에 내 고유 용어가 들어간다
-  await p.click('#knBack'); await p.waitForTimeout(200);
+  await p.evaluate(() => showTab('home')); await p.waitForTimeout(200);
   await toggle(p); await p.waitForTimeout(300);
   const cfg = await p.evaluate(() => window.CFG[window.CFG.length - 1]);
   assert(cfg.context.terms.includes('Position Management') && cfg.context.terms.includes('Employee Central'));
@@ -110,12 +112,12 @@ run('KNOWLEDGE TESTS', async (b) => {
   assert(lv.level >= 3);
   // 초기화: 이름은 남김
 
-  await p.evaluate(() => openKnow()); await p.waitForTimeout(300);
+  await p.evaluate(() => openKnow()); await p.waitForTimeout(800);
   await p.click('#knBody .btn.danger'); await p.waitForTimeout(300);
   assert.deepStrictEqual(await p.evaluate(() => [profile.name, settings.me, profile.style, profile.terms, (profile.learned || []).length]), ['김민수', '', '', '', 0]);
-  await p.click('#knBack');
 
   // 7) 안드로이드 앱 연결: 회의 중에는 '앱을 나가도 계속 듣기'를 켜고, 정지하면 끈다
+  await p.evaluate(() => showTab('home')); await p.waitForTimeout(200);
   await p.evaluate(() => { window.NCALLS = []; window.MeetingNative = { keepRecording: (on) => window.NCALLS.push(on) }; });
   await toggle(p); await p.waitForTimeout(300); await toggle(p); await p.waitForTimeout(500);
   assert.deepStrictEqual(await p.evaluate(() => window.NCALLS), [true, false]);

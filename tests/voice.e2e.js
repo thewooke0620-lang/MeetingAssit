@@ -1,4 +1,4 @@
-// 사용자 등록(이름·API 키·계정·목소리·첫 묶음), 이번 회의 주제·참여자, 번역에 넘기는 회의 정보, 내 목소리로 '나' 구분, 프로필 동기화
+// 사용자 등록(이름·API 키·계정·목소리·첫 폴더), 이번 회의 주제·참여자, 번역에 넘기는 회의 정보, 내 목소리로 '나' 구분, 프로필 동기화
 // 실제 Soniox·Claude·Supabase 는 부르지 않는다 (가짜 응답). 녹음은 크로미움의 가짜 마이크(삐 소리)로 한다
 // 그래서 실제 목소리로 화자를 잘 가리는지는 이 테스트로 알 수 없다
 const assert = require('assert');
@@ -49,7 +49,7 @@ run('VOICE TESTS', async (b) => {
   assert.strictEqual(await p.isEnabled('#obPlay'), true);
   await p.click('#obNext'); await p.waitForTimeout(200);
   assert.strictEqual(await p.evaluate(() => hasVoice()), true, '목소리 저장');
-  // 5) 첫 묶음: 비어 있던 '기본' 묶음을 이 내용으로 채운다
+  // 5) 첫 폴더: 비어 있던 '기본' 폴더를 이 내용으로 채운다
   await p.fill('#obPackName', '현대차 HR'); await p.fill('#obPackTopic', 'EC 설계'); await p.fill('#obPackPeople', 'John Smith (SAP 아키텍트)\nEmily Park (고객사 HR)');
   await p.click('#obNext'); await p.waitForTimeout(500);
   assert.strictEqual(await p.evaluate(() => document.getElementById('onboard').open), false);
@@ -64,10 +64,10 @@ run('VOICE TESTS', async (b) => {
   const prow = [...sb.db.rows.packs.values()].find((r) => r.id === '__profile__');
   assert(prow && prow.data.name === '김민수' && prow.data.voice && prow.data.voice.mu.length > 1000, '프로필이 서버에');
   assert(!/"k"|ck/.test(JSON.stringify(prow.data).replace(/"mu":"[^"]*"/, '')), '키는 올리지 않음');
-  // 처음 시작하기: 키, 이름·목소리, 계정, 묶음 = 4/5
+  // 처음 시작하기: 키, 이름·목소리, 계정, 폴더 = 4/5
   assert.strictEqual(await p.textContent('#setupCount'), '4/5');
 
-  // 6) 이번 회의 주제·참여자 (묶음의 참여자는 눌러서 고름)
+  // 6) 이번 회의 주제·참여자 (폴더의 참여자는 눌러서 고름)
   await p.fill('#meetTopic', '역할 매핑 검토');
   const chips = await p.$$eval('#peopleChips .chip', (n) => n.map((x) => x.textContent));
   assert.deepStrictEqual(chips, ['John Smith', 'Emily Park']);
@@ -124,7 +124,7 @@ run('VOICE TESTS', async (b) => {
   p.answer = '나';
   await p.click('#transcript .block:nth-child(2) .spk'); await p.waitForTimeout(300);
   await toggle(p); await p.waitForTimeout(2500);
-  // 8) 회의 기록에 주제·참여자·내 말 표시, 새 참여자는 묶음에 쌓인다
+  // 8) 회의 기록에 주제·참여자·내 말 표시, 새 참여자는 폴더에 쌓인다
   const m = await p.evaluate(async () => (await Store.all('meetings'))[0]);
   assert.strictEqual(m.topic, '역할 매핑 검토'); assert.strictEqual(m.people, 'John Smith, Tom Baker (SAP PM)');
   assert.deepStrictEqual(m.lines.map((l) => !!l.me), [false, true, true, true]);
@@ -157,15 +157,15 @@ run('VOICE TESTS', async (b) => {
   await toggle(q); await q.waitForTimeout(800);
   await q.context().close();
 
-  // 11) 새 묶음 만들기 창, 설정의 묶음 주제·참여자
+  // 11) 새 폴더 만들기 창, 폴더 고치기 창의 주제·참여자
   const r = await openApp(b, BASE);
   await r.click('#sidePackNew'); await r.waitForTimeout(150);
   await r.click('#pdOk'); await r.waitForTimeout(100);
   assert(/이름을 적어/.test(await r.textContent('#pdMsg')), '이름 없으면 안내');
   await r.fill('#pdName', 'B사'); await r.fill('#pdTopic', '물류 계약'); await r.click('#pdOk'); await r.waitForTimeout(400);
-  await r.click('#openSettings'); await r.waitForTimeout(300);
-  assert.strictEqual(await r.inputValue('#packTopic'), '물류 계약');
-  await r.fill('#packPeople', 'Anna Kim'); await r.click('#saveSettings'); await r.waitForTimeout(300);
+  await r.click('#packPill'); await r.waitForTimeout(300);   // 위쪽 '폴더: B사' → 그 폴더 고치기
+  assert.strictEqual(await r.inputValue('#pdTopic'), '물류 계약');
+  await r.fill('#pdPeople', 'Anna Kim'); await r.click('#pdOk'); await r.waitForTimeout(300);
   assert.strictEqual(await r.evaluate(() => currentPack().people), 'Anna Kim');
   // 키가 이미 있으면 사용자 등록이 저절로 뜨지 않는다. 설정의 '사용자 등록 다시 하기'로 연다
   assert.strictEqual(await r.evaluate(() => document.getElementById('onboard').open), false);

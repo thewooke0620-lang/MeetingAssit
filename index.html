@@ -122,6 +122,9 @@
   .field textarea { min-height: 70px; resize: vertical; }
   .row { display: flex; gap: 8px; align-items: center; }
   .row > * { flex: 1 1 0; }
+  /* 단추 줄은 폭이 모자라면 다음 줄로 넘긴다 (폰에서 단추가 상자 밖으로 삐져나오지 않게) */
+  .row { flex-wrap: wrap; }
+  .row > .btn { flex: 1 1 auto; }
   .check { display: flex; align-items: center; gap: 8px; font-size: 14px; }
   .check input { width: 18px; height: 18px; }
   .cmp { margin-top: 6px; padding-left: 10px; border-left: 2px solid var(--line); }
@@ -227,7 +230,7 @@
     #work > #assist.closed { width: auto; }
   }
 
-  /* 왼쪽 메뉴: 새 회의, 묶음 ▸ 회의 목록(트리), 설정 */
+  /* 왼쪽 메뉴: 새 회의, 폴더 ▸ 회의 목록(트리), 설정 */
   #side { width: 248px; border-right: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; gap: 2px;
     padding: 12px 8px; overflow-y: auto; min-height: 0; }
   body.side-closed #side { display: none; }
@@ -354,7 +357,7 @@
   .setup-list .go { color: var(--muted); }
   .setup-list li.done .go { visibility: hidden; }
 
-  /* 준비: 묶음 목록 */
+  /* 준비: 폴더 목록 */
   .prow { border-top: 1px solid var(--line); padding: 14px 0; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; }
   .prow:last-of-type { border-bottom: 1px solid var(--line); margin-bottom: 14px; }
   .prow .pn { font-size: 16px; font-weight: 700; color: var(--text); }
@@ -402,15 +405,16 @@
   .side-item.nav.on { background: var(--panel2); }
   @media (max-width: 760px) {
     body.idle header#bar { display: none; }
-    body.idle #tabbar { display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; z-index: 30; left: 0; right: 0; bottom: 0;
+    body.idle #tabbar { display: grid; grid-template-columns: 1fr 1fr auto 1fr 1fr; align-items: center; gap: 4px; position: fixed; z-index: 30; left: 0; right: 0; bottom: 0;
       background: var(--panel); border-top: 1px solid var(--line); padding: 6px 6px max(6px, env(safe-area-inset-bottom)); }
     #tabbar button { background: none; border: 0; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 0; font-size: 11.5px; cursor: pointer; border-radius: 12px; }
     #tabbar svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
     #tabbar button.on { color: var(--text); background: var(--panel2); }
-    body.idle #fab { display: inline-flex; align-items: center; gap: 9px; position: fixed; z-index: 31; right: 16px; bottom: calc(76px + env(safe-area-inset-bottom));
-      background: var(--text); color: var(--bg); border: 0; border-radius: 16px; padding: 14px 20px; font-size: 15.5px; font-weight: 800; box-shadow: 0 8px 26px rgba(0,0,0,.45); cursor: pointer; }
+    /* '회의 시작'은 탭 막대 가운데에 둔다 (떠 있는 단추가 내용을 가리지 않게) */
+    body.idle #fab { display: inline-flex; flex-direction: row; align-items: center; justify-content: center; gap: 7px;
+      background: var(--text); color: var(--bg); border: 0; border-radius: 14px; padding: 12px 14px; font-size: 14.5px; font-weight: 800; cursor: pointer; white-space: nowrap; }
     #fab .lamp { background: var(--lamp); box-shadow: none; }
-    body.idle #stage { padding-top: max(18px, env(safe-area-inset-top)); padding-bottom: 170px; }
+    body.idle #stage { padding-top: max(18px, env(safe-area-inset-top)); padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
     body.idle #empty { margin-top: 0; }
     body.idle #homeStart { display: none; }   /* 폰에서는 아래쪽 '회의 시작' 단추를 쓴다 */
   }
@@ -443,6 +447,9 @@
   .block.mine { background: rgba(95,211,160,.07); border-left: 3px solid var(--ok); padding-left: 10px; border-radius: 0 8px 8px 0; }
   .block.mine .ko { opacity: .8; }
   .pv-line.mine { border-left: 3px solid var(--ok); padding-left: 8px; }
+  /* 폴더 창: 새로 만들 때는 쌓인 내용·질문 칸을 숨기고, 저장소를 못 쓰면 배경·용어집만 */
+  #packDlg:not(.editing) .pd-edit { display: none; }
+  #packDlg.nostore .pd-store { display: none; }
   /* 사용자 등록 창 */
   #onboard { width: min(560px, 96vw); }
   .ob-steps { display: flex; gap: 6px; padding: 0 16px 10px; }
@@ -533,7 +540,7 @@
   <span id="status" class="pill">대기</span>
   <span id="timer" class="timer">00:00</span>
   <span id="lat" class="pill" style="display:none" title="눌러서 속도 기록 보기"></span>
-  <span id="packPill" class="pill" style="display:none" title="눌러서 회의 묶음 바꾸기"></span>
+  <span id="packPill" class="pill" style="display:none" title="눌러서 회의 폴더 바꾸기"></span>
   <span id="saveState" class="pill" style="display:none; cursor:pointer"></span>
   <span class="spacer"></span>
   <div class="tools">
@@ -560,9 +567,9 @@
   <button class="side-item nav" type="button" data-tab="report">리포트</button>
   <button class="side-item nav" type="button" data-tab="words">표현</button>
   <button id="sideNow" class="side-item now" type="button" style="display:none">지금 화면의 회의</button>
-  <div class="side-h">회의 묶음</div>
-  <ul id="sideTree" class="tree" role="tree" aria-label="회의 묶음과 회의"></ul>
-  <button id="sidePackNew" class="side-item sub" type="button">＋ 새 묶음</button>
+  <div class="side-h">회의 폴더</div>
+  <ul id="sideTree" class="tree" role="tree" aria-label="회의 폴더와 회의"></ul>
+  <button id="sidePackNew" class="side-item sub" type="button">＋ 새 폴더</button>
   <span class="spacer"></span>
   <button id="sideInstall" class="side-item sub" type="button" style="display:none">⤓ 앱으로 설치</button>
   <button id="sideCloud" class="side-item sub" type="button" title="계정과 동기화">☁ 동기화 꺼짐</button>
@@ -593,7 +600,7 @@
         <h2 class="home-h">새 회의</h2>
         <p class="home-sub" id="homeSub">회의 프로그램을 켠 뒤 시작을 누르세요. 영어로 들리는 말이 한국어 자막으로 이어집니다.</p>
         <div class="home-form">
-          <label class="home-f"><span>회의 묶음</span><select id="homePack"></select></label>
+          <label class="home-f"><span>회의 폴더</span><select id="homePack"></select></label>
           <label class="home-f"><span>들을 소리</span><select id="homeSource"></select></label>
           <label class="home-f wide"><span>이번 회의 주제 (선택)</span><input id="meetTopic" type="text" maxlength="200" autocomplete="off" placeholder="예) 2분기 납기 일정 조정"></label>
           <label class="home-f wide"><span>이번 회의 참여자 (선택, 쉼표로 구분)</span><input id="meetPeople" type="text" maxlength="400" autocomplete="off" placeholder="예) John Smith, Sarah Lee">
@@ -627,9 +634,9 @@
       </section>
 
       <section id="tabPrep" class="pane" data-tab="prep" hidden>
-        <p class="pane-sub">회의 묶음마다 배경, 용어집, 자주 받는 질문을 적어 두면 번역과 답변 제안이 그 회의에 맞춰집니다.</p>
+        <p class="pane-sub">회의 폴더마다 배경, 용어집, 자주 받는 질문을 적어 두면 번역과 답변 제안이 그 회의에 맞춰집니다.</p>
         <div id="prepList"></div>
-        <button id="prepNew" class="btn" type="button">＋ 새 묶음</button>
+        <button id="prepNew" class="btn" type="button">＋ 새 폴더</button>
       </section>
 
       <section id="tabReport" class="pane" data-tab="report" hidden>
@@ -638,7 +645,8 @@
       </section>
 
       <section id="tabWords" class="pane" data-tab="words" hidden>
-        <p class="pane-sub">회의에서 쓸 표현을 모아 봅니다. 용어집과 자주 받는 질문은 '준비'에서, 중요 표시는 회의 중 ☆ 나 B 키로 더합니다.</p>
+        <p class="pane-sub">나에 대해 기억하는 내용과 회의에서 쓸 표현을 모아 봅니다. 폴더의 용어집과 자주 받는 질문은 '준비'에서, 중요 표시는 회의 중 ☆ 나 B 키로 더합니다.</p>
+        <section class="wsec" id="knSec"><h2 class="sec-h">내 지식</h2><div id="knBody"></div></section>
         <div id="wordsBody"></div>
       </section>
     </div>
@@ -666,10 +674,10 @@
 <nav id="tabbar" aria-label="화면 바꾸기">
   <button type="button" data-tab="home" class="on"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5h-5v5H5a1 1 0 0 1-1-1z"/></svg><span>홈</span></button>
   <button type="button" data-tab="prep"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8M7 6h10a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zM9 11h6M9 15h4"/></svg><span>준비</span></button>
+  <button id="fab" type="button" aria-label="회의 시작"><span class="lamp" aria-hidden="true"></span><span>회의 시작</span></button>
   <button type="button" data-tab="report"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10M10 20V5M15 20v-7M20 20V8"/></svg><span>리포트</span></button>
   <button type="button" data-tab="words"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6a2 2 0 0 1 2-2h11v14H7a2 2 0 0 0-2 2zM5 20V6M9 8h5"/></svg><span>표현</span></button>
 </nav>
-<button id="fab" type="button"><span class="lamp" aria-hidden="true"></span>회의 시작</button>
 
 <dialog id="acctSheet" class="sheet" aria-label="계정">
   <div class="grab" aria-hidden="true"></div>
@@ -732,7 +740,7 @@
     </section>
     <section class="ob-step" data-step="2" hidden>
       <h3>계정 만들기 (Supabase)</h3>
-      <p>로그인하면 회의 묶음, 회의 기록, 내 이름과 목소리가 PC·폰·exe 어디서 열어도 같게 맞춰집니다. API 키는 올리지 않습니다.</p>
+      <p>로그인하면 회의 폴더, 회의 기록, 내 이름과 목소리가 PC·폰·exe 어디서 열어도 같게 맞춰집니다. API 키는 올리지 않습니다.</p>
       <div id="obAcctIn">
         <div class="field"><label for="obEmail">이메일</label><input id="obEmail" type="email" autocomplete="username"></div>
         <div class="field"><label for="obPw">비밀번호 (6자 이상)</label><input id="obPw" type="password" autocomplete="current-password" minlength="6"></div>
@@ -750,9 +758,9 @@
       <div id="obVoiceMsg" class="vstate"></div>
     </section>
     <section class="ob-step" data-step="4" hidden>
-      <h3>첫 회의 묶음</h3>
-      <p>회의 종류나 상대별로 묶음을 만듭니다. 주제와 참여자를 적어 두면 이름과 용어를 더 정확하게 받아 적고 번역합니다. 묶음의 회의가 쌓일수록 용어와 내용이 모여 다음 회의 번역에 쓰입니다.</p>
-      <div class="field"><label for="obPackName">묶음 이름</label><input id="obPackName" type="text" maxlength="40" autocomplete="off" placeholder="예) 현대차 HR 시스템 구축"></div>
+      <h3>첫 회의 폴더</h3>
+      <p>회의 종류나 상대별로 폴더를 만듭니다. 주제와 참여자를 적어 두면 이름과 용어를 더 정확하게 받아 적고 번역합니다. 폴더의 회의가 쌓일수록 용어와 내용이 모여 다음 회의 번역에 쓰입니다.</p>
+      <div class="field"><label for="obPackName">폴더 이름</label><input id="obPackName" type="text" maxlength="40" autocomplete="off" placeholder="예) 현대차 HR 시스템 구축"></div>
       <div class="field"><label for="obPackTopic">주제</label><input id="obPackTopic" type="text" maxlength="200" autocomplete="off" placeholder="예) SuccessFactors Employee Central 설계 협의"></div>
       <div class="field"><label for="obPackPeople">자주 만나는 참여자 (한 줄에 한 명)</label><textarea id="obPackPeople" placeholder="John Smith (SAP 아키텍트)&#10;Emily Park (고객사 HR)"></textarea></div>
     </section>
@@ -765,22 +773,27 @@
   </div>
 </dialog>
 
-<dialog id="knowDlg" aria-label="내 지식">
-  <div class="dlg-head"><button id="knBack" class="btn sm" type="button" aria-label="닫기">‹</button><span style="font-size:18px">내 지식</span></div>
-  <div class="dlg-body" id="knBody"></div>
-</dialog>
-
-<dialog id="packDlg" aria-label="새 회의 묶음">
-  <div class="dlg-head">새 회의 묶음</div>
+<dialog id="packDlg" aria-label="회의 폴더">
+  <div class="dlg-head" id="pdTitle">새 회의 폴더</div>
   <div class="dlg-body">
-    <div class="field"><label for="pdName">묶음 이름</label><input id="pdName" type="text" maxlength="40" autocomplete="off" placeholder="예) A사 공급 계약"></div>
-    <div class="field"><label for="pdTopic">주제</label><input id="pdTopic" type="text" maxlength="200" autocomplete="off" placeholder="예) 공급 단가와 납기 협상"></div>
-    <div class="field"><label for="pdPeople">자주 만나는 참여자 (한 줄에 한 명, 선택)</label><textarea id="pdPeople" placeholder="John Smith (구매팀장)&#10;Sarah Lee (법무)"></textarea></div>
-    <div class="field"><label for="pdBrief">회의 배경 (선택)</label><textarea id="pdBrief" maxlength="1500" placeholder="예) 작년 계약 갱신. 납기와 위약금이 쟁점."></textarea>
-      <div class="hint">용어집과 자주 받는 질문은 만든 뒤 '준비'에서 더 적을 수 있습니다.</div></div>
+    <div class="field pd-store"><label for="pdName">폴더 이름</label><input id="pdName" type="text" maxlength="40" autocomplete="off" placeholder="예) A사 공급 계약"></div>
+    <div class="field pd-store"><label for="pdTopic">주제</label><input id="pdTopic" type="text" maxlength="200" autocomplete="off" placeholder="예) 공급 단가와 납기 협상">
+      <div class="hint">이 폴더의 회의가 다루는 주제입니다. 뜻이 여러 개인 말을 이 주제에 맞게 번역합니다.</div></div>
+    <div class="field pd-store"><label for="pdPeople">자주 만나는 참여자 (한 줄에 한 명)</label><textarea id="pdPeople" placeholder="John Smith (구매팀장)&#10;Sarah Lee (법무)"></textarea>
+      <div class="hint">이름을 정확하게 받아 적고, 회의 시작 화면에서 눌러서 고를 수 있습니다. 회의에서 새 참여자를 적으면 여기에 쌓입니다.</div></div>
+    <div class="field"><label for="pdBrief">회의 배경</label><textarea id="pdBrief" maxlength="1500" placeholder="예) 작년 계약 갱신. 납기와 위약금이 쟁점."></textarea></div>
+    <div class="field"><label for="pdTerms">용어집</label><textarea id="pdTerms" placeholder="한 줄에 하나씩 적어 주세요.&#10;Acme Corp&#10;escrow = 에스크로"></textarea>
+      <div class="hint">등록한 단어는 더 정확하게 받아 적습니다. <b>영어 = 한국어</b>로 적으면 번역할 때 항상 그 표현을 씁니다. 이름처럼 그대로 둘 단어는 영어만 적어 주세요.</div></div>
+    <div class="field pd-store pd-edit"><label for="pdFacts">쌓인 내용</label><textarea id="pdFacts" placeholder="이 폴더의 회의에서 기억해 둘 내용을 한 줄에 하나씩.&#10;예) 납기는 발주 후 6주"></textarea>
+      <div class="hint">답변 제안에 쓰입니다. 회의가 끝난 뒤 '회의 정리'에서 고른 항목이 여기에 쌓입니다.</div></div>
+    <div class="field pd-store pd-edit"><label for="pdQa">자주 받는 질문과 내 답변</label><textarea id="pdQa" placeholder="Q: What is your delivery lead time?&#10;A: 발주 후 6주입니다."></textarea>
+      <div class="hint">비슷한 질문이 나오면 이 답변을 바탕으로 영어 답변을 제안합니다. 답은 한국어로 적어도 됩니다.</div></div>
+    <div class="field pd-store pd-edit"><label>이 폴더의 지난 회의</label><div id="meetList" class="meetlist"></div>
+      <div class="hint">'열기'를 누르면 요약과 전체 기록을 보고, 제목을 고치거나 파일로 내려받을 수 있습니다.</div></div>
     <div id="pdMsg" class="ob-msg bad"></div>
   </div>
   <div class="dlg-foot">
+    <button id="pdDel" class="btn danger" type="button" style="margin-right:auto">삭제</button>
     <button id="pdCancel" class="btn" type="button">취소</button>
     <button id="pdOk" class="btn primary" type="button">만들기</button>
   </div>
@@ -802,7 +815,7 @@
     <div class="packbox" id="cloudBox">
       <div class="field">
         <label>계정과 동기화 (Supabase)</label>
-        <div id="cloudState" class="hint" style="margin-top:0">로그인하면 회의 묶음과 기록을 Supabase에 저장하고, exe·브라우저·폰 어디서 열어도 같은 기록을 봅니다. API 키는 올리지 않습니다.</div>
+        <div id="cloudState" class="hint" style="margin-top:0">로그인하면 회의 폴더와 기록을 Supabase에 저장하고, exe·브라우저·폰 어디서 열어도 같은 기록을 봅니다. API 키는 올리지 않습니다.</div>
       </div>
       <details id="cloudCfg" class="hint">
         <summary>다른 Supabase 프로젝트 쓰기 (보통은 비워 둡니다)</summary>
@@ -831,62 +844,15 @@
       <div id="cloudMsg" class="hint"></div>
     </div>
     <div class="packbox" id="packBox">
+      <div class="field"><label>회의 기록</label></div>
       <div class="field packonly">
-        <label for="packSel">회의 묶음</label>
-        <div class="row">
-          <select id="packSel" style="flex:3 1 0"></select>
-          <button id="packNew" class="btn" type="button">새 묶음</button>
-          <button id="packDel" class="btn" type="button">삭제</button>
-        </div>
-        <div class="hint">회의 종류나 상대별로 묶음을 만들어 두면 회의 배경, 용어집, 지난 회의 기록이 묶음마다 따로 보관됩니다. 회의 전에 묶음만 고르면 됩니다.</div>
-      </div>
-      <div class="field packonly">
-        <label for="packName">묶음 이름</label>
-        <input id="packName" type="text" maxlength="40" autocomplete="off">
-      </div>
-      <div class="field packonly">
-        <label for="packTopic">묶음 주제</label>
-        <input id="packTopic" type="text" maxlength="200" autocomplete="off" placeholder="예) A사 공급 계약 협상">
-        <div class="hint">이 묶음의 회의가 다루는 주제입니다. 번역할 때 뜻이 여러 개인 말을 이 주제에 맞게 고릅니다.</div>
-      </div>
-      <div class="field packonly">
-        <label for="packPeople">자주 만나는 참여자</label>
-        <textarea id="packPeople" placeholder="한 줄에 한 명씩 적어 주세요.&#10;John Smith (Acme 구매팀장)&#10;Sarah Lee (Acme 법무)"></textarea>
-        <div class="hint">이름을 정확하게 받아 적고, 회의 시작 화면에서 눌러서 참여자로 고를 수 있습니다. 회의에서 새 참여자를 적으면 여기에 쌓입니다.</div>
-      </div>
-      <div class="field">
-        <label for="brief">회의 배경 (선택)</label>
-        <textarea id="brief" maxlength="1500" placeholder="예) A사와 공급 계약 조건 협의. 상대는 구매팀 John, 법무팀 Sarah. 납기와 위약금이 쟁점."></textarea>
-        <div class="hint">회의 주제, 참석자, 쟁점을 적어 두면 뜻이 여러 개인 단어를 상황에 맞게 번역합니다.</div>
-      </div>
-      <div class="field">
-        <label for="terms">용어집 (선택)</label>
-        <textarea id="terms" placeholder="한 줄에 하나씩 적어 주세요.&#10;Acme Corp&#10;escrow = 에스크로&#10;term sheet = 주요 조건서"></textarea>
-        <div class="hint">등록한 단어는 더 정확하게 받아 적습니다. <b>영어 = 한국어</b>로 적으면 번역할 때 항상 그 표현을 씁니다. 회사명이나 사람 이름처럼 그대로 둘 단어는 영어만 적어 주세요.</div>
-      </div>
-      <div class="field packonly">
-        <label for="packFacts">쌓인 내용 (선택)</label>
-        <textarea id="packFacts" placeholder="이 묶음의 회의에서 기억해 둘 내용을 한 줄에 하나씩 적습니다.&#10;예) 납기는 발주 후 6주&#10;예) 상대는 연 5% 인상 상한을 요구함"></textarea>
-        <div class="hint">답변 제안에 쓰입니다. 회의가 끝난 뒤 '회의 정리'에서 고른 항목이 여기에 추가되고, 직접 고칠 수도 있습니다.</div>
-      </div>
-      <div class="field packonly">
-        <label for="packQa">자주 받는 질문과 내 답변 (선택)</label>
-        <textarea id="packQa" placeholder="Q: What is your delivery lead time?&#10;A: 발주 후 6주입니다. 급한 건은 4주까지 협의 가능합니다."></textarea>
-        <div class="hint">비슷한 질문이 나오면 이 답변을 바탕으로 영어 답변을 제안합니다. 답은 한국어로 적어도 됩니다.</div>
-      </div>
-      <div class="field packonly">
-        <label class="check"><input id="autoSave" type="checkbox"> 회의 기록을 고른 묶음에 자동 저장</label>
+        <label class="check"><input id="autoSave" type="checkbox"> 회의 기록을 고른 폴더에 자동 저장</label>
         <div class="hint">회의 중에는 30초마다, 그리고 정지할 때 영어 원문과 번역이 이 브라우저에 저장됩니다. 소리는 저장하지 않습니다. 남기면 안 되는 회의는 꺼 주세요.</div>
       </div>
       <div class="field packonly">
         <label class="check"><input id="openAfterStop" type="checkbox"> 정지하면 회의 정리 화면 열기</label>
         <label class="check"><input id="autoDigest" type="checkbox"> 정지하면 제목과 회의 정리를 자동으로 작성</label>
         <div class="hint">회의 내용 전체를 AI(Claude 또는 Groq)에 한 번 보내 제목, 요약, 결정 사항, 할 일, 새 용어, 받은 질문을 뽑습니다. 꺼 두면 '열기'나 '회의 정리'를 누를 때만 만듭니다. 번역 방식이 Soniox 내장이어도 저장해 둔 키가 있으면 그 키를 씁니다.</div>
-      </div>
-      <div class="field packonly">
-        <label>이 묶음의 지난 회의</label>
-        <div id="meetList" class="meetlist"></div>
-        <div class="hint">'열기'를 누르면 요약과 전체 기록을 보고, 제목을 고치거나 파일로 내려받을 수 있습니다.</div>
       </div>
       <div class="field packonly">
         <label>백업</label>
@@ -896,10 +862,10 @@
           <input id="packFile" type="file" accept=".json,application/json" hidden>
         </div>
         <div class="hint" id="backupInfo"></div>
-        <div class="hint" id="packMsg">묶음과 회의 기록은 이 브라우저에만 저장됩니다. 브라우저 기록을 지우거나 다른 컴퓨터를 쓰면 보이지 않으니, 가끔 내보내기로 파일에 보관해 주세요. API 키는 백업 파일에 들어가지 않습니다.</div>
+        <div class="hint" id="packMsg">폴더와 회의 기록은 이 브라우저에만 저장됩니다. 브라우저 기록을 지우거나 다른 컴퓨터를 쓰면 보이지 않으니, 가끔 내보내기로 파일에 보관해 주세요. API 키는 백업 파일에 들어가지 않습니다.</div>
       </div>
       <div class="field nostoreonly">
-        <div class="hint">이 브라우저 창에서는 묶음과 회의 기록을 저장할 수 없습니다 (시크릿 창이거나 저장소가 막혀 있음). 회의 배경과 용어집은 그대로 쓸 수 있습니다.</div>
+        <div class="hint">이 브라우저 창에서는 폴더와 회의 기록을 저장할 수 없습니다 (시크릿 창이거나 저장소가 막혀 있음). 회의 배경과 용어집은 '준비'에서 적으면 이 창에서 쓸 수 있습니다.</div>
       </div>
     </div>
     <div class="field">
@@ -1058,7 +1024,7 @@
       <div class="field">
         <label for="me">내 정보 (선택)</label>
         <textarea id="me" maxlength="1500" placeholder="예) 구매팀 과장. 공급 계약 실무 담당. 가격 결정 권한은 팀장에게 있음."></textarea>
-        <div class="hint">소속, 역할, 권한을 적어 두면 내 입장에 맞는 답변을 제안합니다. 모든 묶음에 공통으로 쓰입니다.</div>
+        <div class="hint">소속, 역할, 권한을 적어 두면 내 입장에 맞는 답변을 제안합니다. 모든 폴더에 공통으로 쓰입니다.</div>
       </div>
       <div class="field">
         <label for="myNames">회의에서 나를 부르는 이름 (선택)</label>
@@ -1515,7 +1481,7 @@ function termCandidate(before, after) {
 }
 
 // ---- 참여자 목록 ----
-// "John Smith (Acme 구매팀장)" 처럼 적은 줄에서 이름과 설명을 나눈다. 회의 시작 화면은 쉼표로, 묶음은 줄로 구분한다
+// "John Smith (Acme 구매팀장)" 처럼 적은 줄에서 이름과 설명을 나눈다. 회의 시작 화면은 쉼표로, 폴더는 줄로 구분한다
 // 괄호 안의 쉼표에서는 나누지 않는다
 function splitPeople(raw) {
   const out = [];
@@ -1541,7 +1507,7 @@ function parsePeople(raw) {
   }
   return out;
 }
-// 묶음의 참여자 목록에 새 사람을 더한다 (이미 있는 이름은 그대로 둔다). 바뀌지 않았으면 원래 글을 돌려준다
+// 폴더의 참여자 목록에 새 사람을 더한다 (이미 있는 이름은 그대로 둔다). 바뀌지 않았으면 원래 글을 돌려준다
 function mergePeople(packRaw, addRaw) {
   const have = parsePeople(packRaw), names = new Set(have.map((p) => p.name.toLowerCase()));
   const add = parsePeople(addRaw).filter((p) => !names.has(p.name.toLowerCase()));
@@ -1550,10 +1516,10 @@ function mergePeople(packRaw, addRaw) {
   return (base ? base + "\n" : "") + add.map((p) => p.name + (p.note ? " (" + p.note + ")" : "")).join("\n");
 }
 
-// ---- 번역에 쓸 회의 정보: 묶음 주제·참여자·배경·쌓인 내용 + 이번 회의 주제·참여자 ----
+// ---- 번역에 쓸 회의 정보: 폴더 주제·참여자·배경·쌓인 내용 + 이번 회의 주제·참여자 ----
 // info: { packName, packTopic, topic, people(글), packPeople(글), brief, facts, myName, myNames }
 function peopleForMeeting(info) {
-  // 이번 회의 참여자를 먼저, 그다음 묶음의 참여자 (설명은 이번 회의 것이 없으면 묶음 것을 쓴다)
+  // 이번 회의 참여자를 먼저, 그다음 폴더의 참여자 (설명은 이번 회의 것이 없으면 폴더 것을 쓴다)
   const now = parsePeople(info.people), base = parsePeople(info.packPeople);
   const byName = new Map(base.map((p) => [p.name.toLowerCase(), p]));
   const list = now.map((p) => (p.note ? p : (byName.get(p.name.toLowerCase()) || p)));
@@ -1750,7 +1716,7 @@ function relabelVoice(core, sock, v) {
 // ---------------------------------------------------------------------------
 const WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 // 앱 버전: 고칠 때마다 올린다. 설정 창 아래에 보이고, 새 버전이 올라왔는지 확인할 때 쓴다
-const APP_VERSION = "2026.11.16-2";
+const APP_VERSION = "2026.11.16-3";
 const STORE_KEY = "meeting-interpreter.settings.v1";
 const DEFAULTS = {
   apiKey: "", hint: "en", target: "ko", terms: "", fontSize: "18",
@@ -1806,7 +1772,7 @@ const core = createCore();
 // { name, myNames, me(지금 하는 일), style(말투), terms(고유 용어, "영어 = 한국어" 줄), learned(배운 회의 id), kAt(칸별 고친 때),
 //   voice: { rate, secs, mu(μ-law base64), at }, updatedAt }
 const PROFILE_KEY = "meetingassit.profile.v1";
-const PROFILE_ID = "__profile__";   // Supabase packs 표에서 프로필을 담는 줄의 id (묶음 목록에는 보이지 않는다)
+const PROFILE_ID = "__profile__";   // Supabase packs 표에서 프로필을 담는 줄의 id (폴더 목록에는 보이지 않는다)
 function loadProfile() {
   try { return Object.assign({ name: "", voice: null, updatedAt: 0 }, JSON.parse(localStorage.getItem(PROFILE_KEY) || "{}") || {}); }
   catch (e) { return { name: "", voice: null, updatedAt: 0 }; }
@@ -2087,7 +2053,7 @@ async function editBlock(b) {
   await offerTerm(before, fixed);
 }
 
-// 고친 낱말을 지금 묶음의 용어집에 넣을지 묻는다
+// 고친 낱말을 지금 폴더의 용어집에 넣을지 묻는다
 async function offerTerm(before, after) {
   const term = termCandidate(before, after);
   if (!term) return;
@@ -2294,7 +2260,7 @@ const FATAL_CODES = [400, 401, 402, 403, 429];
 const EP_DELAY_MS = 1000;
 const BRIEF_MAX = 1500;       // 회의 배경 최대 글자 수
 
-// 번역에 쓸 회의 정보: 고른 묶음(주제·참여자·배경·쌓인 내용)과 이번 회의(주제·참여자), 내 이름
+// 번역에 쓸 회의 정보: 고른 폴더(주제·참여자·배경·쌓인 내용)과 이번 회의(주제·참여자), 내 이름
 // 회의 중에는 시작할 때 적어 둔 이번 회의 주제·참여자(R.mtopic, R.mpeople)를 쓴다
 function meetInfo() {
   const p = currentPack();
@@ -2322,13 +2288,13 @@ function buildConfig() {
   if (settings.target && settings.target !== "none" && (!isLLM() || settings.preview !== false || settings.compare)) {
     cfg.translation = { type: "one_way", target_language: settings.target };
   }
-  const terms = mergeTermsText(settings.terms, profile.terms), info = meetInfo();   // 묶음 용어집 + 내 고유 용어
+  const terms = mergeTermsText(settings.terms, profile.terms), info = meetInfo();   // 폴더 용어집 + 내 고유 용어
   const ctx = {};
   // 용어집 + 참여자·내 이름 (이름을 정확하게 받아 적게)
   const words = terms.map((t) => t.src);
   for (const n of nameTerms(info)) if (!words.some((w) => w.toLowerCase() === n.toLowerCase())) words.push(n);
   if (words.length) ctx.terms = words;
-  // 번역어 지정과 회의 배경(묶음 주제·참여자·배경·쌓인 내용, 이번 회의 주제). 거부되면 빼고 다시 연결한다
+  // 번역어 지정과 회의 배경(폴더 주제·참여자·배경·쌓인 내용, 이번 회의 주제). 거부되면 빼고 다시 연결한다
   if (!R.noCtxExtra) {
     const pairs = terms.filter((t) => t.dst).map((t) => ({ source: t.src, target: t.dst }));
     if (pairs.length && cfg.translation) ctx.translation_terms = pairs;
@@ -3114,7 +3080,7 @@ async function start() {
   if (settings.engine === "groq" && settings.target !== "none" && !(settings.groqKey || "").trim()) {
     openSettingsDialog(); showBanner("번역 방식이 Groq으로 되어 있습니다. 설정에서 Groq API 키를 입력해 주세요.", true); return;
   }
-  // 새 회의면 이번 회의 주제·참여자를 정해 두고, 새 참여자는 묶음의 참여자 목록에 더한다
+  // 새 회의면 이번 회의 주제·참여자를 정해 두고, 새 참여자는 폴더의 참여자 목록에 더한다
   if (!R.meetingId) {
     R.mtopic = (settings.meetTopic || "").trim().slice(0, 200); R.mpeople = (settings.meetPeople || "").trim().slice(0, 400);
     addPeopleToPack(R.mpeople);
@@ -3266,7 +3232,7 @@ el.source.addEventListener("change", () => { settings.source = el.source.value; 
 
 el.clear.addEventListener("click", async () => {
   const kept = Store.ok && settings.autoSave !== false && !R.noSave;
-  if (core.blocks.length && !window.confirm(kept ? "화면의 기록을 모두 지울까요?\n(지금까지의 기록은 회의 묶음에 저장해 둡니다.)" : "화면의 기록을 모두 지울까요?")) return;
+  if (core.blocks.length && !window.confirm(kept ? "화면의 기록을 모두 지울까요?\n(지금까지의 기록은 회의 폴더에 저장해 둡니다.)" : "화면의 기록을 모두 지울까요?")) return;
   const prevMeeting = R.meetingId;
   await saveMeeting();
   if (prevMeeting) autoDigest(prevMeeting);      // 정지 없이 지운 회의에도 제목과 정리를 붙인다
@@ -3330,7 +3296,7 @@ el.pip.addEventListener("click", async () => {
 });
 
 // ---------------------------------------------------------------------------
-// 회의 묶음과 회의 기록
+// 회의 폴더와 회의 기록
 // 저장소는 Store 뒤에 둔다. 지금은 브라우저의 IndexedDB 이고, 설치형 앱으로 옮길 때는 이 객체만 바꾸면 된다
 // ---------------------------------------------------------------------------
 const Store = {
@@ -3626,7 +3592,7 @@ const Cloud = {
     return changed;
   },
   // 처음 이 기기에서 로그인했을 때: 서버 것을 먼저 받고, 이 기기에만 있던 기록을 올린다
-  // 이 기기의 빈 "기본" 묶음은 서버에 묶음이 있으면 버린다 (기본 묶음이 둘이 되지 않게)
+  // 이 기기의 빈 "기본" 폴더는 서버에 폴더가 있으면 버린다 (기본 폴더가 둘이 되지 않게)
   async firstSync() {
     if (this.cursor()) return this.sync();
     // 이 기기의 기록이 다른 계정으로 동기화되던 것이면 새 계정에 올리지 않는다 (같은 PC를 다른 사람이 쓸 때)
@@ -3704,7 +3670,7 @@ function renderCloud() {
   $("cloudLogin").style.display = on ? "none" : "";
   $("cloudUser").style.display = on ? "" : "none";
   const pend = Object.keys(Cloud.outbox()).length;
-  if (!on) st.textContent = "로그인하면 이 기기의 회의 묶음과 기록을 Supabase에 올리고, 같은 계정의 다른 기기와 맞춥니다.";
+  if (!on) st.textContent = "로그인하면 이 기기의 회의 폴더와 기록을 Supabase에 올리고, 같은 계정의 다른 기기와 맞춥니다.";
   else st.textContent = Cloud.session.user.email + " 로그인됨 · " + (Cloud.busy ? "동기화 중…" : Cloud.lastOk ? "마지막 동기화 " + new Date(Cloud.lastOk).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "아직 동기화 전") +
     (pend ? " · 올릴 것 " + pend + "건" : "");
   $("cloudMsg").textContent = Cloud.err;
@@ -3718,7 +3684,6 @@ function renderCloud() {
 }
 
 let packs = [];                 // { id, name, brief, terms, createdAt, updatedAt }
-let dlgPacks = [], dlgSel = ""; // 설정 창에서 고치는 중인 사본과 고른 묶음
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 const pad2 = (x) => String(x).padStart(2, "0");
 function stamp(ms, compact) {
@@ -3739,11 +3704,11 @@ function currentPack() { return packs.find((p) => p.id === settings.packId) || n
 
 function updatePackPill() {
   const p = currentPack(), node = $("packPill");
-  node.textContent = p ? "묶음: " + p.name : "";
+  node.textContent = p ? "폴더: " + p.name : "";
   node.style.display = Store.ok && p ? "" : "none";
 }
 
-// 처음 열 때: 저장소를 열고 묶음을 읽는다. 묶음이 없으면 지금 설정의 회의 배경·용어집으로 "기본" 묶음을 만든다
+// 처음 열 때: 저장소를 열고 폴더를 읽는다. 폴더가 없으면 지금 설정의 회의 배경·용어집으로 "기본" 폴더를 만든다
 async function initPacks() {
   try {
     await Store.open();
@@ -3757,7 +3722,7 @@ async function initPacks() {
   packs.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
   if (!currentPack()) settings.packId = packs[0].id;
   const p = currentPack();
-  settings.brief = p.brief || ""; settings.terms = p.terms || "";   // 번역은 고른 묶음의 배경·용어집을 쓴다
+  settings.brief = p.brief || ""; settings.terms = p.terms || "";   // 번역은 고른 폴더의 배경·용어집을 쓴다
   saveSettings(settings);
   updatePackPill();
   if (el.dlg.open) openPackUI();
@@ -3800,7 +3765,7 @@ function meetingText(m) {
   return out.join("\n\n");
 }
 
-// 화면의 기록을 고른 묶음에 저장한다 (같은 회의는 덮어쓴다). announce 면 아래 상태 줄에 알린다
+// 화면의 기록을 고른 폴더에 저장한다 (같은 회의는 덮어쓴다). announce 면 아래 상태 줄에 알린다
 // pending: 번역이 끝나기 전에 저장한 줄 수 (정지 후 마지막 저장에서만 넘긴다)
 async function saveMeeting(announce, pending) {
   if (settings.autoSave === false || R.noSave) { setSaveState(""); return false; }
@@ -3827,9 +3792,9 @@ async function saveMeeting(announce, pending) {
   }
   setSaveState("ok");
   if (isNew || !R.running) renderSide();   // 왼쪽 메뉴에 새 회의를 보인다
-  if (announce && !R.running) setConnState("회의 기록을 '" + currentPack().name + "' 묶음에 저장했습니다" + (saved && saved.title ? ": " + saved.title : "") + " (" + lines.length + "줄)." +
+  if ($("packDlg").open) renderMeetList();
+  if (announce && !R.running) setConnState("회의 기록을 '" + currentPack().name + "' 폴더에 저장했습니다" + (saved && saved.title ? ": " + saved.title : "") + " (" + lines.length + "줄)." +
     (pending ? " 마지막 " + pending + "줄은 번역이 끝나기 전에 저장했습니다. 영어 원문은 모두 저장했습니다." : ""));
-  if (el.dlg.open) renderMeetList();
   return true;
 }
 
@@ -3902,7 +3867,7 @@ async function testLLM(spec) {
 }
 
 $("clearKeys").addEventListener("click", () => {
-  if (!window.confirm("Soniox, Claude, Groq API 키를 이 브라우저에서 모두 지울까요?\n(회의 묶음과 기록은 지우지 않습니다.)")) return;
+  if (!window.confirm("Soniox, Claude, Groq API 키를 이 브라우저에서 모두 지울까요?\n(회의 폴더와 기록은 지우지 않습니다.)")) return;
   if (R.running) stop();
   for (const k of KEY_FIELDS) { settings[k] = ""; const n = $(k); if (n) n.value = ""; }
   saveSettings(settings);
@@ -3939,7 +3904,7 @@ $("testKeys").addEventListener("click", async () => {
   show();
 });
 
-// ---- 회의 후 정리: 제목, 요약, 결정 사항, 할 일, 묶음에 쌓을 내용 ----
+// ---- 회의 후 정리: 제목, 요약, 결정 사항, 할 일, 폴더에 쌓을 내용 ----
 const digestBusy = new Set(), digestTried = new Set();
 
 // 내용이 바뀌어 정리·제목을 다시 만들어야 하는지 (예전 기록은 지문이 없으니 줄 수로 본다)
@@ -4110,7 +4075,7 @@ async function makeDigest(m, pack) {
   const spec = helperSpec("digest");
   if (!spec) throw new Error("no engine");
   const glossary = pack ? parseTerms(pack.terms).map((t) => t.src).join(", ") : "";
-  // 같은 묶음에서 바로 앞 회의(정리가 있는 것)를 찾아 비교 기준으로 넘긴다
+  // 같은 폴더에서 바로 앞 회의(정리가 있는 것)를 찾아 비교 기준으로 넘긴다
   const prev = await previousMeeting(m);
   const about = (m.topic ? "This meeting's topic: " + m.topic + "\n" : "") + (m.people ? "Participants: " + m.people + "\n" : "") +
     ((m.lines || []).some((l) => l.me) ? "Lines marked \"Me\" were said by the user; questions in \"questions\" are ones the others asked the user.\n" : "");
@@ -4126,7 +4091,7 @@ async function makeDigest(m, pack) {
   return { title, digest: d };
 }
 
-// 같은 묶음에서 이 회의보다 먼저 열린 회의 가운데 정리가 있는 가장 최근 것
+// 같은 폴더에서 이 회의보다 먼저 열린 회의 가운데 정리가 있는 가장 최근 것
 async function previousMeeting(m) {
   if (!m || !m.packId || !Store.ok) return null;
   let all = [];
@@ -4144,7 +4109,7 @@ function previousBrief(p) {
 
 function refreshMeetingViews() {
   if (document.body.classList.contains("idle")) renderHome(); else renderSide();
-  if (el.dlg.open) renderMeetList();
+  if ($("packDlg").open) renderMeetList();
   if ($("meetDlg").open) renderMeeting();
 }
 
@@ -4183,7 +4148,7 @@ async function autoDigest(id, opts) {
     if (made && result) autoLearnAfter(result);          // 회의 후 자동으로 배우기
     if (result && id === R.meetingId && !R.running) {
       const p = packs.find((x) => x.id === result.packId);
-      setConnState("회의 기록을 '" + (p ? p.name : "") + "' 묶음에 저장했습니다: " + result.title + " (" + result.lines.length + "줄)." +
+      setConnState("회의 기록을 '" + (p ? p.name : "") + "' 폴더에 저장했습니다: " + result.title + " (" + result.lines.length + "줄)." +
         (result.pending ? " 마지막 " + result.pending + "줄은 번역이 끝나기 전에 저장했습니다. 영어 원문은 모두 저장했습니다." : "") +
         (made ? " 위의 '회의 정리'에서 요약을 볼 수 있습니다." : ""));
     }
@@ -4281,14 +4246,14 @@ const IMPORT_PROMPT = "지금까지 나와 나눈 대화를 바탕으로, 나에
 // 회의 정리가 끝난 뒤 저절로 배운다 (설정: 회의 후 자동으로 배우기)
 function autoLearnAfter(m) {
   if (settings.autoLearn === false || !m || (profile.learned || []).includes(m.id) || !helperSpec("digest")) return;
-  learnMeetings([m]).then(() => { if ($("knowDlg").open) renderKnow(); }).catch(() => {});
+  learnMeetings([m]).then(() => { if (curTab === "words") renderKnow(); }).catch(() => {});
 }
 
-// 내려받는 파일: 회의록처럼 제목·일시·묶음, 그리고 정리가 있으면 요약·결정 사항·할 일을 위에 적는다
+// 내려받는 파일: 회의록처럼 제목·일시·폴더, 그리고 정리가 있으면 요약·결정 사항·할 일을 위에 적는다
 function meetingFile(m, pack) {
   const mins = Math.max(1, Math.round((m.secs || 0) / 60));
   const out = [m.title || "회의 기록", "일시: " + stamp(m.startedAt) + " (" + mins + "분)"];
-  if (pack) out.push("묶음: " + pack.name);
+  if (pack) out.push("폴더: " + pack.name);
   if (m.gaps && m.gaps.length) out.push("연결 끊김: " + m.gaps.length + "번 (본문에 ⚠ 로 표시)");
   if (m.pending) out.push("번역 미완료: 마지막 " + m.pending + "줄 (영어 원문은 모두 있음)");
   const d = m.digest;
@@ -4384,7 +4349,7 @@ async function buildViewDigest(redo) {
   if (viewM === m) renderMeeting();
 }
 
-// 정리에서 뽑힌 항목 가운데 묶음에 이미 있는 것을 가려낸다
+// 정리에서 뽑힌 항목 가운데 폴더에 이미 있는 것을 가려낸다
 function harvestItems(d, pack) {
   const have = new Set(parseTerms(pack.terms).map((t) => t.src.toLowerCase()));
   const facts = pack.facts || "", qa = pack.qa || "";
@@ -4392,7 +4357,7 @@ function harvestItems(d, pack) {
   d.terms.forEach((t, i) => items.push({ kind: "term", i, group: "새 용어", label: t.ko ? t.en + " = " + t.ko : t.en, has: have.has(t.en.toLowerCase()) }));
   d.facts.forEach((f, i) => items.push({ kind: "fact", i, group: "기억해 둘 내용", label: f, has: facts.indexOf(f) >= 0 }));
   d.questions.forEach((q, i) => items.push({ kind: "q", i, group: "받은 질문", label: (q.en || q.ko) + (q.en && q.ko ? " (" + q.ko + ")" : ""),
-    sub: q.answer ? "그때 한 답: " + q.answer : "답은 묶음의 '자주 받는 질문과 내 답변'에서 적어 주세요", has: qa.indexOf(q.en || q.ko) >= 0 }));
+    sub: q.answer ? "그때 한 답: " + q.answer : "답은 폴더의 '자주 받는 질문과 내 답변'에서 적어 주세요", has: qa.indexOf(q.en || q.ko) >= 0 }));
   return items;
 }
 
@@ -4407,7 +4372,7 @@ function renderMeeting() {
   const keepScroll = body.scrollTop;
   body.textContent = "";
   const mins = Math.max(1, Math.round((m.secs || 0) / 60));
-  body.append(mk("div", "mmeta", stamp(m.startedAt) + " · " + mins + "분 · " + m.lines.length + "줄" + (pack ? " · 묶음: " + pack.name : "") + (m.id ? "" : " · 저장하지 않는 회의")));
+  body.append(mk("div", "mmeta", stamp(m.startedAt) + " · " + mins + "분 · " + m.lines.length + "줄" + (pack ? " · 폴더: " + pack.name : "") + (m.id ? "" : " · 저장하지 않는 회의")));
   const hasAudio = !!(m.audio && m.audio.length);
   if (hasAudio) {
     // 저장한 소리: 위 플레이어로 듣거나, 전체 기록의 ▶ 로 그 줄부터 듣는다
@@ -4456,8 +4421,8 @@ function renderMeeting() {
     }
     const items = pack && Store.ok ? harvestItems(d, pack) : [];
     if (items.length) {
-      body.append(mk("h4", "mvh", "묶음에 쌓을 내용"));
-      body.append(mk("div", "mmeta", "고른 항목을 '" + pack.name + "' 묶음에 추가하면 다음 회의의 번역과 답변 제안에 쓰입니다. 틀린 항목은 체크를 빼 주세요."));
+      body.append(mk("h4", "mvh", "폴더에 쌓을 내용"));
+      body.append(mk("div", "mmeta", "고른 항목을 '" + pack.name + "' 폴더에 추가하면 다음 회의의 번역과 답변 제안에 쓰입니다. 틀린 항목은 체크를 빼 주세요."));
       const boxes = [];
       let group = "";
       for (const it of items) {
@@ -4472,7 +4437,7 @@ function renderMeeting() {
         row.append(cb, txt);
         body.append(row);
       }
-      const add = mk("button", "btn", "고른 항목을 묶음에 추가"); add.type = "button"; add.id = "mvAdd";
+      const add = mk("button", "btn", "고른 항목을 폴더에 추가"); add.type = "button"; add.id = "mvAdd";
       add.disabled = items.every((it) => it.has);
       add.addEventListener("click", () => addDigestToPack(boxes));
       const line = mk("div", "mvaddrow"); line.append(add, mk("span", "mmeta", viewAddMsg));
@@ -4517,15 +4482,13 @@ function renderMeeting() {
   $("mvRename").style.display = m.id ? "" : "none";
 }
 
-// 묶음 한 건을 고쳐서 저장한다. 설정 창이 열려 있으면 그쪽에서 고치던 사본에도 똑같이 반영한다 (저장할 때 덮어써지지 않게)
+// 폴더 한 건을 고쳐서 저장한다
 async function patchPack(packId, fn) {
   const p = packs.find((x) => x.id === packId);
   if (!p) return false;
-  const inDlg = el.dlg.open && Store.ok;
-  if (inDlg) stashPackFields();
   fn(p); p.updatedAt = Date.now();
-  const d = inDlg ? dlgPacks.find((x) => x.id === packId) : null;
-  if (d) { fn(d); d.updatedAt = p.updatedAt; if (dlgSel === packId) loadPackFields(); }
+  // 그 폴더 창이 열려 있으면 칸에도 바로 보인다 (닫고 저장할 때 덮어쓰지 않게)
+  if ($("packDlg").open && pdPack && pdPack.id === packId) { $("pdTerms").value = p.terms || ""; $("pdFacts").value = p.facts || ""; $("pdQa").value = p.qa || ""; $("pdBrief").value = p.brief || ""; }
   if (packId === settings.packId) { settings.terms = p.terms || ""; settings.brief = p.brief || ""; saveSettings(settings); }
   try { await Store.put("packs", Object.assign({}, p)); } catch (e) { return false; }
   return true;
@@ -4559,7 +4522,7 @@ async function addDigestToPack(boxes) {
     }
   });
   viewAddMsg = ok
-    ? "용어 " + pick.term.length + "개, 내용 " + pick.fact.length + "개, 질문 " + pick.q.length + "개를 추가했습니다. 설정의 회의 묶음에서 고칠 수 있습니다."
+    ? "용어 " + pick.term.length + "개, 내용 " + pick.fact.length + "개, 질문 " + pick.q.length + "개를 추가했습니다. 설정의 회의 폴더에서 고칠 수 있습니다."
     : "추가하지 못했습니다.";
   renderMeeting();
 }
@@ -4644,7 +4607,7 @@ function updateAssistUI() {
   if (on) renderAssist();
 }
 
-// 제안에 참고로 줄 내용: 내 정보, 묶음의 배경·쌓인 내용·저장한 답변, 최근 대화
+// 제안에 참고로 줄 내용: 내 정보, 폴더의 배경·쌓인 내용·저장한 답변, 최근 대화
 function assistContext(end) {
   const pack = currentPack();
   const cut = (v, n) => (v || "").trim().slice(0, n);
@@ -4783,142 +4746,13 @@ $("asForm").addEventListener("submit", (ev) => {
   $("asInput").select();
 });
 
-// ---- 설정 창의 묶음 화면 ----
-function dlgPack() { return dlgPacks.find((p) => p.id === dlgSel) || null; }
-
+// ---- 설정 창의 회의 기록 칸 (폴더 내용은 폴더 창에서 고친다) ----
 function openPackUI() {
   $("packBox").classList.toggle("nostore", !Store.ok);
   $("autoSave").checked = settings.autoSave !== false;
-  if (!Store.ok) return;
-  dlgPacks = packs.map((p) => Object.assign({}, p));
-  dlgSel = currentPack() ? settings.packId : (dlgPacks[0] ? dlgPacks[0].id : "");
-  fillPackSelect(); loadPackFields(); renderMeetList(); renderBackupInfo();
+  if (Store.ok) renderBackupInfo();
 }
-
-function fillPackSelect() {
-  const sel = $("packSel");
-  sel.textContent = "";
-  for (const p of dlgPacks) { const o = document.createElement("option"); o.value = p.id; o.textContent = p.name; sel.append(o); }
-  sel.value = dlgSel;
-}
-
-function loadPackFields() {
-  const p = dlgPack();
-  if (!p) return;
-  $("packName").value = p.name; $("brief").value = p.brief || ""; $("terms").value = p.terms || "";
-  $("packFacts").value = p.facts || ""; $("packQa").value = p.qa || "";
-  $("packTopic").value = p.topic || ""; $("packPeople").value = p.people || "";
-}
-
-// 화면에 적힌 내용을 고치는 중인 사본에 옮겨 둔다
-function stashPackFields() {
-  const p = dlgPack();
-  if (!p) return;
-  p.name = $("packName").value.trim().slice(0, 40) || p.name;
-  p.brief = $("brief").value.trim().slice(0, BRIEF_MAX);
-  p.terms = $("terms").value;
-  p.facts = $("packFacts").value.slice(0, 20000); p.qa = $("packQa").value.slice(0, 40000);
-  p.topic = $("packTopic").value.trim().slice(0, 200); p.people = $("packPeople").value.slice(0, 4000);
-}
-
-// 저장 버튼: 바뀐 묶음을 저장소에 쓰고, 설정에 넣을 값(고른 묶음, 자동 저장 여부)을 돌려준다
-function commitPackUI() {
-  const out = { autoSave: $("autoSave").checked };
-  if (!Store.ok || !dlgPack()) return out;
-  stashPackFields();
-  for (const p of dlgPacks) {
-    const old = packs.find((x) => x.id === p.id);
-    if (!old || old.name !== p.name || old.brief !== p.brief || old.terms !== p.terms || (old.facts || "") !== (p.facts || "") || (old.qa || "") !== (p.qa || "")
-        || (old.topic || "") !== (p.topic || "") || (old.people || "") !== (p.people || "")) {
-      p.updatedAt = Date.now();
-      Store.put("packs", Object.assign({}, p)).catch(() => showBanner("묶음을 이 브라우저에 저장하지 못했습니다."));
-    }
-  }
-  packs = dlgPacks.map((p) => Object.assign({}, p));
-  out.packId = dlgSel;
-  return out;
-}
-
-async function renderMeetList() {
-  const box = $("meetList"), packId = dlgSel;
-  if (!Store.ok || !packId) { box.textContent = ""; return; }
-  let list = [];
-  try { list = await Store.meetingsOf(packId); } catch (e) {}
-  if (packId !== dlgSel) return;                       // 기다리는 사이 다른 묶음을 골랐다
-  list.sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0));
-  box.textContent = "";
-  if (!list.length) { box.append(mk("div", "none", "아직 저장된 회의가 없습니다.")); return; }
-  const aiAuto = !!helperSpec() && settings.autoDigest !== false;
-  let started = 0;
-  for (const m of list) {
-    const n = m.lines ? m.lines.length : 0;
-    const live = m.id === R.meetingId && R.running;
-    // 제목이나 정리가 없거나 그 뒤로 내용이 늘어난 기록은 한 번씩 만들어 준다 (진행 중인 회의는 정지한 뒤에)
-    const stale = titleStale(m) || (aiAuto && digestStale(m));
-    if (stale && !live && !digestTried.has(m.id) && started < 3) { digestTried.add(m.id); started++; autoDigest(m.id); }
-    const row = mk("div", "mrow");
-    const info = mk("div", "minfo");
-    info.append(mk("div", "mtitle" + (m.title ? "" : " pending"), m.title || (live ? "(진행 중)" : digestBusy.has(m.id) ? "(제목 짓는 중…)" : "(제목 없음)")));
-    const mins = Math.max(1, Math.round((m.secs || 0) / 60));
-    info.append(mk("div", "mmeta", stamp(m.startedAt) + " · " + mins + "분 · " + n + "줄" +
-      (digestBusy.has(m.id) ? " · 정리하는 중" : m.digest ? " · 정리 있음" : "") + (m.id === R.meetingId ? " · 지금 화면의 회의" : "")));
-    const open = mk("button", "btn sm", "열기"); open.type = "button";
-    open.addEventListener("click", async () => {
-      let cur = m;
-      try { cur = (await Store.get("meetings", m.id)) || m; } catch (e) {}
-      openMeeting(cur);
-    });
-    const rm = mk("button", "btn sm", "삭제"); rm.type = "button";
-    rm.addEventListener("click", async () => {
-      if (!window.confirm(stamp(m.startedAt) + (m.title ? " '" + m.title + "'" : "") + " 회의 기록을 삭제할까요? 되돌릴 수 없습니다.")) return;
-      if (m.id === R.meetingId) { R.noSave = true; R.meetingId = null; }   // 지금 화면의 회의를 지웠으면, 화면을 지우기 전까지 다시 저장하지 않는다
-      try { await Store.del("meetings", m.id); } catch (e) {}
-      AudioKeep.remove(m.audio);
-      renderMeetList(); renderBackupInfo();
-    });
-    row.append(info, open, rm);
-    box.append(row);
-  }
-}
-
-$("packSel").addEventListener("change", () => { stashPackFields(); dlgSel = $("packSel").value; loadPackFields(); renderMeetList(); });
-$("packName").addEventListener("input", () => {
-  const o = $("packSel").selectedOptions[0];
-  if (o) o.textContent = $("packName").value.trim() || (dlgPack() ? dlgPack().name : "");
-});
-
-$("packNew").addEventListener("click", async () => {
-  stashPackFields();
-  let n = 1, name = "새 묶음";
-  while (dlgPacks.some((p) => p.name === name)) name = "새 묶음 " + (++n);
-  const p = { id: newId(), name, brief: "", terms: "", facts: "", qa: "", createdAt: Date.now(), updatedAt: Date.now() };
-  try { await Store.put("packs", p); } catch (e) { $("packMsg").textContent = "묶음을 만들지 못했습니다."; return; }
-  packs.push(Object.assign({}, p)); dlgPacks.push(p); dlgSel = p.id;
-  fillPackSelect(); loadPackFields(); renderMeetList();
-  $("packName").focus(); $("packName").select();
-});
-
-$("packDel").addEventListener("click", async () => {
-  const p = dlgPack();
-  if (!p) return;
-  if (dlgPacks.length <= 1) { $("packMsg").textContent = "묶음은 하나 이상 있어야 합니다. 새 묶음을 만든 뒤 삭제해 주세요."; return; }
-  let list = [];
-  try { list = await Store.meetingsOf(p.id); } catch (e) {}
-  if (!window.confirm("'" + p.name + "' 묶음과 지난 회의 " + list.length + "건을 삭제할까요? 되돌릴 수 없습니다.")) return;
-  try {
-    for (const m of list) { await Store.del("meetings", m.id); AudioKeep.remove(m.audio); }
-    await Store.del("packs", p.id);
-  } catch (e) { $("packMsg").textContent = "삭제하지 못했습니다."; return; }
-  if (list.some((m) => m.id === R.meetingId)) R.meetingId = null;
-  packs = packs.filter((x) => x.id !== p.id);
-  dlgPacks = dlgPacks.filter((x) => x.id !== p.id);
-  if (settings.packId === p.id) {                       // 쓰고 있던 묶음을 지웠으면 첫 묶음으로 바꾼다
-    settings.packId = packs[0].id; settings.brief = packs[0].brief || ""; settings.terms = packs[0].terms || "";
-    saveSettings(settings); updatePackPill();
-  }
-  dlgSel = dlgPacks.some((x) => x.id === settings.packId) ? settings.packId : dlgPacks[0].id;
-  fillPackSelect(); loadPackFields(); renderMeetList();
-});
+function commitPackUI() { return { autoSave: $("autoSave").checked }; }
 
 // ---- 백업 ----
 const BACKUP_NAG_COUNT = 5;      // 백업 뒤 회의가 이만큼 쌓이면 알린다
@@ -4948,7 +4782,7 @@ async function checkBackup() {
   if (n < BACKUP_NAG_COUNT || R.running) return;
   settings.backupNagAt = Date.now(); saveSettings(settings);
   if (!el.banner.classList.contains("show")) {
-    showBanner("백업한 뒤로 회의 기록 " + n + "건이 쌓였습니다. 기록은 이 브라우저에만 있으니, 위의 '묶음' 표시를 눌러 백업 칸의 '전체 내보내기'로 파일에 보관해 주세요.", true);
+    showBanner("백업한 뒤로 회의 기록 " + n + "건이 쌓였습니다. 기록은 이 브라우저에만 있으니, 위의 '폴더' 표시를 눌러 백업 칸의 '전체 내보내기'로 파일에 보관해 주세요.", true);
   }
 }
 
@@ -4969,11 +4803,11 @@ function importDigest(d) {
 $("packExport").addEventListener("click", async () => {
   try {
     const data = { app: "meeting-interpreter", version: 1, exportedAt: Date.now(), packs: await Store.all("packs"), meetings: await Store.all("meetings") };
-    downloadFile("회의묶음_백업_" + stamp(Date.now(), true) + ".json", JSON.stringify(data, null, 1), "application/json");
+    downloadFile("회의폴더_백업_" + stamp(Date.now(), true) + ".json", JSON.stringify(data, null, 1), "application/json");
     settings.lastBackupAt = Date.now(); saveSettings(settings);
     if (/백업한 뒤로/.test(el.banner.textContent)) el.banner.className = "";
     renderBackupInfo();
-    $("packMsg").textContent = "묶음 " + data.packs.length + "개와 회의 " + data.meetings.length + "건을 파일로 내보냈습니다. (저장하지 않은 수정 내용은 빠져 있습니다.)";
+    $("packMsg").textContent = "폴더 " + data.packs.length + "개와 회의 " + data.meetings.length + "건을 파일로 내보냈습니다. (저장하지 않은 수정 내용은 빠져 있습니다.)";
   } catch (e) { $("packMsg").textContent = "내보내지 못했습니다."; }
 });
 $("packImport").addEventListener("click", () => { $("packFile").value = ""; $("packFile").click(); });
@@ -4989,7 +4823,7 @@ $("packFile").addEventListener("change", async () => {
     const ids = new Set();
     for (const p of data.packs) {
       if (!p || typeof p.id !== "string" || !p.id) continue;
-      await Store.put("packs", { id: str(p.id, 40), name: str(p.name, 40) || "가져온 묶음", brief: str(p.brief, BRIEF_MAX), terms: str(p.terms, 20000), facts: str(p.facts, 20000), qa: str(p.qa, 40000), createdAt: num(p.createdAt), updatedAt: num(p.updatedAt) });
+      await Store.put("packs", { id: str(p.id, 40), name: str(p.name, 40) || "가져온 폴더", brief: str(p.brief, BRIEF_MAX), terms: str(p.terms, 20000), facts: str(p.facts, 20000), qa: str(p.qa, 40000), createdAt: num(p.createdAt), updatedAt: num(p.updatedAt) });
       ids.add(str(p.id, 40)); np++;
     }
     const known = new Set((await Store.all("packs")).map((p) => p.id));
@@ -5016,7 +4850,7 @@ $("packFile").addEventListener("change", async () => {
     if (cur) { settings.brief = cur.brief || ""; settings.terms = cur.terms || ""; saveSettings(settings); }
     updatePackPill();
     openPackUI();
-    $("packMsg").textContent = "묶음 " + np + "개와 회의 " + nm + "건을 가져왔습니다. 같은 묶음이 이미 있으면 파일의 내용으로 바뀌었습니다.";
+    $("packMsg").textContent = "폴더 " + np + "개와 회의 " + nm + "건을 가져왔습니다. 같은 폴더가 이미 있으면 파일의 내용으로 바뀌었습니다.";
   } catch (e) {
     $("packMsg").textContent = "가져오지 못했습니다. 이 앱에서 내보낸 백업 파일(.json)인지 확인해 주세요.";
   }
@@ -5027,7 +4861,7 @@ function openSettingsDialog() {
   $("apiKey").value = settings.apiKey;
   $("apiKey").type = "password"; $("showKey").textContent = "보기";
   $("hint").value = settings.hint; $("target").value = settings.target;
-  $("terms").value = settings.terms; $("fontSize").value = String(settings.fontSize);
+  $("fontSize").value = String(settings.fontSize);
   $("model").value = settings.model;
   $("showOriginal").checked = !!settings.showOriginal; $("diar").checked = !!settings.diar; $("micClean").checked = !!settings.micClean;
   $("engine").value = settings.engine; $("claudeKey").value = settings.claudeKey;
@@ -5043,7 +4877,6 @@ function openSettingsDialog() {
   $("marks").checked = settings.marks !== false;
   $("voiceMe").checked = settings.voiceMe !== false; renderMeBox();
   $("autoDigest").checked = settings.autoDigest !== false;
-  $("brief").value = settings.brief || "";
   $("groqKey").value = settings.groqKey || ""; $("groqKey").type = "password"; $("showGroqKey").textContent = "보기";
   $("groqModel").value = settings.groqModel || GROQ_DEFAULT; $("draftFast").checked = settings.draftFast !== false;
   $("claudeBox").style.display = settings.engine !== "soniox" ? "" : "none";
@@ -5055,7 +4888,7 @@ function openSettingsDialog() {
 el.openSettings.addEventListener("click", openSettingsDialog);
 // 위쪽 속도 표시를 누르면 속도 기록으로 바로 간다
 $("lat").addEventListener("click", () => { openSettingsDialog(); $("statField").scrollIntoView({ block: "center" }); });
-$("packPill").addEventListener("click", () => { openSettingsDialog(); $("packBox").scrollIntoView({ block: "start" }); });
+$("packPill").addEventListener("click", () => openPackEditor(settings.packId));
 $("copyStats").addEventListener("click", async () => {
   const text = statSummary();
   let ok = false;
@@ -5087,14 +4920,14 @@ $("showClaudeKey").addEventListener("click", () => {
   k.type = show ? "text" : "password"; $("showClaudeKey").textContent = show ? "숨기기" : "보기";
 });
 $("saveSettings").addEventListener("click", () => {
-  const packChange = commitPackUI();        // 묶음 이름·배경·용어집을 저장하고, 고른 묶음을 돌려준다
+  const packChange = commitPackUI();        // 자동 저장 여부
   settings = Object.assign({}, settings, packChange, {
     apiKey: $("apiKey").value.trim(), hint: $("hint").value, target: $("target").value,
-    terms: $("terms").value, fontSize: $("fontSize").value, model: $("model").value,
+    fontSize: $("fontSize").value, model: $("model").value,
     showOriginal: $("showOriginal").checked, diar: $("diar").checked, micClean: $("micClean").checked,
     engine: $("engine").value, claudeKey: $("claudeKey").value.trim(), claudeModel: $("claudeModel").value,
     draft: $("draft").checked, preview: $("preview").checked,
-    refine: $("refine").checked, compare: $("compare").checked, brief: $("brief").value.trim(), stable: $("stable").checked,
+    refine: $("refine").checked, compare: $("compare").checked, stable: $("stable").checked,
     assist: $("assistOn").checked, assistAuto: $("assistAuto").checked, me: $("me").value.trim().slice(0, 1500), autoDigest: $("autoDigest").checked, openAfterStop: $("openAfterStop").checked,
     sbUrl: $("sbUrl").value.trim(), sbKey: $("sbKey").value.trim(),
     keepKeys: $("keepKeys").checked, myNames: $("myNames").value.trim().slice(0, 120), assistEngine: $("assistEngine").value, digestEngine: $("digestEngine").value, marks: $("marks").checked,
@@ -5151,7 +4984,7 @@ $("restoreBtn").addEventListener("click", () => {
   $("packFile").click();
 });
 
-// ---- 시작 화면: 묶음과 들을 소리를 고르고 시작, 최근 회의 ----
+// ---- 시작 화면: 폴더와 들을 소리를 고르고 시작, 최근 회의 ----
 if (DESKTOP) {
   el.source.querySelector('option[value="system"]').textContent = "컴퓨터 소리 (Zoom·Teams 등)";
   el.source.querySelector('option[value="both"]').textContent = "컴퓨터 소리 + 내 마이크 (내 말도 받아 적기)";
@@ -5161,14 +4994,14 @@ function renderHome() {
   // 들을 소리: 위쪽 막대의 선택과 같은 목록
   const hs = $("homeSource");
   hs.innerHTML = el.source.innerHTML; hs.value = el.source.value;
-  // 회의 묶음
+  // 회의 폴더
   const hp = $("homePack");
   hp.textContent = "";
   for (const p of packs) { const o = document.createElement("option"); o.value = p.id; o.textContent = p.name; hp.append(o); }
   hp.value = settings.packId || "";
   hp.closest(".home-f").style.display = Store.ok && packs.length ? "" : "none";
   $("homeKey").style.display = settings.apiKey && settings.apiKey.trim() ? "none" : "";
-  // 이번 회의 주제·참여자 (묶음의 참여자는 눌러서 고른다)
+  // 이번 회의 주제·참여자 (폴더의 참여자는 눌러서 고른다)
   $("meetTopic").value = settings.meetTopic || ""; $("meetPeople").value = settings.meetPeople || "";
   renderPeopleChips();
   const hm = $("homeMe");
@@ -5182,14 +5015,19 @@ function renderHome() {
 // ---- 탭: 홈 · 준비 · 리포트 · 표현 (회의 중이 아닐 때의 화면) ----
 const TABS = { home: "홈", prep: "준비", report: "리포트", words: "표현" };
 let curTab = "home", tabTick = 0;
-function showTab(name) {
+function showTab(name, fromNav) {
   if (!TABS[name]) name = "home";
+  if (!fromNav && name !== curTab && !R.running) navPush({ tab: name });   // 뒤로가기로 돌아올 수 있게 기록
   if (!document.body.classList.contains("idle")) {
     if (R.running) { showBanner("회의 중에는 다른 화면으로 갈 수 없습니다. 정지한 뒤 눌러 주세요.", true); return; }
     // 회의 기록이 화면에 남아 있으면 저장하고 지운 뒤 간다 (지우기를 취소하면 그대로)
     el.clear.click();
-    if (el.empty.style.display === "none") return;
-    curTab = name;   // 시작 화면으로 바뀌면서 이 탭을 그린다
+    // 지우기는 저장을 기다리느라 조금 걸린다. 시작 화면으로 바뀌면 이 탭을 그린다 (지우기를 취소했으면 그대로)
+    const t0 = Date.now();
+    (async () => {
+      while (!document.body.classList.contains("idle") && Date.now() - t0 < 5000) await sleep(50);
+      if (document.body.classList.contains("idle")) { curTab = name; renderTab(); }
+    })();
     return;
   }
   curTab = name;
@@ -5200,7 +5038,7 @@ function showTab(name) {
 async function renderTab() {
   $("pageTitle").textContent = TABS[curTab];
   for (const pane of document.querySelectorAll("#empty .pane")) pane.hidden = pane.dataset.tab !== curTab;
-  for (const b of document.querySelectorAll("#tabbar button, #side .nav")) b.classList.toggle("on", b.dataset.tab === curTab);
+  for (const b of document.querySelectorAll("#tabbar button[data-tab], #side .nav")) b.classList.toggle("on", b.dataset.tab === curTab);
   const t = ++tabTick;
   let all = [];
   if (Store.ok) { try { all = await Store.all("meetings"); } catch (e) {} }
@@ -5211,7 +5049,7 @@ async function renderTab() {
   else if (curTab === "report") renderReport(all);
   else renderWords(all);
 }
-document.querySelectorAll("#tabbar button, #side .nav:not(#sideNew)").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
+document.querySelectorAll("#tabbar button[data-tab], #side .nav:not(#sideNew)").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
 $("fab").addEventListener("click", () => $("homeStart").click());
 $("homeAllReports").addEventListener("click", () => showTab("report"));
 
@@ -5234,7 +5072,7 @@ function renderSetup(all) {
     ["Soniox API 키 넣기", !!(settings.apiKey && settings.apiKey.trim()), () => openOnboard(1)],
     ["내 이름과 목소리 등록", !!(profile.name && hasVoice()), () => openOnboard(profile.name ? 3 : 0)],
     ["계정 만들고 기기끼리 맞추기", !!Cloud.session, () => openOnboard(2)],
-    ["첫 회의 묶음 준비하기", packs.some((p) => ((p.brief || "") + (p.terms || "") + (p.qa || "") + (p.topic || "") + (p.people || "")).trim()), () => showTab("prep")],
+    ["첫 회의 폴더 준비하기", packs.some((p) => ((p.brief || "") + (p.terms || "") + (p.qa || "") + (p.topic || "") + (p.people || "")).trim()), () => showTab("prep")],
     ["첫 회의 해 보기", all.length > 0, () => $("fab").offsetParent ? $("fab").click() : $("homeStart").click()]
   ];
   const done = items.filter((x) => x[1]).length;
@@ -5262,13 +5100,8 @@ function renderRecent(all) {
   $("homeAllReports").style.display = all.length > 5 ? "" : "none";
 }
 
-// 준비: 묶음마다 배경·용어집·질문을 얼마나 적었는지 보이고, 눌러서 고친다
-function openPackEditor(id) {
-  openSettingsDialog();
-  const sel = $("packSel");
-  if (sel && sel.value !== id) { sel.value = id; sel.dispatchEvent(new Event("change")); }
-  setTimeout(() => { const n = $("packName") || $("brief"); if (n) n.scrollIntoView({ block: "start" }); }, 60);
-}
+// 준비: 폴더마다 배경·용어집·질문을 얼마나 적었는지 보이고, 눌러서 고친다
+function openPackEditor(id) { openPackDlg(packs.find((x) => x.id === id) || null); }
 function renderPrep(all) {
   const box = $("prepList"); box.textContent = "";
   for (const p of packs) {
@@ -5277,7 +5110,7 @@ function renderPrep(all) {
     const qa = ((p.qa || "").match(/^\s*Q\s*[:：]/gim) || []).length;
     const row = mk("div", "prow");
     const name = mk("div", "pn", p.name);
-    if (p.id === settings.packId) name.append(mk("span", "cur", "지금 묶음"));
+    if (p.id === settings.packId) name.append(mk("span", "cur", "지금 폴더"));
     row.append(name,
       mk("div", "pb", (p.topic || "").trim() ? "주제: " + p.topic.trim() : (p.brief || "").trim() ? p.brief.trim().split("\n")[0] : "주제와 회의 배경을 아직 적지 않았습니다"),
       mk("div", "pm", "회의 " + n + "건 · 참여자 " + parsePeople(p.people || "").length + "명 · 용어 " + terms + "개 · 질문 " + qa + "개"));
@@ -5285,7 +5118,7 @@ function renderPrep(all) {
     const edit = mk("button", "btn sm", "준비하기"); edit.type = "button"; edit.addEventListener("click", () => openPackEditor(p.id));
     acts.append(edit);
     if (p.id !== settings.packId) {
-      const use = mk("button", "btn sm", "이 묶음 쓰기"); use.type = "button";
+      const use = mk("button", "btn sm", "이 폴더 쓰기"); use.type = "button";
       use.addEventListener("click", () => { choosePack(p.id); renderTab(); renderSide(); });
       acts.append(use);
     }
@@ -5313,6 +5146,7 @@ $("reportSearch").addEventListener("input", () => renderTab());
 
 // 표현: 용어집, 자주 받는 질문과 내 답변, 중요 표시한 발언
 function renderWords(all) {
+  renderKnow();
   const box = $("wordsBody"); box.textContent = "";
   const sec = (title) => { const s = mk("section", "wsec"); s.append(mk("h2", "sec-h", title)); box.append(s); return s; };
   const t = sec("용어집");
@@ -5324,7 +5158,7 @@ function renderWords(all) {
     if (packs.length > 1) t.append(mk("div", "month-h", p.name));
     for (const x of terms) { const r = mk("div", "wterm"); r.append(mk("span", "we", x.src), mk("span", "", x.dst || "(영어 그대로)")); t.append(r); }
   }
-  if (!any) t.append(mk("p", "wempty", "아직 없습니다. '준비'에서 묶음의 용어집에 적거나, 회의 중 자막을 ✎로 고치면 쌓입니다."));
+  if (!any) t.append(mk("p", "wempty", "아직 없습니다. '준비'에서 폴더의 용어집에 적거나, 회의 중 자막을 ✎로 고치면 쌓입니다."));
   const q = sec("자주 받는 질문과 내 답변");
   any = false;
   for (const p of packs) {
@@ -5333,7 +5167,7 @@ function renderWords(all) {
     if (packs.length > 1) q.append(mk("div", "month-h", p.name));
     q.append(mk("div", "wqa", p.qa.trim()));
   }
-  if (!any) q.append(mk("p", "wempty", "아직 없습니다. '준비'에서 묶음마다 적어 두면 비슷한 질문이 나올 때 이 답으로 영어 답변을 제안합니다."));
+  if (!any) q.append(mk("p", "wempty", "아직 없습니다. '준비'에서 폴더마다 적어 두면 비슷한 질문이 나올 때 이 답으로 영어 답변을 제안합니다."));
   const st = sec("중요 표시한 발언");
   const stars = [];
   for (const m of all) (m.lines || []).forEach((l) => { if (l.star) stars.push([m, l]); });
@@ -5424,7 +5258,7 @@ async function openAcct() {
   const list = mk("div", "sh-list");
   const item = (label, fn) => { const b = mk("button", "", label); b.type = "button"; b.append(mk("span", "chev", "›")); b.addEventListener("click", () => { $("acctSheet").close(); fn(); }); list.append(b); };
   item("설정", () => openSettingsDialog());
-  item("회의 묶음 준비", () => showTab("prep"));
+  item("회의 폴더 준비", () => showTab("prep"));
   item("백업 파일로 내보내기·가져오기", () => { openSettingsDialog(); setTimeout(() => { const n = $("packExport"); if (n) n.scrollIntoView({ block: "center" }); }, 60); });
   item("처음 쓰는 방법", () => { showTab("home"); const d = document.querySelector("#empty details.howto"); if (d) { d.open = true; d.scrollIntoView({ block: "start" }); } });
   if (on) item("로그아웃", async () => { await Cloud.signOut(); Cloud.err = ""; renderCloud(); renderAcctChip(); renderTab(); });
@@ -5487,7 +5321,7 @@ async function renderKnow() {
   const h1 = mk("div", "kn-h"); h1.append(mk("h3", "", "지식 늘리기")); body.append(h1);
   body.append(mk("p", "kn-sub", "용어와 내 정보를 더해 두면 번역과 답변 제안이 더 정확해집니다."));
   const c3 = mk("div", "kn-card"), r3 = mk("div", "kn-row"), t3 = mk("div");
-  t3.append(mk("h4", "", "고유 용어"), mk("p", "", "제품명·약어·업계 용어처럼 잘못 알아듣기 쉬운 말을 적어 두면 받아 적기와 번역에 씁니다. 모든 묶음에 함께 쓰입니다."),
+  t3.append(mk("h4", "", "고유 용어"), mk("p", "", "제품명·약어·업계 용어처럼 잘못 알아듣기 쉬운 말을 적어 두면 받아 적기와 번역에 씁니다. 모든 폴더에 함께 쓰입니다."),
     mk("p", "", parseTerms(profile.terms).length + "개 등록됨"));
   const b3 = mk("button", "btn", KN.open === "terms" ? "닫기" : "용어 관리"); b3.type = "button";
   b3.addEventListener("click", () => { KN.open = KN.open === "terms" ? "" : "terms"; renderKnow(); });
@@ -5553,18 +5387,18 @@ function knEditor(value, ph, mono, save) {
   row.append(ok, no); ed.append(ta, row);
   return ed;
 }
+// 개인화 관리하기: 표현 탭의 '내 지식'으로 간다
 function openKnow() {
   if (R.running) { showBanner("회의 중에는 열 수 없습니다. 정지한 뒤 눌러 주세요.", true); return; }
   KN.open = ""; KN.msg = "";
-  renderKnow();
-  if (!$("knowDlg").open) $("knowDlg").showModal();
+  showTab("words");
+  setTimeout(() => { const n = $("knSec"); if (n) n.scrollIntoView({ block: "start" }); }, 150);
 }
-$("knBack").addEventListener("click", () => $("knowDlg").close());
 $("meetDlg").addEventListener("close", () => { if (Player.el) { try { Player.el.pause(); } catch (e) {} } });
 $("acctChip").addEventListener("click", openAcct);
 $("acctSheet").addEventListener("click", (ev) => { if (ev.target === $("acctSheet")) $("acctSheet").close(); });   // 바깥을 누르면 닫기
 
-// ---- 왼쪽 메뉴: 회의 묶음 ▸ 그 묶음의 회의 (트리) ----
+// ---- 왼쪽 메뉴: 회의 폴더 ▸ 그 폴더의 회의 (트리) ----
 const sideOpenPacks = new Set();
 let sideTick = 0, sideInit = false;
 function choosePack(id) {
@@ -5584,7 +5418,7 @@ async function renderSide() {
   if (Store.ok) { try { all = await Store.all("meetings"); } catch (e) {} }
   if (t !== sideTick) return;
   all.sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0));
-  if (!sideInit && settings.packId) { sideOpenPacks.add(settings.packId); sideInit = true; }   // 처음에는 지금 묶음을 펼쳐 둔다
+  if (!sideInit && settings.packId) { sideOpenPacks.add(settings.packId); sideInit = true; }   // 처음에는 지금 폴더를 펼쳐 둔다
   tree.textContent = "";
   for (const p of packs) {
     const list = all.filter((m) => m.packId === p.id);
@@ -5594,7 +5428,7 @@ async function renderSide() {
     const row = mk("div", "tw");
     const tw = mk("button", "twisty", "▶"); tw.type = "button"; tw.setAttribute("aria-label", open ? "접기" : "펼치기");
     const nm = mk("button", "tname", p.name); nm.type = "button";
-    nm.title = R.running ? "회의 중에는 묶음을 바꿀 수 없습니다" : "이 묶음으로 회의하기";
+    nm.title = R.running ? "회의 중에는 폴더를 바꿀 수 없습니다" : "이 폴더로 회의하기";
     row.append(tw, nm, mk("span", "tcount", String(list.length)));
     const toggleOpen = () => { if (sideOpenPacks.has(p.id)) sideOpenPacks.delete(p.id); else sideOpenPacks.add(p.id); renderSide(); };
     tw.addEventListener("click", toggleOpen);
@@ -5632,6 +5466,44 @@ $("sideBtn").addEventListener("click", () => {
   setSide(open);
   if (!narrow()) { settings.sideOpen = open; saveSettings(settings); }
 });
+// ---------------------------------------------------------------------------
+// 뒤로가기 (폰의 뒤로 단추, 브라우저의 뒤로): 연 순서의 반대로 하나씩 닫는다
+// 열린 창(설정·계정·폴더·회의 기록 등) → 왼쪽 메뉴 → 이전 탭. 탭과 창을 열 때마다 기록(history)에 남긴다
+// ---------------------------------------------------------------------------
+const Nav = { skip: 0 };
+function navPush(state) { if (POPUP) return; try { history.pushState(Object.assign({ ma: 1 }, state), ""); Nav.cur = history.state; } catch (e) {} }
+if (!POPUP) {
+  try { history.replaceState({ ma: 1, tab: curTab }, ""); Nav.cur = history.state; } catch (e) {}
+  const showModal = HTMLDialogElement.prototype.showModal;
+  HTMLDialogElement.prototype.showModal = function () {
+    showModal.call(this);
+    if (this._nav) return;
+    this._nav = true;
+    navPush({ dlg: this.id });
+    this.addEventListener("close", () => {
+      this._nav = false;
+      if (this._byPop) { this._byPop = false; return; }          // 뒤로가기로 닫혔다
+      // 단추로 닫았으면 그 기록을 '지난 것'으로 바꿔 둔다 (뒤로가기 때 건너뛴다). 바로 되돌리면 새로고침과 부딪힐 수 있다
+      if (history.state && history.state.dlg === this.id) { try { history.replaceState({ ma: 1, stale: 1 }, ""); Nav.cur = history.state; } catch (e) {} }
+    }, { once: true });
+  };
+  window.addEventListener("popstate", (e) => {
+    const from = Nav.cur || {};               // 뒤로가기 전에 있던 기록
+    Nav.cur = e.state;
+    if (Nav.skip) { Nav.skip--; return; }
+    const open = [...document.querySelectorAll("dialog[open]")].filter((d) => d._nav);
+    if (open.length) { const d = open[open.length - 1]; d._byPop = true; d.close(); return; }
+    if (narrow() && !document.body.classList.contains("side-closed")) { setSide(false); return; }
+    const st = e.state || {};
+    if (!st.tab) { Nav.skip = 0; history.back(); return; }    // 이미 닫힌 창·메뉴의 기록은 건너뛴다
+    // 단추로 닫은 창의 기록에서 뒤로 오면 같은 탭에 머무르게 되므로 한 번 더 간다
+    if (from.stale && st.tab === curTab && !R.running) { history.back(); return; }
+    if (R.running) { navPush({ tab: curTab }); showBanner("회의 중입니다. 다른 화면으로 가려면 먼저 정지해 주세요.", true); return; }
+    showTab(st.tab || "home", true);
+  });
+}
+// 폰에서 왼쪽 메뉴를 열면 뒤로가기로 닫을 수 있게 기록한다
+$("sideBtn").addEventListener("click", () => { if (narrow() && !document.body.classList.contains("side-closed")) navPush({ side: 1 }); });
 // 폰에서 메뉴 밖을 누르면 닫는다
 document.addEventListener("click", (ev) => {
   if (!narrow() || document.body.classList.contains("side-closed")) return;
@@ -5645,16 +5517,70 @@ $("sideNew").addEventListener("click", () => {
 });
 $("sideNow").addEventListener("click", () => { if (narrow()) setSide(false); el.stage.scrollTop = el.stage.scrollHeight; });
 $("sideSettings").addEventListener("click", () => { if (narrow()) setSide(false); openSettingsDialog(); });
-// 새 묶음: 이름과 함께 주제·참여자·배경을 처음부터 적는다
-$("sidePackNew").addEventListener("click", () => {
-  if (R.running) { showBanner("회의 중에는 새 묶음을 만들 수 없습니다. 정지한 뒤 눌러 주세요.", true); return; }
-  for (const id of ["pdName", "pdTopic", "pdPeople", "pdBrief"]) $(id).value = "";
+// 폴더 창: 새로 만들기(pack 없음)와 고치기를 같이 한다. 저장소를 못 쓰는 창에서는 배경·용어집만 (설정에 둔다)
+let pdPack = null;
+function openPackDlg(pack) {
+  if (R.running && !pack) { showBanner("회의 중에는 새 폴더를 만들 수 없습니다. 정지한 뒤 눌러 주세요.", true); return; }
+  pdPack = Store.ok ? pack : null;
+  const edit = !!pdPack, ok = Store.ok;
+  $("packDlg").classList.toggle("nostore", !ok); $("packDlg").classList.toggle("editing", edit);
+  $("pdTitle").textContent = !ok ? "회의 배경과 용어집" : edit ? "폴더 고치기" : "새 회의 폴더";
+  const v = pdPack || (ok ? {} : { brief: settings.brief, terms: settings.terms });
+  $("pdName").value = v.name || ""; $("pdTopic").value = v.topic || ""; $("pdPeople").value = v.people || "";
+  $("pdBrief").value = v.brief || ""; $("pdTerms").value = v.terms || ""; $("pdFacts").value = v.facts || ""; $("pdQa").value = v.qa || "";
+  $("pdOk").textContent = edit || !ok ? "저장" : "만들기";
+  $("pdDel").style.display = edit && packs.length > 1 ? "" : "none";
   $("pdMsg").textContent = "";
-  $("packDlg").showModal();
-  setTimeout(() => $("pdName").focus(), 30);
-});
+  if (edit) renderMeetList(); else $("meetList").textContent = "";
+  if (!$("packDlg").open) $("packDlg").showModal();
+  if (!edit && ok) setTimeout(() => $("pdName").focus(), 30);
+}
+// 이 폴더의 지난 회의 (폴더를 고칠 때만). 제목·정리가 없는 기록은 몇 건씩 만들어 준다
+async function renderMeetList() {
+  const box = $("meetList"), packId = pdPack ? pdPack.id : "";
+  if (!Store.ok || !packId) { box.textContent = ""; return; }
+  let list = [];
+  try { list = await Store.meetingsOf(packId); } catch (e) {}
+  if (!pdPack || packId !== pdPack.id) return;           // 기다리는 사이 창을 닫거나 다른 폴더를 열었다
+  list.sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0));
+  box.textContent = "";
+  if (!list.length) { box.append(mk("div", "none", "아직 저장된 회의가 없습니다.")); return; }
+  const aiAuto = !!helperSpec() && settings.autoDigest !== false;
+  let started = 0;
+  for (const m of list) {
+    const n = m.lines ? m.lines.length : 0;
+    const live = m.id === R.meetingId && R.running;
+    // 제목이나 정리가 없거나 그 뒤로 내용이 늘어난 기록은 한 번씩 만들어 준다 (진행 중인 회의는 정지한 뒤에)
+    const stale = titleStale(m) || (aiAuto && digestStale(m));
+    if (stale && !live && !digestTried.has(m.id) && started < 3) { digestTried.add(m.id); started++; autoDigest(m.id); }
+    const row = mk("div", "mrow");
+    const info = mk("div", "minfo");
+    info.append(mk("div", "mtitle" + (m.title ? "" : " pending"), m.title || (live ? "(진행 중)" : digestBusy.has(m.id) ? "(제목 짓는 중…)" : "(제목 없음)")));
+    const mins = Math.max(1, Math.round((m.secs || 0) / 60));
+    info.append(mk("div", "mmeta", stamp(m.startedAt) + " · " + mins + "분 · " + n + "줄" +
+      (digestBusy.has(m.id) ? " · 정리하는 중" : m.digest ? " · 정리 있음" : "") + (m.id === R.meetingId ? " · 지금 화면의 회의" : "")));
+    const open = mk("button", "btn sm", "열기"); open.type = "button";
+    open.addEventListener("click", async () => {
+      let cur = m;
+      try { cur = (await Store.get("meetings", m.id)) || m; } catch (e) {}
+      openMeeting(cur);
+    });
+    const rm = mk("button", "btn sm", "삭제"); rm.type = "button";
+    rm.addEventListener("click", async () => {
+      if (!window.confirm(stamp(m.startedAt) + (m.title ? " '" + m.title + "'" : "") + " 회의 기록을 삭제할까요? 되돌릴 수 없습니다.")) return;
+      if (m.id === R.meetingId) { R.noSave = true; R.meetingId = null; }   // 지금 화면의 회의를 지웠으면, 화면을 지우기 전까지 다시 저장하지 않는다
+      try { await Store.del("meetings", m.id); } catch (e) {}
+      AudioKeep.remove(m.audio);
+      renderMeetList(); renderBackupInfo();
+    });
+    row.append(info, open, rm);
+    box.append(row);
+  }
+}
+
+$("sidePackNew").addEventListener("click", () => openPackDlg(null));
 $("pdCancel").addEventListener("click", () => $("packDlg").close());
-// 묶음을 만들고 그 묶음으로 바꾼다
+// 폴더를 만들고 그 폴더로 바꾼다
 async function createPack(fields) {
   const p = Object.assign({ id: newId(), name: "", topic: "", people: "", brief: "", terms: "", facts: "", qa: "", createdAt: Date.now(), updatedAt: Date.now() }, fields);
   await Store.put("packs", p);
@@ -5663,14 +5589,45 @@ async function createPack(fields) {
   sideOpenPacks.add(p.id);
   return p;
 }
-$("pdOk").addEventListener("click", async () => {
-  const name = $("pdName").value.trim().slice(0, 40);
-  if (!name) { $("pdMsg").textContent = "묶음 이름을 적어 주세요."; $("pdName").focus(); return; }
-  try {
-    await createPack({ name, topic: $("pdTopic").value.trim().slice(0, 200), people: $("pdPeople").value.slice(0, 4000), brief: $("pdBrief").value.trim().slice(0, BRIEF_MAX) });
-  } catch (e) { $("pdMsg").textContent = "묶음을 만들지 못했습니다. (이 브라우저에 저장할 수 없음)"; return; }
-  $("packDlg").close();
+function afterPackChange() {
+  updatePackPill();
   if (document.body.classList.contains("idle")) renderHome(); else renderSide();
+}
+$("pdOk").addEventListener("click", async () => {
+  const f = { name: $("pdName").value.trim().slice(0, 40), topic: $("pdTopic").value.trim().slice(0, 200), people: $("pdPeople").value.slice(0, 4000),
+    brief: $("pdBrief").value.trim().slice(0, BRIEF_MAX), terms: $("pdTerms").value.slice(0, 20000), facts: $("pdFacts").value.slice(0, 20000), qa: $("pdQa").value.slice(0, 40000) };
+  if (!Store.ok) {
+    settings.brief = f.brief; settings.terms = f.terms; saveSettings(settings);
+    $("packDlg").close(); return;
+  }
+  if (!f.name) { $("pdMsg").textContent = "폴더 이름을 적어 주세요."; $("pdName").focus(); return; }
+  try {
+    if (pdPack) {
+      const id = pdPack.id;
+      if (!(await patchPack(id, (p) => Object.assign(p, f)))) throw new Error("save");
+    } else await createPack(f);
+  } catch (e) { $("pdMsg").textContent = "저장하지 못했습니다. (이 브라우저에 저장할 수 없음)"; return; }
+  $("packDlg").close();
+  afterPackChange();
+});
+$("pdDel").addEventListener("click", async () => {
+  const p = pdPack;
+  if (!p || packs.length <= 1) return;
+  let list = [];
+  try { list = await Store.meetingsOf(p.id); } catch (e) {}
+  if (!window.confirm("'" + p.name + "' 폴더와 지난 회의 " + list.length + "건을 삭제할까요? 되돌릴 수 없습니다.")) return;
+  try {
+    for (const m of list) { await Store.del("meetings", m.id); AudioKeep.remove(m.audio); }
+    await Store.del("packs", p.id);
+  } catch (e) { $("pdMsg").textContent = "삭제하지 못했습니다."; return; }
+  if (list.some((m) => m.id === R.meetingId)) R.meetingId = null;
+  packs = packs.filter((x) => x.id !== p.id);
+  if (settings.packId === p.id) {                       // 쓰고 있던 폴더를 지웠으면 첫 폴더로 바꾼다
+    settings.packId = packs[0].id; settings.brief = packs[0].brief || ""; settings.terms = packs[0].terms || "";
+    saveSettings(settings);
+  }
+  $("packDlg").close();
+  afterPackChange();
 });
 
 function renderPeopleChips() {
@@ -5778,7 +5735,7 @@ function playPcm(pcm, rate) {
 }
 
 // ---------------------------------------------------------------------------
-// 사용자 등록: 이름 → API 키 → 계정(Supabase) → 내 목소리 → 첫 회의 묶음
+// 사용자 등록: 이름 → API 키 → 계정(Supabase) → 내 목소리 → 첫 회의 폴더
 // ---------------------------------------------------------------------------
 const OB = { step: 0, voice: null, busy: false };
 const OB_STEPS = 5;
@@ -5813,7 +5770,7 @@ function obMsg(id, text, kind) { const n = $(id); n.textContent = text; n.classN
 function obAcct() {
   const on = !!Cloud.session;
   $("obAcctIn").style.display = on ? "none" : "";
-  if (on) obMsg("obAcctMsg", Cloud.session.user.email + " 로 로그인돼 있습니다. 회의 묶음과 기록, 내 이름과 목소리를 이 계정으로 맞춥니다.", "ok");
+  if (on) obMsg("obAcctMsg", Cloud.session.user.email + " 로 로그인돼 있습니다. 회의 폴더와 기록, 내 이름과 목소리를 이 계정으로 맞춥니다.", "ok");
 }
 async function obAuth(kind) {
   const email = $("obEmail").value.trim(), pw = $("obPw").value;
@@ -5919,14 +5876,14 @@ async function obSave(step) {
     let used = false;
     if (plain) { try { used = (await Store.meetingsOf(cp.id)).length > 0; } catch (e) {} }
     if (plain && !used) {
-      // 아직 비어 있는 '기본' 묶음은 새로 만들지 않고 이 내용으로 채운다
+      // 아직 비어 있는 '기본' 폴더는 새로 만들지 않고 이 내용으로 채운다
       Object.assign(cp, { name: name || cp.name, topic, people, updatedAt: Date.now() });
       try { await Store.put("packs", Object.assign({}, cp)); } catch (e) {}
     } else if (cp && name === cp.name) {
       Object.assign(cp, { topic, people, updatedAt: Date.now() });
       try { await Store.put("packs", Object.assign({}, cp)); } catch (e) {}
     } else {
-      try { await createPack({ name: name || "새 묶음", topic, people }); } catch (e) {}
+      try { await createPack({ name: name || "새 폴더", topic, people }); } catch (e) {}
     }
     return true;
   }

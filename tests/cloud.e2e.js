@@ -3,7 +3,7 @@
 const assert = require('assert');
 const { openApp, speak, toggle, openSettings, closeSettings, BASE, run, newPack, fakeSupabase, SB } = require('./helper');
 
-// 서버의 묶음 수 (프로필 줄 __profile__ 은 빼고 센다)
+// 서버의 폴더 수 (프로필 줄 __profile__ 은 빼고 센다)
 const packCount = (sb) => [...sb.db.rows.packs.keys()].filter((k) => !/__profile__/.test(k)).length;
 
 run('CLOUD TESTS', async (b) => {
@@ -16,7 +16,7 @@ run('CLOUD TESTS', async (b) => {
     await p.click(kind === 'up' ? '#sbSignUp' : '#sbSignIn'); await p.waitForTimeout(1200);
   };
 
-  // 1) 기기 A: 회의 하나를 한 뒤 가입하면, 이 기기에 있던 묶음과 회의가 올라간다
+  // 1) 기기 A: 회의 하나를 한 뒤 가입하면, 이 기기에 있던 폴더와 회의가 올라간다
   const A = await device();
   await toggle(A); await speak(A, "We reviewed the draft agreement."); await toggle(A); await A.waitForTimeout(1500);
   await login(A, 'me@x.com', 'up');
@@ -27,24 +27,24 @@ run('CLOUD TESTS', async (b) => {
   assert(/me@x\.com/.test(await A.textContent('#sideCloud')));
   await A.click('#cancelSettings');
 
-  // 2) 기기 B: 같은 계정으로 로그인하면 A 의 회의가 보이고, B 의 빈 '기본' 묶음은 겹치지 않게 버린다
+  // 2) 기기 B: 같은 계정으로 로그인하면 A 의 회의가 보이고, B 의 빈 '기본' 폴더는 겹치지 않게 버린다
   const B = await device();
   await login(B, 'me@x.com', 'in');
   await B.click('#cancelSettings'); await B.waitForTimeout(300);
   let tree = await B.textContent('#sideTree');
   console.log('2 B 메뉴:', tree);
   assert(/계약 초안 검토/.test(tree));
-  assert.strictEqual(await B.$$eval('#sideTree > li', (n) => n.length), 1, '기본 묶음이 하나뿐');
-  assert.strictEqual(packCount(sb), 1, '서버에도 묶음 하나');
+  assert.strictEqual(await B.$$eval('#sideTree > li', (n) => n.length), 1, '기본 폴더가 하나뿐');
+  assert.strictEqual(packCount(sb), 1, '서버에도 폴더 하나');
 
-  // 3) B 에서 새 묶음과 회의 → A 가 동기화하면 받는다
+  // 3) B 에서 새 폴더와 회의 → A 가 동기화하면 받는다
   await newPack(B, 'A사 계약');
   await toggle(B); await speak(B, "Delivery will take 8 weeks."); await toggle(B); await B.waitForTimeout(5000);
   assert.strictEqual(packCount(sb), 2); assert.strictEqual(sb.db.rows.meetings.size, 2);
   await A.evaluate(() => Cloud.sync()); await A.waitForTimeout(800);
   tree = await A.textContent('#sideTree');
   console.log('3 A 메뉴:', tree);
-  assert(/A사 계약1/.test(tree), 'B 에서 만든 묶음과 그 회의 1건');
+  assert(/A사 계약1/.test(tree), 'B 에서 만든 폴더와 그 회의 1건');
   assert.strictEqual(await A.evaluate(async () => (await Store.all('meetings')).length), 2);
 
   // 4) A 에서 회의를 지우면 B 에서도 사라진다
