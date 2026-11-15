@@ -463,6 +463,64 @@
   .home-f.wide { grid-column: 1 / -1; }
   .me-card { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .me-card .who { font-weight: 700; }
+  /* 켜고 끄는 단추 */
+  .sw { position: relative; flex: 0 0 auto; width: 50px; height: 30px; }
+  .sw input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; z-index: 1; }
+  .sw i { position: absolute; inset: 0; border-radius: 999px; background: #3a4555; transition: background .15s; }
+  .sw i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: transform .15s; }
+  .sw input:checked + i { background: var(--lamp); }
+  .sw input:checked + i::after { transform: translateX(20px); }
+  .sw input:focus-visible + i { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .sh-set { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+  .sh-set:first-child { border-top: 0; padding-top: 2px; }
+  .sh-set .tx { flex: 1; min-width: 0; }
+  .sh-set .tx b { display: block; font-size: 15px; color: var(--text); font-weight: 600; }
+  .sh-set .tx span { display: block; font-size: 12.5px; color: var(--muted); line-height: 1.5; margin-top: 3px; }
+  .sh-set.link { cursor: pointer; background: none; border-left: 0; border-right: 0; border-bottom: 0; width: 100%; text-align: left; color: inherit; font: inherit; }
+  .sh-set .val { font-size: 13.5px; color: var(--muted); white-space: nowrap; }
+  .lvbar { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin: 10px 0 8px; }
+  .lvbar i { height: 6px; border-radius: 6px; background: #3a4555; }
+  .lvbar i.on { background: var(--lamp); }
+  .sh-box .btn.wide { width: 100%; justify-content: center; margin-top: 12px; border-radius: 999px; padding: 12px; }
+  /* 내 지식 */
+  #knowDlg { width: min(600px, 100vw); max-width: 100vw; max-height: 100vh; height: min(100vh, 900px); }
+  @media (max-width: 760px) { #knowDlg { margin: 0; height: 100vh; max-height: 100vh; border-radius: 0; } }
+  #knowDlg .dlg-body { padding-bottom: 40px; }
+  .kn-intro { font-size: 13.5px; line-height: 1.65; color: var(--muted); margin: 0 0 14px; }
+  .kn-card { background: var(--panel2); border-radius: 16px; padding: 16px; margin-bottom: 12px; }
+  .kn-card h4 { margin: 0 0 4px; font-size: 16px; color: var(--text); }
+  .kn-card p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .kn-row { display: flex; align-items: flex-start; gap: 12px; }
+  .kn-row > div:first-child { flex: 1; min-width: 0; }
+  .kn-me { text-align: center; }
+  .kn-me .av { width: 64px; height: 64px; font-size: 28px; margin: 4px auto 8px; display: grid; place-items: center; border-radius: 50%; font-weight: 700; background: var(--lamp); color: #1b1305; }
+  .kn-me b { font-size: 19px; color: var(--text); }
+  .kn-stats { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--panel); border-radius: 12px; margin: 14px 0 4px; }
+  .kn-stats div { padding: 10px 4px; text-align: center; border-left: 1px solid var(--line); }
+  .kn-stats div:first-child { border-left: 0; }
+  .kn-stats b { display: block; font-size: 19px; color: var(--text); font-variant-numeric: tabular-nums; }
+  .kn-stats span { font-size: 11.5px; color: var(--muted); }
+  .kn-h { display: flex; align-items: center; justify-content: space-between; margin: 22px 0 4px; }
+  .kn-h h3 { margin: 0; font-size: 17px; }
+  .kn-sub { font-size: 13px; color: var(--muted); margin: 0 0 10px; line-height: 1.55; }
+  .kn-item { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: 0; border-top: 1px solid var(--line); padding: 13px 2px; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+  .kn-item:first-child { border-top: 0; }
+  .kn-item .tx { flex: 1; min-width: 0; }
+  .kn-item b { display: block; font-size: 15px; color: var(--text); }
+  .kn-item .tx span { display: block; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  .kn-item .when { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .kn-edit textarea, .kn-edit input { width: 100%; box-sizing: border-box; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px; color: var(--text); font: inherit; font-size: 14px; }
+  .kn-edit textarea { min-height: 110px; resize: vertical; }
+  .kn-edit .row { margin-top: 8px; }
+  .kn-prompt { white-space: pre-wrap; font-size: 12.5px; line-height: 1.55; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px; max-height: 180px; overflow: auto; margin: 10px 0 8px; }
+  .btn.danger { color: var(--err); border-color: rgba(255,120,120,.35); }
+  .kn-msg { font-size: 13px; margin-top: 8px; color: var(--ok); white-space: pre-wrap; }
+  .kn-msg.bad { color: var(--err); }
+  /* 회의 기록에서 다시 듣기 */
+  .mv-audio { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; flex-wrap: wrap; }
+  .mv-audio audio { flex: 1; min-width: 220px; height: 36px; }
+  .play-at { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 999px; font-size: 11px; padding: 1px 7px; margin-right: 6px; cursor: pointer; }
+  .play-at:hover { color: var(--text); border-color: var(--accent); }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -678,7 +736,8 @@
       <div id="obAcctIn">
         <div class="field"><label for="obEmail">이메일</label><input id="obEmail" type="email" autocomplete="username"></div>
         <div class="field"><label for="obPw">비밀번호 (6자 이상)</label><input id="obPw" type="password" autocomplete="current-password" minlength="6"></div>
-        <div class="row"><button id="obSignIn" class="btn primary" type="button">로그인</button><button id="obSignUp" class="btn" type="button">처음이면 가입</button></div>
+        <div class="row"><button id="obSignIn" class="btn primary" type="button">로그인</button><button id="obSignUp" class="btn" type="button">처음이면 가입</button>
+          <button id="obResend" class="btn" type="button" hidden>확인 메일 다시 보내기</button></div>
       </div>
       <div id="obAcctMsg" class="ob-msg"></div>
     </section>
@@ -704,6 +763,11 @@
     <button id="obSkip" class="btn" type="button">건너뛰기</button>
     <button id="obNext" class="btn primary" type="button">다음</button>
   </div>
+</dialog>
+
+<dialog id="knowDlg" aria-label="내 지식">
+  <div class="dlg-head"><button id="knBack" class="btn sm" type="button" aria-label="닫기">‹</button><span style="font-size:18px">내 지식</span></div>
+  <div class="dlg-body" id="knBody"></div>
 </dialog>
 
 <dialog id="packDlg" aria-label="새 회의 묶음">
@@ -755,6 +819,7 @@
         <div class="row" style="align-items:center">
           <button id="sbSignIn" class="btn primary" type="button">로그인</button>
           <button id="sbSignUp" class="btn" type="button">처음이면 가입</button>
+          <button id="sbResend" class="btn" type="button">확인 메일 다시 보내기</button>
         </div>
       </div>
       <div id="cloudUser" style="display:none">
@@ -1517,6 +1582,46 @@ function meetingContextText(info, max) {
   return parts.join("\n").slice(0, max || 1500);
 }
 
+// ---- 개인화 수준 (내 지식) ----
+// s: { meetings: 배운 회의 수, terms: 고유 용어 수, filled: 저장된 지식 칸(기본 정보·하는 일·말투) 중 채운 수, voice: 목소리 등록 }
+const KNOW_LEVELS = ["알아가는 중", "기본을 앎", "하는 일을 앎", "말투까지 앎", "깊이 앎", "한 팀"];
+const KNOW_STEPS = [0, 20, 50, 90, 130, 170];
+function knowledgeLevel(s) {
+  const pts = Math.min(s.meetings || 0, 10) * 8 + Math.min(s.terms || 0, 30) * 2 + Math.min(s.filled || 0, 3) * 15 + (s.voice ? 15 : 0);
+  let lv = 1;
+  for (let i = 0; i < KNOW_STEPS.length; i++) if (pts >= KNOW_STEPS[i]) lv = i + 1;
+  return { level: lv, name: KNOW_LEVELS[lv - 1], next: lv < 6 ? KNOW_LEVELS[lv] : "", points: pts };
+}
+// 용어집 두 개를 합친다 (같은 영어 용어는 앞의 것을 쓴다)
+function mergeTermsText(a, b) {
+  const seen = new Set(), out = [];
+  for (const t of parseTerms(a).concat(parseTerms(b))) {
+    const k = t.src.toLowerCase();
+    if (seen.has(k)) continue;
+    seen.add(k); out.push(t);
+  }
+  return out;
+}
+// 다른 AI가 정리해 준 글을 칸별로 나눈다: [기본 정보] [지금 하는 일] [관점·말투] [고유 용어]
+// 칸 제목이 하나도 없으면 null (그때는 AI로 정리하거나 '하는 일'에 넣는다)
+function parseImport(text) {
+  const keys = [["basic", /기본\s*정보|basic/i], ["work", /하는\s*일|업무|work/i], ["style", /말투|관점|style|tone/i], ["terms", /용어|terms|glossary/i]];
+  const out = { basic: "", work: "", style: "", terms: "" };
+  let cur = null, found = false;
+  for (const raw of String(text || "").split("\n")) {
+    const line = raw.trim();
+    const h = line.match(/^(?:#+\s*|\[|【|\*\*)?\s*([^\]】*:]{2,20}?)\s*(?:\]|】|\*\*)?\s*:?\s*$/);
+    const key = h && keys.find(([, re]) => re.test(h[1]));
+    if (key && (/^[#\[【*]/.test(line) || /:$/.test(line))) { cur = key[0]; found = true; continue; }
+    if (cur && line) out[cur] += (out[cur] ? "\n" : "") + line.replace(/^[-*•]\s*/, "");
+  }
+  if (!found) return null;
+  // 용어는 "영어 = 한국어" 줄로 맞춘다 ("영어 - 한국어", "영어: 한국어" 도 받는다)
+  out.terms = out.terms.split("\n").map((l) => l.replace(/\s+[-–:→]\s+/, " = ").trim()).filter(Boolean).join("\n");
+  for (const k of Object.keys(out)) out[k] = out[k].slice(0, k === "terms" ? 6000 : 1500);
+  return out;
+}
+
 // ---- 등록한 내 목소리 보관: 8비트 μ-law(16kHz)로 줄여 저장한다 (10초 ≈ 160KB) ----
 function muEncode(pcm) {
   const out = new Uint8Array(pcm.length);
@@ -1645,7 +1750,7 @@ function relabelVoice(core, sock, v) {
 // ---------------------------------------------------------------------------
 const WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 // 앱 버전: 고칠 때마다 올린다. 설정 창 아래에 보이고, 새 버전이 올라왔는지 확인할 때 쓴다
-const APP_VERSION = "2026.11.15-11";
+const APP_VERSION = "2026.11.16-1";
 const STORE_KEY = "meeting-interpreter.settings.v1";
 const DEFAULTS = {
   apiKey: "", hint: "en", target: "ko", terms: "", fontSize: "18",
@@ -1657,7 +1762,8 @@ const DEFAULTS = {
   stable: false, lastBackupAt: 0, backupNagAt: 0,
   assist: true, assistAuto: true, assistOpen: true, me: "", autoDigest: true,
   assistEngine: "", digestEngine: "", myNames: "", marks: true, keepKeys: true, openAfterStop: true, sbUrl: "", sbKey: "",
-  onboarded: false, voiceMe: true, meetTopic: "", meetPeople: ""
+  onboarded: false, voiceMe: true, meetTopic: "", meetPeople: "",
+  autoLearn: true, keepAudio: false, bgKeep: true
 };
 
 // API 키 보관: 기본은 이 브라우저(localStorage)에 기억한다
@@ -1697,7 +1803,8 @@ const core = createCore();
 
 // ---- 사용자 프로필: 내 이름과 등록한 목소리 ----
 // 이 기기(localStorage)에 두고, 로그인돼 있으면 Supabase 에도 올려 PC·폰이 같은 프로필을 쓴다 (API 키는 넣지 않는다)
-// { name, myNames, me, voice: { rate, secs, mu(μ-law base64), at }, updatedAt }
+// { name, myNames, me(지금 하는 일), style(말투), terms(고유 용어, "영어 = 한국어" 줄), learned(배운 회의 id), kAt(칸별 고친 때),
+//   voice: { rate, secs, mu(μ-law base64), at }, updatedAt }
 const PROFILE_KEY = "meetingassit.profile.v1";
 const PROFILE_ID = "__profile__";   // Supabase packs 표에서 프로필을 담는 줄의 id (묶음 목록에는 보이지 않는다)
 function loadProfile() {
@@ -1707,7 +1814,13 @@ function loadProfile() {
 let profile = loadProfile();
 // 설정에 따로 있던 '부르는 이름'과 '내 정보'도 프로필과 같이 맞춘다
 if (!profile.updatedAt && (settings.myNames || settings.me)) { profile.myNames = settings.myNames || ""; profile.me = settings.me || ""; }
+const KNOW_FIELDS = { name: "basic", myNames: "basic", me: "work", style: "style", terms: "terms" };
 function saveProfile(changes, fromCloud) {
+  if (!fromCloud) {
+    const kAt = Object.assign({}, profile.kAt || {});
+    for (const k of Object.keys(changes)) if (KNOW_FIELDS[k] && (changes[k] || "") !== (profile[k] || "")) kAt[KNOW_FIELDS[k]] = Date.now();
+    changes = Object.assign({}, changes, { kAt });
+  }
   profile = Object.assign({}, profile, changes);
   if (!fromCloud) profile.updatedAt = Date.now();
   if ("myNames" in changes) settings.myNames = profile.myNames || "";
@@ -1758,6 +1871,11 @@ function setStatus(kind, text) {
 // ---- 화면 모드: 시작 화면(idle) / 듣는 중(live) / 데스크톱 앱 / 자막 팝업(popup) ----
 // 데스크톱 앱(exe)에서는 window.desktop 이 있다 (desktop/preload.js)
 const DESKTOP = !!(window.desktop && window.desktop.popup);
+// 안드로이드 앱(Capacitor) 안에서 열렸는지. 앱은 MeetingNative 로 '앱을 나가도 계속 듣기'(알림이 뜨는 포그라운드 서비스)를 켠다
+const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+const Native = {
+  keep(on) { try { if (window.MeetingNative && window.MeetingNative.keepRecording) window.MeetingNative.keepRecording(!!on); } catch (e) {} }
+};
 // 자막 팝업 창(데스크톱): 같은 앱을 #popup 으로 연 것. 본 창이 보내 주는 자막만 보여 준다
 const POPUP = DESKTOP && location.hash === "#popup";
 if (DESKTOP) document.body.classList.add("desktop");
@@ -2168,6 +2286,7 @@ const R = {
   noEpDelay: false, noCtxExtra: false,  // Soniox가 거부한 선택 설정은 빼고 연결한다
   // 내가 한 말 찾기: 연결마다 번호(sockNo)와 화자 판단(vmaps[번호])을 둔다. vcur = 지금 연결의 것
   sockNo: 0, vmaps: {}, vcur: null,
+  audioSegs: [],   // 이 회의에서 이 기기에 저장한 소리 구간 { key, start, type }
   // 회의 기록 자동 저장: 화면의 기록(지우기 전까지)이 회의 한 건이다
   meetingId: null, meetingStart: 0, meetingSecs: 0, saveTick: null, noSave: false
 };
@@ -2203,7 +2322,7 @@ function buildConfig() {
   if (settings.target && settings.target !== "none" && (!isLLM() || settings.preview !== false || settings.compare)) {
     cfg.translation = { type: "one_way", target_language: settings.target };
   }
-  const terms = parseTerms(settings.terms), info = meetInfo();
+  const terms = mergeTermsText(settings.terms, profile.terms), info = meetInfo();   // 묶음 용어집 + 내 고유 용어
   const ctx = {};
   // 용어집 + 참여자·내 이름 (이름을 정확하게 받아 적게)
   const words = terms.map((t) => t.src);
@@ -2494,7 +2613,7 @@ function claudeSystemPrompt() {
   if (settings.target === "ko") p += " Use polite Korean (합니다/해요체) and natural Korean word order.";
   const about = meetingContextText(meetInfo(), 2500);
   if (about) p += "\n\nMeeting information, for understanding only (never translate or mention it). Use it to pick the right meaning of ambiguous words and to spell names correctly:\n" + about;
-  const terms = parseTerms(settings.terms);
+  const terms = mergeTermsText(settings.terms, profile.terms);
   const fixed = terms.filter((t) => t.dst), keep = terms.filter((t) => !t.dst);
   if (fixed.length) p += "\n\nGlossary. Always translate these terms exactly as given: " + fixed.map((t) => t.src + " = " + t.dst).join("; ") + ".";
   if (keep.length) p += "\n\nTerms that may appear (keep as written): " + keep.map((t) => t.src).join(", ") + ".";
@@ -3014,6 +3133,8 @@ async function start() {
     stream.getTracks().concat(stream.mic ? stream.mic.getTracks() : []).forEach((t) => t.addEventListener("ended", () => { if (R.running) stop(); }));
     R.running = true;
     R.sampleRate = await startAudio(stream, onChunk);
+    AudioKeep.start();                                       // 켜 두었으면 회의 소리를 이 기기에 저장
+    if (settings.bgKeep !== false) Native.keep(true);        // 안드로이드 앱: 앱을 나가도 계속 듣기
   } catch (e) {
     R.running = false; R.starting = false;
     stopAudio();
@@ -3064,6 +3185,8 @@ function stop() {
   clearTimeout(R.retryTimer); clearInterval(R.tick); clearInterval(T.tick); clearInterval(R.saveTick);
   if (wasRunning && R.startedAt) R.meetingSecs += (Date.now() - R.startedAt) / 1000;
   if (R.retryBanner) { hideBanner(); R.retryBanner = false; }
+  AudioKeep.stop();
+  Native.keep(false);
   stopAudio();
   const ws = R.ws;
   if (ws) {
@@ -3149,7 +3272,7 @@ el.clear.addEventListener("click", async () => {
   if (prevMeeting) autoDigest(prevMeeting);      // 정지 없이 지운 회의에도 제목과 정리를 붙인다
   if (AS.ac) { try { AS.ac.abort(); } catch (e) {} AS.ac = null; }
   AS.cur = null; if (assistOn()) renderAssist();
-  R.meetingId = null; R.meetingStart = 0; R.meetingSecs = 0; R.noSave = false; R.gaps = [];
+  R.meetingId = null; R.meetingStart = 0; R.meetingSecs = 0; R.noSave = false; R.gaps = []; R.audioSegs = [];
   // 다음 회의는 주제·참여자를 새로 적는다
   if (prevMeeting || core.blocks.length) { R.mtopic = R.mpeople = ""; settings.meetTopic = settings.meetPeople = ""; saveSettings(settings); }
   setSaveState("");
@@ -3215,13 +3338,19 @@ const Store = {
   open() {
     return new Promise((resolve, reject) => {
       let req;
-      try { req = indexedDB.open("meeting-interpreter", 1); } catch (e) { reject(e); return; }
+      // 버전 2: 회의 소리(audio) 보관함 추가. 소리는 이 기기에만 두고 서버에 올리지 않는다
+      try { req = indexedDB.open("meeting-interpreter", 2); } catch (e) { reject(e); return; }
       req.onupgradeneeded = () => {
         const d = req.result;
         if (!d.objectStoreNames.contains("packs")) d.createObjectStore("packs", { keyPath: "id" });
         if (!d.objectStoreNames.contains("meetings")) d.createObjectStore("meetings", { keyPath: "id" }).createIndex("packId", "packId");
+        if (!d.objectStoreNames.contains("audio")) d.createObjectStore("audio", { keyPath: "id" }).createIndex("seg", "seg");
       };
-      req.onsuccess = () => { this.db = req.result; this.ok = true; resolve(); };
+      req.onsuccess = () => {
+        this.db = req.result; this.ok = true;
+        this.db.onversionchange = () => { try { this.db.close(); } catch (e) {} this.ok = false; showBanner("앱이 새 버전으로 바뀌었습니다. 새로고침해 주세요.", true); };
+        resolve();
+      };
       req.onerror = () => reject(req.error);
       req.onblocked = () => reject(new Error("blocked"));
     });
@@ -3258,6 +3387,77 @@ const Store = {
     });
   }
 };
+
+
+// ---- 회의 소리 보관 (계정 → 회의 기록에서 다시 듣기) ----
+// 들은 소리(PC 소리 + 마이크를 섞은 것)를 10초마다 조각으로 이 기기 IndexedDB 에 쌓는다. 서버에는 올리지 않는다
+// 회의 기록에는 구간 정보 { key, start(시작 시각), type } 만 남기고, 들을 때 조각을 이어 붙인다
+const AudioKeep = {
+  rec: null,
+  start() {
+    if (!settings.keepAudio || !Store.ok || !A.ctx || typeof MediaRecorder === "undefined") return;
+    let dest, rec;
+    try {
+      dest = A.ctx.createMediaStreamDestination();
+      A.src.connect(dest); if (A.src2) A.src2.connect(dest);
+      const type = ["audio/webm;codecs=opus", "audio/ogg;codecs=opus", "audio/mp4"].find((t) => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || "";
+      rec = new MediaRecorder(dest.stream, Object.assign({ audioBitsPerSecond: 24000 }, type ? { mimeType: type } : {}));
+    } catch (e) { return; }
+    const seg = { key: "a" + newId(), start: Date.now(), type: rec.mimeType || "" };
+    let n = 0;
+    rec.ondataavailable = (e) => {
+      if (!e.data || !e.data.size) return;
+      const i = n++;
+      Store.run("audio", "readwrite", (s) => s.put({ id: seg.key + ":" + String(i).padStart(6, "0"), seg: seg.key, n: i, blob: e.data })).catch(() => {});
+    };
+    try { rec.start(10000); } catch (e) { return; }
+    R.audioSegs.push(seg);
+    this.rec = rec;
+  },
+  stop() {
+    const rec = this.rec; this.rec = null;
+    try { if (rec && rec.state !== "inactive") rec.stop(); } catch (e) {}
+  },
+  // 한 구간의 조각을 이어 붙인 소리. 없으면 null
+  async blob(seg) {
+    if (!Store.ok || !seg) return null;
+    let rows = [];
+    try { rows = await Store.run("audio", "readonly", (s) => s.index("seg").getAll(seg.key)); } catch (e) { return null; }
+    if (!rows || !rows.length) return null;
+    rows.sort((a, b) => a.n - b.n);
+    return new Blob(rows.map((r) => r.blob), { type: seg.type || rows[0].blob.type || "audio/webm" });
+  },
+  async remove(segs) {
+    if (!Store.ok || !segs || !segs.length) return;
+    for (const seg of segs) {
+      try {
+        const keys = await Store.run("audio", "readonly", (s) => s.index("seg").getAllKeys(seg.key));
+        for (const k of keys || []) await Store.run("audio", "readwrite", (s) => s.delete(k));
+      } catch (e) {}
+    }
+  }
+};
+// 회의 기록 화면의 플레이어: 그 줄의 시각으로 옮겨 재생한다 (말이 화면에 뜨기 조금 전부터)
+const Player = { el: null, seg: null, url: "" };
+async function playAt(m, at) {
+  const segs = (m.audio || []).slice().sort((a, b) => a.start - b.start);
+  let seg = segs[0];
+  for (const x of segs) if (x.start <= at) seg = x;
+  const a = Player.el;
+  if (!seg || !a) return;
+  if (Player.seg !== seg.key) {
+    const b = await AudioKeep.blob(seg);
+    if (!b) { const n = $("mvAudioMsg"); if (n) n.textContent = "이 기기에는 이 회의의 소리가 없습니다. (소리는 녹음한 기기에만 있습니다)"; return; }
+    if (Player.url) URL.revokeObjectURL(Player.url);
+    Player.url = URL.createObjectURL(b); Player.seg = seg.key;
+    a.src = Player.url;
+    await new Promise((res) => { a.onloadedmetadata = res; setTimeout(res, 1500); });
+    // 녹음기로 만든 webm 은 길이를 모를 때가 있어, 끝으로 한 번 옮겨 길이를 알아낸 뒤 쓴다
+    if (!isFinite(a.duration)) { a.currentTime = 1e7; await new Promise((res) => { a.ontimeupdate = () => { a.ontimeupdate = null; res(); }; setTimeout(res, 1500); }); }
+  }
+  try { a.currentTime = Math.max(0, (at - seg.start) / 1000 - 3); } catch (e) {}
+  try { await a.play(); } catch (e) {}
+}
 
 
 // ---- Supabase 동기화 ----
@@ -3307,12 +3507,34 @@ const Cloud = {
     this.keep(this.fromAuth(await this.auth("token?grant_type=password", { email, password: pw })));
     await this.firstSync();
   },
+  // 가입 확인 메일의 링크를 누르면 돌아올 주소 (Supabase 의 URL Configuration 에 이 주소가 등록돼 있어야 한다)
+  backUrl() { return /^https:/.test(location.protocol) && !DESKTOP ? location.origin + location.pathname : "https://thewooke0620-lang.github.io/MeetingAssit/"; },
   async signUp(email, pw) {
-    // 가입 확인 메일의 링크를 누르면 이 앱 주소로 돌아오게 한다
-    const back = /^https:/.test(location.protocol) && !DESKTOP ? location.origin + location.pathname : "https://thewooke0620-lang.github.io/MeetingAssit/";
-    const j = await this.auth("signup?redirect_to=" + encodeURIComponent(back), { email, password: pw });
+    const j = await this.auth("signup?redirect_to=" + encodeURIComponent(this.backUrl()), { email, password: pw });
     if (j.access_token) { this.keep(this.fromAuth(j)); await this.firstSync(); return "in"; }
     return "confirm";   // 이메일 확인이 켜져 있으면, 메일의 링크를 누른 뒤 로그인한다
+  },
+  // 확인 메일 다시 보내기
+  async resend(email) { await this.auth("resend?redirect_to=" + encodeURIComponent(this.backUrl()), { type: "signup", email }); },
+  // 확인 메일의 링크로 돌아왔을 때: 주소 뒤(#access_token=…)에 붙은 로그인 정보를 받아 바로 로그인한다
+  // 돌려주는 값: "in"(로그인됨), "error"(링크 문제), null(해당 없음)
+  async fromLink() {
+    const h = location.hash || "";
+    if (!/access_token=|error_description=|error=/.test(h)) return null;
+    const q = new URLSearchParams(h.replace(/^#/, ""));
+    try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+    if (!q.get("access_token")) {
+      this.err = /expired|invalid/i.test(q.get("error_description") || q.get("error_code") || "")
+        ? "확인 링크가 만료됐거나 이미 쓴 링크입니다. 가입은 이미 확인됐을 수 있으니 먼저 로그인해 보세요. 안 되면 '확인 메일 다시 보내기'를 누르세요."
+        : "확인 링크로 로그인하지 못했습니다: " + (q.get("error_description") || q.get("error") || "원인 미상");
+      return "error";
+    }
+    const res = await fetch(this.url() + "/auth/v1/user", { headers: { apikey: this.key(), authorization: "Bearer " + q.get("access_token") } });
+    if (!res.ok) { this.err = "확인 링크로 로그인하지 못했습니다. 이메일과 비밀번호로 로그인해 주세요."; return "error"; }
+    const user = await res.json();
+    this.keep(this.fromAuth({ access_token: q.get("access_token"), refresh_token: q.get("refresh_token"), expires_in: Number(q.get("expires_in")) || 3600, user }));
+    await this.firstSync();
+    return "in";
   },
   async signOut() {
     try { if (this.session) await fetch(this.url() + "/auth/v1/logout", { method: "POST", headers: { apikey: this.key(), authorization: "Bearer " + this.session.access } }); } catch (e) {}
@@ -3541,9 +3763,14 @@ async function initPacks() {
   if (el.dlg.open) openPackUI();
   checkBackup();
   if (document.body.classList.contains("idle")) renderHome(); else renderSide();
-  // 로그인돼 있으면 서버와 맞춘다
-  Cloud.load(); renderCloud();
-  if (Cloud.on()) Cloud.sync();
+  // 로그인돼 있으면 서버와 맞춘다. 가입 확인 메일의 링크로 들어왔으면 그것으로 로그인한다
+  Cloud.load();
+  let link = null;
+  try { link = await Cloud.fromLink(); } catch (e) { Cloud.err = "확인 링크로 로그인하지 못했습니다. 이메일과 비밀번호로 로그인해 주세요."; link = "error"; }
+  renderCloud(); renderAcctChip();
+  if (link === "in") showBanner("가입 확인이 끝나 로그인했습니다. 이제 PC·폰에서 같은 계정으로 로그인하면 기록이 맞춰집니다.", true);
+  else if (link === "error") showBanner(Cloud.err, true);
+  else if (Cloud.on()) Cloud.sync();
 }
 
 // ---- 회의 기록 자동 저장 ----
@@ -3585,6 +3812,7 @@ async function saveMeeting(announce, pending) {
   const secs = Math.round(R.meetingSecs + (R.running && R.startedAt ? (Date.now() - R.startedAt) / 1000 : 0));
   const id = R.meetingId;
   const extra = { gaps: R.gaps.slice(), sig: linesSig(lines), topic: R.mtopic || "", people: R.mpeople || "" };
+  if (R.audioSegs.length) extra.audio = R.audioSegs.slice();
   if (pending !== undefined) extra.pending = pending || 0;
   let saved = null;
   setSaveState("busy");
@@ -3627,7 +3855,12 @@ function setSaveState(kind) {
   }
 }
 $("saveState").addEventListener("click", () => { if (SV.kind === "fail" || SV.kind === "off") el.save.click(); });
-document.addEventListener("visibilitychange", () => { if (document.hidden) saveMeeting(); });
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) saveMeeting();
+  // '앱을 나가도 계속 기록하기'를 껐으면 화면을 떠날 때 멈춘다
+  if (document.hidden && R.running && settings.bgKeep === false && !POPUP) { stop(); R.leftPaused = true; }
+  if (!document.hidden && R.leftPaused) { R.leftPaused = false; showBanner("앱을 떠나서 회의를 멈췄습니다. 이어서 들으려면 시작을 누르세요. (계정 → '앱을 나가도 계속 기록하기')", true); }
+});
 
 // ---- 연결 시험: 회의 전에 키·모델·잔액·접속 문제를 미리 확인한다 ----
 // 설정 창에 지금 적혀 있는 값으로 시험한다 (저장하지 않아도 된다)
@@ -3947,6 +4180,7 @@ async function autoDigest(id, opts) {
       if (!next.titleManual && !next.title) { next.title = simpleTitle(cur.lines); next.titleLines = -1; }
       return next;
     });
+    if (made && result) autoLearnAfter(result);          // 회의 후 자동으로 배우기
     if (result && id === R.meetingId && !R.running) {
       const p = packs.find((x) => x.id === result.packId);
       setConnState("회의 기록을 '" + (p ? p.name : "") + "' 묶음에 저장했습니다: " + result.title + " (" + result.lines.length + "줄)." +
@@ -3961,6 +4195,93 @@ async function autoDigest(id, opts) {
   }
   refreshMeetingViews();
   return result;
+}
+
+// ---------------------------------------------------------------------------
+// 내 지식 배우기: 회의 내용이나 다른 AI가 정리해 준 글을 읽고 '지금 하는 일', '말투', '고유 용어'를 고친다
+// 번역(용어)과 답변 제안(하는 일·말투)에 쓰인다
+// ---------------------------------------------------------------------------
+const LEARN_SYSTEM = "You keep a short profile of the user, a Korean professional who attends English meetings, to personalize live translation and reply suggestions.\n" +
+  "Read the current profile and the new material. Return JSON only, no other text: {\"work\": string, \"style\": string, \"terms\": [{\"en\": string, \"ko\": string}]}\n" +
+  "work: in Korean, at most 3 sentences: the user's role and what they are working on now. Merge with the current text; keep what is still true, update what changed.\n" +
+  "style: in Korean, at most 3 sentences: how the user speaks in English meetings (tone, typical phrases). Base it only on lines the user said; if there are none, return the current text unchanged.\n" +
+  "terms: up to 15 domain terms from the material that matter for the user's work (product names, acronyms, company or industry terms) and are not in the current list. ko = the Korean wording to use, or \"\" to keep it in English. Skip everyday words.\n" +
+  "Never invent facts. If the material says nothing new, return the current work and style unchanged and an empty terms list.";
+function parseLearn(raw) {
+  const a = (raw || "").indexOf("{"), b = (raw || "").lastIndexOf("}");
+  if (a < 0 || b <= a) return null;
+  let j; try { j = JSON.parse(raw.slice(a, b + 1)); } catch (e) { return null; }
+  const S = (v, n) => (typeof v === "string" ? v.trim().slice(0, n) : "");
+  const clean = (x) => x.replace(/[,=\n]/g, " ").replace(/\s+/g, " ").trim();
+  return { work: S(j.work, 1500), style: S(j.style, 800),
+    terms: (Array.isArray(j.terms) ? j.terms : []).map((t) => ({ en: clean(S(t && t.en, 80)), ko: clean(S(t && t.ko, 80)) })).filter((t) => t.en).slice(0, 15) };
+}
+// 배운 것을 프로필에 넣는다. 돌려주는 값: 새로 더한 용어 수
+function applyLearn(d) {
+  const add = d.terms.map((t) => t.en + (t.ko ? " = " + t.ko : "")).join("\n");
+  const before = parseTerms(profile.terms).length;
+  const terms = mergeTermsText(profile.terms, add).map((t) => t.src + (t.dst ? " = " + t.dst : "")).join("\n");
+  const ch = { terms };
+  if (d.work) ch.me = d.work;
+  if (d.style) ch.style = d.style;
+  saveProfile(ch);
+  return parseTerms(terms).length - before;
+}
+function currentProfileText() {
+  return "<current>\nName: " + (profile.name || "") + (settings.myNames ? " (" + settings.myNames + ")" : "") +
+    "\nWork: " + (settings.me || "") + "\nStyle: " + (profile.style || "") +
+    "\nTerms: " + parseTerms(profile.terms).map((t) => t.src).join(", ").slice(0, 2000) + "\n</current>";
+}
+// 회의 몇 건을 한 번에 배운다 (요약, 그 회의의 용어, 내가 한 말)
+async function learnMeetings(list) {
+  const spec = helperSpec("digest");
+  if (!spec) throw new Error("no engine");
+  const parts = [];
+  for (const m of list.slice(0, 6)) {
+    const mine = (m.lines || []).filter((l) => l.me).map((l) => "- " + (l.en || "").slice(0, 200)).slice(0, 25);
+    const d = m.digest || {};
+    parts.push("Meeting: " + (m.title || "") + (m.topic ? " / topic: " + m.topic : "") +
+      (d.summary && d.summary.length ? "\nSummary: " + d.summary.join(" ") : "") +
+      (d.terms && d.terms.length ? "\nTerms used: " + d.terms.map((t) => t.en).join(", ") : "") +
+      (mine.length ? "\nLines the user said:\n" + mine.join("\n") : "\n(No lines marked as the user's.)") +
+      (!d.summary ? "\nTranscript excerpt:\n" + transcriptForAI((m.lines || []).slice(0, 40), 4000) : ""));
+  }
+  const raw = await llmAsk(spec, LEARN_SYSTEM, "<learn>\n" + currentProfileText() + "\n<material>\n" + parts.join("\n\n").slice(0, 24000) + "\n</material>\n</learn>", 1200);
+  const d = parseLearn(raw);
+  if (!d) throw new Error("bad format");
+  const added = applyLearn(d);
+  saveProfile({ learned: Array.from(new Set((profile.learned || []).concat(list.map((m) => m.id)))).slice(-500) });
+  return added;
+}
+// 다른 AI가 정리해 준 글 반영: 칸 제목이 있으면 그대로 나누고, 없으면 AI로 정리한다 (키가 없으면 '하는 일'에 넣는다)
+async function importKnowledge(text) {
+  text = (text || "").trim().slice(0, 20000);
+  if (!text) return "붙여 넣은 글이 없습니다.";
+  const sec = parseImport(text);
+  if (sec) {
+    const ch = {};
+    if (sec.work) ch.me = sec.work;
+    if (sec.style) ch.style = sec.style;
+    if (sec.basic && !profile.me && !sec.work) ch.me = sec.basic;
+    if (sec.terms) ch.terms = mergeTermsText(profile.terms, sec.terms).map((t) => t.src + (t.dst ? " = " + t.dst : "")).join("\n");
+    saveProfile(ch);
+    return "반영했습니다." + (sec.terms ? " 용어 " + parseTerms(sec.terms).length + "개를 살펴 더했습니다." : "");
+  }
+  const spec = helperSpec("digest");
+  if (!spec) { saveProfile({ me: ((settings.me ? settings.me + "\n" : "") + text).slice(0, 1500) }); return "AI 키가 없어 '지금 하는 일'에 그대로 넣었습니다."; }
+  const d = parseLearn(await llmAsk(spec, LEARN_SYSTEM, "<learn>\n" + currentProfileText() + "\n<material source=\"another AI assistant's notes about the user\">\n" + text + "\n</material>\n</learn>", 1200));
+  if (!d) throw new Error("bad format");
+  const n = applyLearn(d);
+  return "반영했습니다." + (n ? " 새 용어 " + n + "개를 더했습니다." : "");
+}
+const IMPORT_PROMPT = "지금까지 나와 나눈 대화를 바탕으로, 나에 대해 확실히 아는 것만 아래 형식으로 정리해 줘. 추측은 빼 줘.\n\n" +
+  "[기본 정보]\n이름, 영어 이름, 회사·직무\n\n[지금 하는 일]\n맡은 일과 요즘 진행 중인 프로젝트 (3문장 이내)\n\n" +
+  "[관점·말투]\n내가 영어로 말하거나 글을 쓸 때의 말투와 자주 쓰는 표현 (3문장 이내)\n\n" +
+  "[고유 용어]\n내 일에서 자주 쓰는 제품명·약어·업계 용어를 한 줄에 하나씩 '영어 = 한국어' 형식으로 (한국어로 옮기지 않는 말은 영어만)";
+// 회의 정리가 끝난 뒤 저절로 배운다 (설정: 회의 후 자동으로 배우기)
+function autoLearnAfter(m) {
+  if (settings.autoLearn === false || !m || (profile.learned || []).includes(m.id) || !helperSpec("digest")) return;
+  learnMeetings([m]).then(() => { if ($("knowDlg").open) renderKnow(); }).catch(() => {});
 }
 
 // 내려받는 파일: 회의록처럼 제목·일시·묶음, 그리고 정리가 있으면 요약·결정 사항·할 일을 위에 적는다
@@ -4087,6 +4408,19 @@ function renderMeeting() {
   body.textContent = "";
   const mins = Math.max(1, Math.round((m.secs || 0) / 60));
   body.append(mk("div", "mmeta", stamp(m.startedAt) + " · " + mins + "분 · " + m.lines.length + "줄" + (pack ? " · 묶음: " + pack.name : "") + (m.id ? "" : " · 저장하지 않는 회의")));
+  const hasAudio = !!(m.audio && m.audio.length);
+  if (hasAudio) {
+    // 저장한 소리: 위 플레이어로 듣거나, 전체 기록의 ▶ 로 그 줄부터 듣는다
+    const bar = mk("div", "mv-audio");
+    if (!Player.el || !document.body.contains(Player.el) || Player.mid !== m.id) {
+      if (Player.el) { try { Player.el.pause(); } catch (e) {} }
+      Player.el = document.createElement("audio"); Player.el.controls = true; Player.el.preload = "none"; Player.seg = null; Player.mid = m.id;
+      Player.el.addEventListener("play", () => { if (!Player.seg) playAt(m, m.audio[0].start); }, { once: true });
+    }
+    bar.append(Player.el, mk("span", "mmeta", "회의 소리 (이 기기에만 저장)"));
+    const msg = mk("div", "mmeta"); msg.id = "mvAudioMsg";
+    body.append(bar, msg);
+  }
   if (m.gaps && m.gaps.length || m.pending) {
     const lost = (m.gaps || []).reduce((t, g) => t + (g.lostSecs || 0), 0);
     body.append(mk("div", "mvnote warn", [
@@ -4163,6 +4497,7 @@ function renderMeeting() {
     while (gq.length && gq[0].afterLine <= li) det.append(mk("div", "gapmark", gapText(gq.shift())));
     const row = mk("div", "mvline" + (l.star ? " star" : ""));
     row.dataset.line = String(li);
+    if (hasAudio && l.at) { const pb = mk("button", "play-at", "▶ 듣기"); pb.type = "button"; pb.title = "이 줄부터 다시 듣기"; pb.addEventListener("click", () => playAt(m, l.at)); row.append(pb); }
     if (l.who || l.at) row.append(mk("span", "mvwho", (l.star ? "★ " : "") + (l.who || "") + (l.at ? " " + hhmm(l.at) : "")));
     if (l.en) row.append(mk("div", "mven", l.en));
     if (l.ko) row.append(mk("div", "mvko", l.ko));
@@ -4314,8 +4649,9 @@ function assistContext(end) {
   const pack = currentPack();
   const cut = (v, n) => (v || "").trim().slice(0, n);
   const parts = [];
-  const me = cut(settings.me, 1500);
-  if (me) parts.push("<me>\n" + me + "\n</me>");
+  const me = cut(settings.me, 1500), style = cut(profile.style, 800);
+  if (me || profile.name) parts.push("<me>\n" + (profile.name ? "Name: " + profile.name + (settings.myNames ? " (" + settings.myNames + ")" : "") + "\n" : "") + me + "\n</me>");
+  if (style) parts.push("<my_style>\nWrite replies the way I usually speak:\n" + style + "\n</my_style>");
   const brief = cut(pack ? pack.brief : settings.brief, BRIEF_MAX);
   if (pack || brief) parts.push("<background>\n" + (pack ? "Meeting series: " + pack.name + "\n" : "") + brief + "\n</background>");
   const facts = cut(pack && pack.facts, 4000);
@@ -4537,6 +4873,7 @@ async function renderMeetList() {
       if (!window.confirm(stamp(m.startedAt) + (m.title ? " '" + m.title + "'" : "") + " 회의 기록을 삭제할까요? 되돌릴 수 없습니다.")) return;
       if (m.id === R.meetingId) { R.noSave = true; R.meetingId = null; }   // 지금 화면의 회의를 지웠으면, 화면을 지우기 전까지 다시 저장하지 않는다
       try { await Store.del("meetings", m.id); } catch (e) {}
+      AudioKeep.remove(m.audio);
       renderMeetList(); renderBackupInfo();
     });
     row.append(info, open, rm);
@@ -4569,7 +4906,7 @@ $("packDel").addEventListener("click", async () => {
   try { list = await Store.meetingsOf(p.id); } catch (e) {}
   if (!window.confirm("'" + p.name + "' 묶음과 지난 회의 " + list.length + "건을 삭제할까요? 되돌릴 수 없습니다.")) return;
   try {
-    for (const m of list) await Store.del("meetings", m.id);
+    for (const m of list) { await Store.del("meetings", m.id); AudioKeep.remove(m.audio); }
     await Store.del("packs", p.id);
   } catch (e) { $("packMsg").textContent = "삭제하지 못했습니다."; return; }
   if (list.some((m) => m.id === R.meetingId)) R.meetingId = null;
@@ -5020,9 +5357,17 @@ async function openAcct() {
   const body = $("acctBody"); body.textContent = "";
   const on = !!Cloud.session, email = on ? Cloud.session.user.email || "" : "";
   const who = mk("div", "sh-who");
-  who.append(mk("div", "av" + (on ? " on" : ""), on ? (email[0] || "?").toUpperCase() : "?"));
-  const nm = mk("div"); nm.append(mk("b", "", on ? email.split("@")[0] : "로그인하지 않음"), mk("span", "", on ? email : "로그인하면 PC·폰의 회의 기록을 맞춥니다"));
+  who.append(mk("div", "av" + (on || profile.name ? " on" : ""), avatarOf()));
+  const nm = mk("div"); nm.append(mk("b", "", profile.name || (on ? email.split("@")[0] : "로그인하지 않음")), mk("span", "", on ? email : "로그인하면 PC·폰의 회의 기록을 맞춥니다"));
   who.append(nm); body.append(who);
+  // 개인화 수준 → 내 지식
+  const lv = knowledgeLevel(knowStats());
+  const bk = mk("div", "sh-box"), rk = mk("div", "row2");
+  rk.append(mk("span", "", "개인화 수준"), mk("span", "", "레벨 " + lv.level + " / 6"));
+  const pk = mk("p"); pk.append(mk("b", "", lv.name), " · " + (lv.next ? "다음: " + lv.next : "가장 높은 단계"));
+  const kb = mk("button", "btn wide", "개인화 관리하기 ›"); kb.type = "button";
+  kb.addEventListener("click", () => { $("acctSheet").close(); openKnow(); });
+  bk.append(rk, lvBar(lv.level), pk, kb); body.append(bk);
   // 이번 달 회의
   let all = []; try { if (Store.ok) all = await Store.all("meetings"); } catch (e) {}
   const now = new Date(), m0 = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
@@ -5033,6 +5378,24 @@ async function openAcct() {
   r1.append(mk("span", "", "이번 달 회의"), mk("span", "big", secs && !mins ? "1분 미만" : mins + "분"));
   b1.append(r1, mk("p", "", month.length + "건 · 지금까지 모두 " + all.length + "건"));
   body.append(b1);
+  // 목소리, 다시 듣기, 앱을 나가도 계속 기록
+  const bv = mk("div", "sh-box");
+  const vb = mk("button", "sh-set link"); vb.type = "button";
+  const vt = mk("div", "tx"); vt.append(mk("b", "", hasVoice() ? "내 목소리 다시 등록" : "내 목소리 등록"), mk("span", "", "회의 중 내가 한 말을 따로 표시합니다"));
+  vb.append(vt, mk("span", "val", hasVoice() ? "등록됨" : "미등록"), mk("span", "chev", "›"));
+  vb.addEventListener("click", () => { $("acctSheet").close(); openOnboard(3); });
+  bv.append(vb);
+  bv.append(swRow("회의 기록에서 다시 듣기", "회의 소리를 이 기기에만 저장해 회의 기록에서 줄마다 다시 들을 수 있습니다. 서버에는 올리지 않습니다. (1시간에 약 11MB)",
+    !!settings.keepAudio, (v) => { settings.keepAudio = v; saveSettings(settings); }));
+  bv.firstChild.style.borderTop = "0";
+  body.append(bv);
+  const bb = mk("div", "sh-box");
+  bb.append(swRow("앱을 나가도 계속 기록하기", NATIVE
+    ? "다른 앱을 보거나 화면을 잠가도 계속 듣고, 알림에 '회의 기록 중'을 표시합니다. 끄면 앱을 나갈 때 회의가 멈춥니다."
+    : "다른 창·앱으로 가도 계속 듣습니다. 끄면 이 화면을 떠날 때 회의가 멈춥니다. 폰 브라우저는 화면을 잠그면 멈출 수 있으니 안드로이드 앱을 쓰세요.",
+    settings.bgKeep !== false, (v) => { settings.bgKeep = v; saveSettings(settings); if (R.running) Native.keep(v); }));
+  bb.firstChild.style.borderTop = "0"; bb.firstChild.style.paddingTop = "0";
+  body.append(bb);
   // 동기화
   const b2 = mk("div", "sh-box"), r2 = mk("div", "row2");
   r2.append(mk("span", "", "기기끼리 맞추기"), mk("span", "", !on ? "꺼짐" : Cloud.err ? "문제 있음" : Cloud.lastOk ? new Date(Cloud.lastOk).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + " 맞춤" : "켜짐"));
@@ -5042,7 +5405,7 @@ async function openAcct() {
   sb.addEventListener("click", async () => { if (on) { await Cloud.sync(); openAcct(); } else { $("acctSheet").close(); openSettingsDialog(); setTimeout(() => $("sbEmail").focus(), 50); } });
   b2.append(sb); body.append(b2);
   // 앱 받기
-  const native = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  const native = NATIVE;
   const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent), android = /Android/i.test(navigator.userAgent);
   if (!native && !DESKTOP) {
     const b3 = mk("div", "sh-box"), r3 = mk("div", "row2");
@@ -5056,6 +5419,7 @@ async function openAcct() {
   // 목록
   const list = mk("div", "sh-list");
   const item = (label, fn) => { const b = mk("button", "", label); b.type = "button"; b.append(mk("span", "chev", "›")); b.addEventListener("click", () => { $("acctSheet").close(); fn(); }); list.append(b); };
+  item("내 지식 (개인화)", () => openKnow());
   item("설정", () => openSettingsDialog());
   item("회의 묶음 준비", () => showTab("prep"));
   item("백업 파일로 내보내기·가져오기", () => { openSettingsDialog(); setTimeout(() => { const n = $("packExport"); if (n) n.scrollIntoView({ block: "center" }); }, 60); });
@@ -5064,6 +5428,141 @@ async function openAcct() {
   body.append(list, mk("div", "sh-ver", "버전 " + APP_VERSION));
   if (!$("acctSheet").open) $("acctSheet").showModal();
 }
+// ---------------------------------------------------------------------------
+// 내 지식 화면 (계정 → 개인화 관리하기)
+// ---------------------------------------------------------------------------
+function knowStats() {
+  return { meetings: (profile.learned || []).length, terms: parseTerms(profile.terms).length,
+    filled: [profile.name, settings.me, profile.style].filter((x) => (x || "").trim()).length, voice: hasVoice() };
+}
+function lvBar(lv) { const bar = mk("div", "lvbar"); for (let i = 1; i <= 6; i++) bar.append(mk("i", i <= lv ? "on" : "")); return bar; }
+function avatarOf() {
+  const n = profile.name || (Cloud.session ? Cloud.session.user.email || "" : "");
+  return (n.trim()[0] || "?").toUpperCase();
+}
+function swRow(title, desc, checked, onChange) {
+  const row = mk("label", "sh-set"), tx = mk("div", "tx");
+  tx.append(mk("b", "", title)); if (desc) tx.append(mk("span", "", desc));
+  const sw = mk("span", "sw"), inp = mk("input"); inp.type = "checkbox"; inp.checked = !!checked;
+  inp.setAttribute("aria-label", title);
+  inp.addEventListener("change", () => onChange(inp.checked));
+  sw.append(inp, mk("i")); row.append(tx, sw);
+  return row;
+}
+const KN = { open: "", msg: "", bad: false };   // open: 펼쳐 둔 칸 (terms, import, basic, work, style)
+function md(t) { const d = new Date(t); return (d.getMonth() + 1) + "월 " + d.getDate() + "일"; }
+async function renderKnow() {
+  const body = $("knBody"); body.textContent = "";
+  body.append(mk("p", "kn-intro", "번역과 답변 제안이 나에게 맞도록 내 일, 자주 쓰는 용어, 말투를 기억합니다. 이 기기와 내 계정(Supabase)에 저장하고, 번역·제안을 만들 때 고른 AI(Claude 또는 Groq)에 함께 보냅니다."));
+  const c0 = mk("div", "kn-card");
+  c0.append(swRow("회의 후 자동으로 배우기", "회의 정리가 끝나면 그 회의에서 쓴 용어와 내 말투를 저절로 기억합니다. 꺼도 아래에서 직접 등록하고 배울 수 있습니다. (Claude 또는 Groq 키 필요)",
+    settings.autoLearn !== false, (v) => { settings.autoLearn = v; saveSettings(settings); }));
+  c0.firstChild.style.borderTop = "0"; c0.firstChild.style.padding = "0";
+  body.append(c0);
+  // 나와 개인화 수준
+  const st = knowStats(), lv = knowledgeLevel(st);
+  const c1 = mk("div", "kn-card kn-me");
+  c1.append(mk("div", "av on", avatarOf()), mk("b", "", profile.name || "이름 미등록"), mk("p", "", "레벨 " + lv.level + " · " + lv.name));
+  const stats = mk("div", "kn-stats");
+  const stat = (n, u, label) => { const d = mk("div"); const b = mk("b", "", String(n)); b.append(mk("small", "", u)); d.append(b, mk("span", "", label)); stats.append(d); };
+  stat(st.meetings, "회", "배운 회의"); stat(st.terms, "개", "고유 용어"); stat(st.filled, "/3", "저장된 지식"); stat(st.voice ? "✓" : "–", "", "내 목소리");
+  c1.append(stats, lvBar(lv.level), mk("p", "", lv.next ? "다음 단계: " + lv.next : "가장 높은 단계입니다"));
+  body.append(c1);
+  // 아직 배우지 않은 지난 회의
+  let pending = [];
+  try { if (Store.ok) pending = (await Store.all("meetings")).filter((m) => m.lines && m.lines.length && !(profile.learned || []).includes(m.id)).sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0)); } catch (e) {}
+  if (pending.length) {
+    const c2 = mk("div", "kn-card");
+    c2.append(mk("h4", "", "지난 회의에서 배우기"), mk("p", "", "아직 배우지 않은 회의가 " + pending.length + "건 있습니다. 최근 회의부터 6건씩 읽고 내 일·말투·용어에 반영합니다."));
+    const b = mk("button", "btn primary", "최근 회의 배우기"); b.type = "button"; b.style.marginTop = "10px";
+    b.addEventListener("click", async () => {
+      if (!helperSpec("digest")) { KN.msg = "Claude 또는 Groq 키가 있어야 배울 수 있습니다. 설정에서 키를 넣어 주세요."; KN.bad = true; renderKnow(); return; }
+      b.disabled = true; b.textContent = "배우는 중…";
+      try { const n = await learnMeetings(pending.slice(0, 6)); KN.msg = "회의 " + Math.min(6, pending.length) + "건을 배웠습니다." + (n ? " 새 용어 " + n + "개." : ""); KN.bad = false; }
+      catch (e) { KN.msg = "배우지 못했습니다: " + askFailText(e); KN.bad = true; }
+      renderKnow();
+    });
+    c2.append(b); body.append(c2);
+  }
+  if (KN.msg) { const m = mk("div", "kn-msg" + (KN.bad ? " bad" : ""), KN.msg); body.append(m); KN.msg = ""; }
+  // 지식 늘리기
+  const h1 = mk("div", "kn-h"); h1.append(mk("h3", "", "지식 늘리기")); body.append(h1);
+  body.append(mk("p", "kn-sub", "용어와 내 정보를 더해 두면 번역과 답변 제안이 더 정확해집니다."));
+  const c3 = mk("div", "kn-card"), r3 = mk("div", "kn-row"), t3 = mk("div");
+  t3.append(mk("h4", "", "고유 용어"), mk("p", "", "제품명·약어·업계 용어처럼 잘못 알아듣기 쉬운 말을 적어 두면 받아 적기와 번역에 씁니다. 모든 묶음에 함께 쓰입니다."),
+    mk("p", "", parseTerms(profile.terms).length + "개 등록됨"));
+  const b3 = mk("button", "btn", KN.open === "terms" ? "닫기" : "용어 관리"); b3.type = "button";
+  b3.addEventListener("click", () => { KN.open = KN.open === "terms" ? "" : "terms"; renderKnow(); });
+  r3.append(t3, b3); c3.append(r3);
+  if (KN.open === "terms") c3.append(knEditor(profile.terms || "", "한 줄에 하나씩 '영어 = 한국어' (한국어로 옮기지 않는 말은 영어만)\n예) Employee Central = 직원 중앙 관리\nPMGM", true, (v) => saveProfile({ terms: v.slice(0, 6000) })));
+  body.append(c3);
+  const c4 = mk("div", "kn-card"), r4 = mk("div", "kn-row"), t4 = mk("div");
+  t4.append(mk("h4", "", "다른 AI에서 가져오기"), mk("p", "", "ChatGPT·Claude 같은 다른 AI가 알고 있는 나에 대한 내용을 가져옵니다. 아래 글을 복사해 그 AI에 보내고, 받은 답을 붙여 넣으세요."));
+  const b4 = mk("button", "btn", KN.open === "import" ? "닫기" : "가져오기 시작"); b4.type = "button";
+  b4.addEventListener("click", () => { KN.open = KN.open === "import" ? "" : "import"; renderKnow(); });
+  r4.append(t4, b4); c4.append(r4);
+  if (KN.open === "import") {
+    const ed = mk("div", "kn-edit");
+    const pr = mk("div", "kn-prompt", IMPORT_PROMPT);
+    const cp = mk("button", "btn sm", "이 글 복사"); cp.type = "button";
+    cp.addEventListener("click", async () => { try { await navigator.clipboard.writeText(IMPORT_PROMPT); cp.textContent = "복사했습니다"; } catch (e) { cp.textContent = "복사하지 못했습니다. 위 글을 길게 눌러 복사해 주세요."; } });
+    const ta = mk("textarea"); ta.placeholder = "다른 AI가 정리해 준 답을 여기에 붙여 넣으세요.";
+    const row = mk("div", "row"), ok = mk("button", "btn primary", "반영하기"); ok.type = "button";
+    const msg = mk("div", "kn-msg");
+    ok.addEventListener("click", async () => {
+      ok.disabled = true; ok.textContent = "반영하는 중…";
+      try { KN.msg = await importKnowledge(ta.value); KN.bad = false; KN.open = ""; renderKnow(); }
+      catch (e) { msg.className = "kn-msg bad"; msg.textContent = "반영하지 못했습니다: " + askFailText(e); ok.disabled = false; ok.textContent = "반영하기"; }
+    });
+    row.append(ok); ed.append(pr, cp, ta, row, msg); c4.append(ed);
+  }
+  body.append(c4);
+  // 저장된 지식
+  const h2 = mk("div", "kn-h"); h2.append(mk("h3", "", "저장된 지식"));
+  const rs = mk("button", "btn sm danger", "초기화"); rs.type = "button";
+  rs.addEventListener("click", () => {
+    if (!window.confirm("하는 일, 말투, 고유 용어, 배운 회의 기록을 지웁니다. 이름과 목소리는 남깁니다. 지울까요?")) return;
+    saveProfile({ me: "", style: "", terms: "", learned: [] }); KN.msg = "지웠습니다."; KN.bad = false; renderKnow();
+  });
+  h2.append(rs); body.append(h2);
+  body.append(mk("p", "kn-sub", "내가 기억하고 있는 내용입니다. 눌러서 보거나 고칠 수 있습니다."));
+  const c5 = mk("div", "kn-card"), kAt = profile.kAt || {};
+  const item = (key, title, text, at, editor) => {
+    const b = mk("button", "kn-item"); b.type = "button";
+    const tx = mk("div", "tx"); tx.append(mk("b", "", title), mk("span", "", text || "아직 없음"));
+    b.append(tx, mk("span", "when", at ? md(at) + " 업데이트" : ""), mk("span", "chev", KN.open === key ? "⌄" : "›"));
+    b.addEventListener("click", () => { KN.open = KN.open === key ? "" : key; renderKnow(); });
+    c5.append(b);
+    if (KN.open === key) c5.append(editor());
+  };
+  item("basic", "기본 정보", [profile.name, settings.myNames].filter(Boolean).join(" · "), kAt.basic, () => {
+    const ed = mk("div", "kn-edit"), a = mk("input"), b = mk("input");
+    a.value = profile.name || ""; a.placeholder = "이름 (예: 김민수)"; b.value = settings.myNames || ""; b.placeholder = "회의에서 부르는 영어 이름 (쉼표로 구분)"; b.style.marginTop = "8px";
+    const row = mk("div", "row"), ok = mk("button", "btn primary", "저장"); ok.type = "button";
+    ok.addEventListener("click", () => { saveProfile({ name: a.value.trim().slice(0, 30), myNames: b.value.trim().slice(0, 120) }); KN.open = ""; renderKnow(); if (document.body.classList.contains("idle")) renderHome(); });
+    row.append(ok); ed.append(a, b, row); return ed;
+  });
+  item("work", "지금 하는 일", settings.me, kAt.work, () => knEditor(settings.me || "", "예) PwC HR 컨설턴트. 현대차 SAP SuccessFactors Employee Central 구축 PM.", false, (v) => saveProfile({ me: v.slice(0, 1500) })));
+  item("style", "내 관점·말투", profile.style, kAt.style, () => knEditor(profile.style || "", "예) 공손하고 간결하게 말함. 결론을 먼저 말하고 근거를 덧붙임.", false, (v) => saveProfile({ style: v.slice(0, 800) })));
+  body.append(c5);
+}
+function knEditor(value, ph, mono, save) {
+  const ed = mk("div", "kn-edit"), ta = mk("textarea");
+  ta.value = value; ta.placeholder = ph; if (mono) ta.spellcheck = false;
+  const row = mk("div", "row"), ok = mk("button", "btn primary", "저장"), no = mk("button", "btn", "취소"); ok.type = no.type = "button";
+  ok.addEventListener("click", () => { save(ta.value.trim()); KN.open = ""; KN.msg = "저장했습니다."; KN.bad = false; renderKnow(); });
+  no.addEventListener("click", () => { KN.open = ""; renderKnow(); });
+  row.append(ok, no); ed.append(ta, row);
+  return ed;
+}
+function openKnow() {
+  if (R.running) { showBanner("회의 중에는 열 수 없습니다. 정지한 뒤 눌러 주세요.", true); return; }
+  KN.open = ""; KN.msg = "";
+  renderKnow();
+  if (!$("knowDlg").open) $("knowDlg").showModal();
+}
+$("knBack").addEventListener("click", () => $("knowDlg").close());
+$("meetDlg").addEventListener("close", () => { if (Player.el) { try { Player.el.pause(); } catch (e) {} } });
 $("acctChip").addEventListener("click", openAcct);
 $("acctSheet").addEventListener("click", (ev) => { if (ev.target === $("acctSheet")) $("acctSheet").close(); });   // 바깥을 누르면 닫기
 
@@ -5325,12 +5824,18 @@ async function obAuth(kind) {
   try {
     if (kind === "up") {
       const r = await Cloud.signUp(email, pw);
-      if (r === "confirm") { obMsg("obAcctMsg", email + " 로 확인 메일을 보냈습니다. 메일의 링크를 누른 뒤 여기서 로그인을 눌러 주세요."); return; }
+      if (r === "confirm") { $("obResend").hidden = false; obMsg("obAcctMsg", email + " 로 확인 메일을 보냈습니다. 메일의 링크를 누르면 이 앱이 열리며 로그인됩니다. (다른 기기에서 눌렀다면 여기서 로그인을 눌러 주세요.)"); return; }
     } else await Cloud.signIn(email, pw);
     $("obPw").value = "";
     renderCloud(); obAcct();
-  } catch (e) { obMsg("obAcctMsg", authErrText(e), "bad"); }
+  } catch (e) { if (/not confirmed/i.test(e.message || "")) $("obResend").hidden = false; obMsg("obAcctMsg", authErrText(e), "bad"); }
 }
+$("obResend").addEventListener("click", async () => {
+  const email = $("obEmail").value.trim();
+  if (!email) { obMsg("obAcctMsg", "이메일을 넣어 주세요.", "bad"); return; }
+  try { await Cloud.resend(email); obMsg("obAcctMsg", email + " 로 확인 메일을 다시 보냈습니다. 메일의 링크를 눌러 주세요."); }
+  catch (e) { obMsg("obAcctMsg", /seconds|rate/i.test(e.message || "") ? "조금 전에 보냈습니다. 1분쯤 뒤에 다시 눌러 주세요." : authErrText(e), "bad"); }
+});
 $("obSignIn").addEventListener("click", () => obAuth("in"));
 $("obSignUp").addEventListener("click", () => obAuth("up"));
 function obVoiceState() {
@@ -5570,6 +6075,12 @@ function authErrText(e) {
 }
 $("sbSignIn").addEventListener("click", () => cloudAuth("in"));
 $("sbSignUp").addEventListener("click", () => cloudAuth("up"));
+$("sbResend").addEventListener("click", async () => {
+  const email = $("sbEmail").value.trim();
+  if (!email) { Cloud.err = "이메일을 넣어 주세요."; renderCloud(); return; }
+  try { await Cloud.resend(email); Cloud.err = ""; renderCloud(); $("cloudMsg").textContent = email + " 로 확인 메일을 다시 보냈습니다. 메일의 링크를 눌러 주세요."; }
+  catch (e) { Cloud.err = /seconds|rate/i.test(e.message || "") ? "조금 전에 보냈습니다. 1분쯤 뒤에 다시 눌러 주세요." : authErrText(e); renderCloud(); }
+});
 $("sbSync").addEventListener("click", () => Cloud.sync());
 $("sbSignOut").addEventListener("click", async () => {
   if (Object.keys(Cloud.outbox()).length && !window.confirm("아직 올리지 못한 기록이 있습니다. 그래도 로그아웃할까요?\n(이 기기의 기록은 지워지지 않습니다.)")) return;

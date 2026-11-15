@@ -37,6 +37,13 @@
 - 번역에 넘기는 회의 정보는 `meetInfo()` → `meetingContextText`·`nameTerms`(CORE). 묶음 필드: topic, people(한 줄에 한 명). 회의 기록 필드: topic, people, 줄의 me.
 - 실제 목소리로 화자를 잘 가리는지, 앞에 보낸 목소리 때문에 첫 자막이 얼마나 늦는지는 테스트로 알 수 없다 (연결 상태에 '내 목소리를 찾았습니다 (n초)'가 뜬다).
 
+## 계정 화면·내 지식·소리 보관
+- 계정 시트(`openAcct`): 개인화 수준(`knowledgeLevel`, CORE) → `openKnow()`(#knowDlg, `renderKnow`), 목소리, 다시 듣기(`settings.keepAudio`), 앱을 나가도 계속 기록(`settings.bgKeep`).
+- 프로필 지식 필드: me(하는 일, settings.me 와 같이), style, terms(고유 용어, 묶음 용어집과 `mergeTermsText` 로 합쳐 번역·Soniox 에 씀), learned, kAt. 배우기는 `learnMeetings`·`importKnowledge`(AI 요청에 `<learn>` 표시, 테스트 가짜 응답 kind 'learn'). 회의 정리 뒤 `autoLearnAfter`.
+- 소리 보관(`AudioKeep`): IndexedDB 버전 2 의 audio 보관함, 10초 조각. 회의 기록에는 구간 { key, start, type } 만(m.audio). 서버에 올리지 않는다. 다시 듣기는 `playAt`.
+- 안드로이드: `window.MeetingNative.keepRecording(on)` → `android/MeetingService.java`(마이크 포그라운드 서비스). 매니페스트 권한·서비스는 워크플로가 sed 로 넣는다.
+- 가입 확인 링크: `Cloud.fromLink()` 가 주소 뒤 `#access_token=…` 을 받아 로그인. Supabase 의 Site URL·Redirect URLs 에 앱 주소가 있어야 한다 (사용자가 대시보드에서 설정).
+
 ## 데스크톱 앱 (desktop/)
 - Electron 껍데기다. 화면은 GitHub Pages의 웹 앱 주소를 불러온다(`desktop/main.js` 의 `APP_URL`). 웹을 배포하면 exe에도 반영된다.
 - 껍데기가 더하는 것: 컴퓨터 소리 바로 듣기(getDisplayMedia → loopback), 자막 팝업(따로 떠 있는 항상 위 창, Windows 11 acrylic 블러). 화면 쪽은 `window.desktop` 이 있으면 `body.desktop`, 팝업 창은 같은 주소의 `#popup` 으로 열려 `body.popup` 으로 동작한다. 본 창과 팝업은 BroadcastChannel(`meetingassit-live`)로 자막·명령을 주고받는다.

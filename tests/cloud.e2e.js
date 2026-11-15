@@ -3,6 +3,9 @@
 const assert = require('assert');
 const { openApp, speak, toggle, openSettings, closeSettings, BASE, run, newPack, fakeSupabase, SB } = require('./helper');
 
+// 서버의 묶음 수 (프로필 줄 __profile__ 은 빼고 센다)
+const packCount = (sb) => [...sb.db.rows.packs.keys()].filter((k) => !/__profile__/.test(k)).length;
+
 run('CLOUD TESTS', async (b) => {
   const sb = fakeSupabase();
   const S = Object.assign({}, BASE, { sbUrl: SB, sbKey: 'anon-key' });
@@ -20,7 +23,7 @@ run('CLOUD TESTS', async (b) => {
   let st = await A.textContent('#cloudState');
   console.log('1 A 상태:', st);
   assert(/me@x\.com 로그인됨/.test(st) && /마지막 동기화/.test(st), st);
-  assert.strictEqual(sb.db.rows.meetings.size, 1); assert.strictEqual(sb.db.rows.packs.size, 1);
+  assert.strictEqual(sb.db.rows.meetings.size, 1); assert.strictEqual(packCount(sb), 1);
   assert(/me@x\.com/.test(await A.textContent('#sideCloud')));
   await A.click('#cancelSettings');
 
@@ -32,12 +35,12 @@ run('CLOUD TESTS', async (b) => {
   console.log('2 B 메뉴:', tree);
   assert(/계약 초안 검토/.test(tree));
   assert.strictEqual(await B.$$eval('#sideTree > li', (n) => n.length), 1, '기본 묶음이 하나뿐');
-  assert.strictEqual(sb.db.rows.packs.size, 1, '서버에도 묶음 하나');
+  assert.strictEqual(packCount(sb), 1, '서버에도 묶음 하나');
 
   // 3) B 에서 새 묶음과 회의 → A 가 동기화하면 받는다
   await newPack(B, 'A사 계약');
   await toggle(B); await speak(B, "Delivery will take 8 weeks."); await toggle(B); await B.waitForTimeout(5000);
-  assert.strictEqual(sb.db.rows.packs.size, 2); assert.strictEqual(sb.db.rows.meetings.size, 2);
+  assert.strictEqual(packCount(sb), 2); assert.strictEqual(sb.db.rows.meetings.size, 2);
   await A.evaluate(() => Cloud.sync()); await A.waitForTimeout(800);
   tree = await A.textContent('#sideTree');
   console.log('3 A 메뉴:', tree);

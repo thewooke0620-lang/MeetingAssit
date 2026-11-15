@@ -43,7 +43,13 @@ jobs:
           # 마이크로 회의 소리를 들어야 한다
           sed -i 's#<uses-permission android:name="android.permission.INTERNET" />#<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />#' "$M"
           grep -q RECORD_AUDIO "$M"
+          # 앱을 나가도 계속 듣기: 알림이 뜨는 포그라운드 서비스(마이크 종류)와 알림 권한
+          sed -i 's#<uses-permission android:name="android.permission.RECORD_AUDIO" />#<uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />#' "$M"
+          sed -i 's#</application>#    <service android:name=".MeetingService" android:exported="false" android:foregroundServiceType="microphone" />\n    </application>#' "$M"
+          grep -q FOREGROUND_SERVICE_MICROPHONE "$M"
+          grep -q MeetingService "$M"
           cp MainActivity.java android/app/src/main/java/io/github/thewooke0620/meetingassit/MainActivity.java
+          cp MeetingService.java android/app/src/main/java/io/github/thewooke0620/meetingassit/MeetingService.java
           rm -rf android/app/src/main/res/mipmap-anydpi-v26
           cp -r res/* android/app/src/main/res/
 

@@ -30,9 +30,13 @@ function pageMock(st) {
     const body = JSON.parse(opt.body);
     const system = groq ? body.messages[0].content : body.system;
     const user = groq ? body.messages[1].content : body.messages[0].content;
-    const kind = !body.stream ? 'digest' : /<translate>/.test(user) ? 'translate' : /<korean>/.test(user) ? 'assist-ko' : /<action>/.test(user) ? 'assist-act' : 'assist-q';
+    const kind = !body.stream ? (/<learn>/.test(user) ? 'learn' : 'digest') : /<translate>/.test(user) ? 'translate' : /<korean>/.test(user) ? 'assist-ko' : /<action>/.test(user) ? 'assist-act' : 'assist-q';
     const rec = { kind, p: groq ? 'groq' : 'claude', model: body.model, system, user, aborted: false };
     window.REQ.push(rec);
+    if (kind === 'learn') {
+      const text = JSON.stringify(window.MOCK.learn || { work: 'HR 시스템 구축 컨설턴트. SuccessFactors EC 설계 중.', style: '공손하고 결론부터 말함.', terms: [{ en: 'Employee Central', ko: '' }, { en: 'role mapping', ko: '역할 매핑' }] });
+      return { ok: true, status: 200, json: async () => (groq ? { choices: [{ message: { content: text } }] } : { content: [{ type: 'text', text }] }) };
+    }
     if (kind === 'digest') {
       // 실제 fetch 처럼 중간에 그만두면(abort) 바로 끝난다
       await new Promise((res, rej) => {
@@ -143,7 +147,7 @@ async function newPack(p, name, topic, people) {
 // 가짜 Supabase 서버 (인증 + 표 두 개). 실제 Supabase 는 부르지 않는다
 const SB = 'https://sb.test';
 function fakeSupabase() {
-  const db = { users: {}, rows: { packs: new Map(), meetings: new Map() }, clock: 0, down: false, calls: [] };
+  const db = { users: {}, rows: { packs: new Map(), meetings: new Map() }, clock: 0, down: false, calls: [], confirm: false, redirects: [] };
   const ts = () => new Date(Date.UTC(2026, 0, 1) + (++db.clock) * 1000).toISOString();
   const tokenFor = (u) => ({ access_token: 'at-' + u.id + '-' + db.clock, refresh_token: 'rt-' + u.id, expires_in: 3600, user: { id: u.id, email: u.email } });
   const userOf = (req) => { const m = /Bearer at-(u\d+)-/.exec(req.headers()['authorization'] || ''); return m && m[1]; };
@@ -157,13 +161,22 @@ function fakeSupabase() {
     if (path === '/auth/v1/signup') {
       const b = JSON.parse(req.postData());
       if (db.users[b.email]) return json(422, { msg: 'User already registered' });
-      const u = db.users[b.email] = { id: 'u' + (Object.keys(db.users).length + 1), email: b.email, pw: b.password };
+      const u = db.users[b.email] = { id: 'u' + (Object.keys(db.users).length + 1), email: b.email, pw: b.password, ok: !db.confirm };
+      db.redirects.push(url.searchParams.get('redirect_to'));
+      // 이메일 확인이 켜져 있으면 토큰 없이 사용자만 돌려준다 (Supabase 와 같음)
+      if (db.confirm) return json(200, { id: u.id, email: u.email });
       return json(200, tokenFor(u));
+    }
+    if (path === '/auth/v1/resend') { db.redirects.push(url.searchParams.get('redirect_to')); return json(200, {}); }
+    if (path === '/auth/v1/user') {
+      const uid = userOf(req), u = Object.values(db.users).find((x) => x.id === uid);
+      return u ? json(200, { id: u.id, email: u.email }) : json(401, { msg: 'invalid JWT' });
     }
     if (path === '/auth/v1/token') {
       const b = JSON.parse(req.postData());
       const u = url.searchParams.get('grant_type') === 'password' ? db.users[b.email] : Object.values(db.users).find((x) => 'rt-' + x.id === b.refresh_token);
       if (!u || (b.email && u.pw !== b.password)) return json(400, { error: 'invalid_grant', error_description: 'Invalid login credentials' });
+      if (u.ok === false) return json(400, { error: 'invalid_grant', error_description: 'Email not confirmed' });
       return json(200, tokenFor(u));
     }
     if (path === '/auth/v1/logout') return json(204);
@@ -185,7 +198,7 @@ function fakeSupabase() {
     }
     return json(404, { message: 'not found' });
   }
-  return { db, handle };
+  return { db, handle, tokenFor };
 }
 
 module.exports = { fakeSupabase, SB, newPack, launch, openApp, speak, toggle, meeting, openSettings, closeSettings, saveSettings, meets, reqs, stored, BASE, run, clickToggle, clickSettings };
