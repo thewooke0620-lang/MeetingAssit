@@ -1,0 +1,13 @@
+{
+  "appId": "io.github.thewooke0620.meetingassit",
+  "appName": "회의통역",
+  "webDir": "www",
+  "server": {
+    "url": "https://thewooke0620-lang.github.io/MeetingAssit/",
+    "androidScheme": "https",
+    "cleartext": false
+  },
+  "android": {
+    "backgroundColor": "#10161f"
+  }
+}

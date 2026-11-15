@@ -1,0 +1,2 @@
+node_modules/
+android/   # cap add android 이 만드는 프로젝트 (GitHub 서버에서 만든다)

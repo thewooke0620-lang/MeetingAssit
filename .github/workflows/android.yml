@@ -1,0 +1,59 @@
+# 회의 통역 도우미 안드로이드 앱(APK) 만들기
+# GitHub 서버에서 Capacitor 로 웹 앱을 감싸 APK 를 만든다. 결과는 이 실행의 Artifacts 에서 받는다.
+# 앱 화면은 웹 앱 주소를 불러오므로, 웹을 고치면 APK 를 다시 깔지 않아도 반영된다.
+name: android-apk
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "android/**"
+      - ".github/workflows/android.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Capacitor 설치와 안드로이드 프로젝트 만들기
+        working-directory: android
+        run: |
+          npm ci
+          npx cap add android
+          npx cap sync android
+
+      - name: 마이크 권한, 화면 켜 두기, 아이콘
+        working-directory: android
+        run: |
+          M=android/app/src/main/AndroidManifest.xml
+          # 마이크로 회의 소리를 들어야 한다
+          sed -i 's#<uses-permission android:name="android.permission.INTERNET" />#<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />#' "$M"
+          grep -q RECORD_AUDIO "$M"
+          cp MainActivity.java android/app/src/main/java/io/github/thewooke0620/meetingassit/MainActivity.java
+          rm -rf android/app/src/main/res/mipmap-anydpi-v26
+          cp -r res/* android/app/src/main/res/
+
+      - name: APK 빌드 (디버그 서명)
+        working-directory: android/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+          mkdir -p ../../out
+          cp app/build/outputs/apk/debug/app-debug.apk ../../out/MeetingAssit.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MeetingAssit-apk
+          path: out/MeetingAssit.apk
+          retention-days: 30

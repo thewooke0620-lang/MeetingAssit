@@ -1,0 +1,11 @@
+{
+  "name": "meetingassit-android",
+  "version": "1.0.0",
+  "private": true,
+  "description": "회의 통역 도우미 안드로이드 앱 (Capacitor 껍데기)",
+  "dependencies": {
+    "@capacitor/android": "8.6.2",
+    "@capacitor/cli": "8.6.2",
+    "@capacitor/core": "8.6.2"
+  }
+}
