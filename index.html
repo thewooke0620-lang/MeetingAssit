@@ -458,12 +458,13 @@
         <label>계정과 동기화 (Supabase)</label>
         <div id="cloudState" class="hint" style="margin-top:0">로그인하면 회의 묶음과 기록을 Supabase에 저장하고, exe·브라우저·폰 어디서 열어도 같은 기록을 봅니다. API 키는 올리지 않습니다.</div>
       </div>
-      <div id="cloudCfg">
+      <details id="cloudCfg" class="hint">
+        <summary>다른 Supabase 프로젝트 쓰기 (보통은 비워 둡니다)</summary>
         <div class="row">
-          <div class="field"><label for="sbUrl">Supabase 주소</label><input id="sbUrl" type="url" autocomplete="off" placeholder="https://○○○.supabase.co"></div>
-          <div class="field"><label for="sbKey">공개(anon) 키</label><input id="sbKey" type="password" autocomplete="off" placeholder="eyJ…"></div>
+          <div class="field"><label for="sbUrl">Supabase 주소</label><input id="sbUrl" type="url" autocomplete="off" placeholder="비워 두면 이 앱의 기본 프로젝트"></div>
+          <div class="field"><label for="sbKey">공개(anon) 키</label><input id="sbKey" type="password" autocomplete="off" placeholder="비워 두면 이 앱의 기본 프로젝트"></div>
         </div>
-      </div>
+      </details>
       <div id="cloudLogin">
         <div class="row">
           <div class="field"><label for="sbEmail">이메일</label><input id="sbEmail" type="email" autocomplete="username"></div>
@@ -1158,7 +1159,7 @@ function termCandidate(before, after) {
 // ---------------------------------------------------------------------------
 const WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 // 앱 버전: 고칠 때마다 올린다. 설정 창 아래에 보이고, 새 버전이 올라왔는지 확인할 때 쓴다
-const APP_VERSION = "2026.11.15-7";
+const APP_VERSION = "2026.11.15-8";
 const STORE_KEY = "meeting-interpreter.settings.v1";
 const DEFAULTS = {
   apiKey: "", hint: "en", target: "ko", terms: "", fontSize: "18",
@@ -2625,11 +2626,15 @@ const Store = {
 // 인터넷이 끊겨도 회의는 그대로 되고, 올리지 못한 것은 기억해 두었다가 연결되면 올린다.
 // 서버에는 표 두 개(packs, meetings)에 기록을 통째로(JSON) 둔다. 내 기록만 보이게 하는 보안 규칙은 docs/supabase.sql
 // 외부 라이브러리 없이 Supabase 의 웹 주소(REST)를 직접 부른다
+// 이 앱의 Supabase 프로젝트 (서울). 공개(publishable) 키는 브라우저에 공개돼도 되는 키다.
+// 누가 무엇을 볼 수 있는지는 서버의 보안 규칙(RLS, docs/supabase.sql)이 정한다. 비밀(service_role) 키는 절대 여기에 넣지 않는다
+const SB_DEFAULT_URL = "https://iqyknmtkbdpsitxwdfia.supabase.co";
+const SB_DEFAULT_KEY = "sb_publishable_oXSaiNSp7dwnWZdzfUCf1Q_qBuP69Lj";
 const Cloud = {
   S_KEY: "meetingassit.sb.session", O_KEY: "meetingassit.sb.outbox", C_KEY: "meetingassit.sb.cursor",
   session: null, busy: false, timer: null, pulledAt: 0, lastOk: 0, err: "",
-  url() { return (settings.sbUrl || "").trim().replace(/\/+$/, ""); },
-  key() { return (settings.sbKey || "").trim(); },
+  url() { return ((settings.sbUrl || "").trim() || SB_DEFAULT_URL).replace(/\/+$/, ""); },
+  key() { return (settings.sbKey || "").trim() || SB_DEFAULT_KEY; },
   ready() { return !!(this.url() && this.key()); },
   on() { return this.ready() && !!this.session && Store.ok; },
   load() {
@@ -2664,7 +2669,9 @@ const Cloud = {
     await this.firstSync();
   },
   async signUp(email, pw) {
-    const j = await this.auth("signup", { email, password: pw });
+    // 가입 확인 메일의 링크를 누르면 이 앱 주소로 돌아오게 한다
+    const back = /^https:/.test(location.protocol) && !DESKTOP ? location.origin + location.pathname : "https://thewooke0620-lang.github.io/MeetingAssit/";
+    const j = await this.auth("signup?redirect_to=" + encodeURIComponent(back), { email, password: pw });
     if (j.access_token) { this.keep(this.fromAuth(j)); await this.firstSync(); return "in"; }
     return "confirm";   // 이메일 확인이 켜져 있으면, 메일의 링크를 누른 뒤 로그인한다
   },
@@ -2828,8 +2835,7 @@ function renderCloud() {
   $("cloudLogin").style.display = on ? "none" : "";
   $("cloudUser").style.display = on ? "" : "none";
   const pend = Object.keys(Cloud.outbox()).length;
-  if (!Cloud.ready()) st.textContent = "Supabase 주소와 공개(anon) 키를 넣고 로그인하면, exe·브라우저·폰 어디서 열어도 같은 회의 기록을 봅니다. API 키는 올리지 않습니다.";
-  else if (!on) st.textContent = "로그인하면 이 기기의 회의 묶음과 기록을 Supabase에 올리고, 같은 계정의 다른 기기와 맞춥니다.";
+  if (!on) st.textContent = "로그인하면 이 기기의 회의 묶음과 기록을 Supabase에 올리고, 같은 계정의 다른 기기와 맞춥니다.";
   else st.textContent = Cloud.session.user.email + " 로그인됨 · " + (Cloud.busy ? "동기화 중…" : Cloud.lastOk ? "마지막 동기화 " + new Date(Cloud.lastOk).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "아직 동기화 전") +
     (pend ? " · 올릴 것 " + pend + "건" : "");
   $("cloudMsg").textContent = Cloud.err;
