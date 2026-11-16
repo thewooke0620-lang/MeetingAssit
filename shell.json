@@ -1,5 +1,5 @@
 {
-  "android": 2,
+  "android": 3,
   "androidUrl": "https://github.com/thewooke0620-lang/MeetingAssit/raw/apk/MeetingAssit.apk",
-  "androidNote": "화면 겹침 해결, ChatGPT·Claude 앱으로 바로 묻기, 새 앱 알림"
+  "androidNote": "홈으로 나가면 최신 번역과 영어 자막이 은은한 블러 창에 표시됩니다."
 }

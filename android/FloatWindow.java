@@ -12,6 +12,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
 import android.util.TypedValue;
+import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -55,6 +56,7 @@ public final class FloatWindow {
     H.post(() -> {
       app = c.getApplicationContext();
       if (dlg != null || !allowed(app)) return;
+      bubble = false;
       try { build(); } catch (Throwable e) { dlg = null; }
     });
   }
@@ -93,8 +95,13 @@ public final class FloatWindow {
   private static void place(int width, int height) {
     Window w = dlg.getWindow();
     WindowManager.LayoutParams a = w.getAttributes();
+    int screenW = app.getResources().getDisplayMetrics().widthPixels;
+    int screenH = app.getResources().getDisplayMetrics().heightPixels;
+    width = Math.min(width, screenW); height = Math.min(height, screenH);
     a.x = prefs().getInt(bubble ? "bx" : "x", dp(12));
     a.y = prefs().getInt(bubble ? "by" : "y", dp(80));
+    a.x = Math.max(0, Math.min(a.x, screenW - width));
+    a.y = Math.max(0, Math.min(a.y, screenH - height));
     a.width = width; a.height = height;
     w.setAttributes(a);
   }
@@ -105,11 +112,11 @@ public final class FloatWindow {
     Window w = dlg.getWindow();
     boolean blur = blurOk();
     GradientDrawable bg = new GradientDrawable();
-    bg.setColor(blur ? 0x8C10161F : 0xE610161F);
+    bg.setColor(blur ? 0xA3141C28 : 0xE0141C28);
     bg.setCornerRadius(dp(18));
     bg.setStroke(dp(1), 0x33FFFFFF);
     w.setBackgroundDrawable(bg);
-    if (Build.VERSION.SDK_INT >= 31) { try { w.setBackgroundBlurRadius(blur ? dp(26) : 0); } catch (Throwable e) {} }
+    if (Build.VERSION.SDK_INT >= 31) { try { w.setBackgroundBlurRadius(blur ? dp(14) : 0); } catch (Throwable e) {} }
 
     FrameLayout root = new FrameLayout(app);
     LinearLayout col = new LinearLayout(app);
@@ -164,8 +171,8 @@ public final class FloatWindow {
     });
 
     dlg.setContentView(root);
-    int defW = app.getResources().getDisplayMetrics().widthPixels - dp(24);
-    place(prefs().getInt("w", defW), prefs().getInt("h", dp(190)));
+    int defW = Math.min(dp(380), app.getResources().getDisplayMetrics().widthPixels - dp(24));
+    place(prefs().getInt("w", defW), prefs().getInt("h", dp(164)));
     fill();
   }
 
@@ -252,27 +259,35 @@ public final class FloatWindow {
         linesBox.addView(t);
         return;
       }
-      for (int i = 0; i < arr.length(); i++) {
-        JSONObject l = arr.getJSONObject(i);
-        boolean mine = l.optBoolean("mine"), partial = l.optBoolean("partial");
-        String en = l.optString("en", "").trim(), ko = l.optString("ko", "").trim();
-        if (!en.isEmpty()) {
-          TextView a = new TextView(app);
-          a.setText(en); a.setTextColor(0xFFB9C4D2); a.setTextSize(12.5f);
-          a.setShadowLayer(3, 0, 1, 0x99000000);
-          linesBox.addView(a);
-        }
-        if (!ko.isEmpty()) {
-          TextView b = new TextView(app);
-          b.setText(ko); b.setTextColor(mine ? 0xFF9EE6C4 : Color.WHITE); b.setTextSize(17f);
-          b.setTypeface(Typeface.DEFAULT_BOLD);
-          b.setShadowLayer(3, 0, 1, 0x99000000);
-          LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-          p.bottomMargin = dp(6);
-          linesBox.addView(b, p);
-        }
-        if (partial) for (int k = linesBox.getChildCount() - 1; k >= 0 && k >= linesBox.getChildCount() - 2; k--) linesBox.getChildAt(k).setAlpha(.6f);
+      JSONObject latest = arr.getJSONObject(arr.length() - 1);
+      JSONObject translated = null;
+      for (int i = arr.length() - 1; i >= 0; i--) {
+        JSONObject line = arr.getJSONObject(i);
+        if (!line.optString("ko").trim().isEmpty()) { translated = line; break; }
+      }
+      if (translated != null) {
+        TextView ko = caption(translated.optString("ko"), 18, 3);
+        ko.setTypeface(Typeface.DEFAULT_BOLD);
+        ko.setTextColor(translated.optBoolean("mine") ? 0xFF9EE6C4 : Color.WHITE);
+        linesBox.addView(ko);
+      }
+      String english = latest.optString("en").trim();
+      if (!english.isEmpty()) {
+        TextView en = caption(english, translated == null ? 17 : 13, translated == null ? 3 : 1);
+        en.setTextColor(0xFFD4DFE9);
+        en.setPadding(0, dp(3), dp(10), 0);
+        linesBox.addView(en);
       }
     } catch (Throwable e) {}
+  }
+
+  private static TextView caption(String text, int size, int maxLines) {
+    TextView view = new TextView(app);
+    view.setText(text);
+    view.setTextSize(size);
+    view.setMaxLines(maxLines);
+    view.setEllipsize(TextUtils.TruncateAt.END);
+    view.setShadowLayer(3, 0, 1, 0x99000000);
+    return view;
   }
 }

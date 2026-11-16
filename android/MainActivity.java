@@ -32,7 +32,7 @@ public class MainActivity extends BridgeActivity {
   private static final int REQ_CAPTURE = 41, REQ_MIC_FOR_CAPTURE = 42;
   // 앱 껍데기 버전: 이 파일들(자바·워크플로)을 바꿀 때마다 1씩 올리고, 저장소의 shell.json "android" 도 같이 올린다
   // 웹 화면이 둘을 비교해 '새 앱 받기' 알림을 띄운다
-  private static final int SHELL_VERSION = 2;
+  private static final int SHELL_VERSION = 3;
   private volatile boolean keeping = false;
   private volatile boolean floatOn = true;
 
