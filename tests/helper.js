@@ -215,6 +215,8 @@ function fakeSupabase() {
       const gt = url.searchParams.get('updated_at');
       if (gt) list = list.filter((r) => r.updated_at > gt.replace(/^gt\./, ''));
       if (url.searchParams.get('deleted') === 'eq.false') list = list.filter((r) => !r.deleted);
+      const idq = url.searchParams.get('id');
+      if (idq) list = list.filter((r) => r.id === idq.replace(/^eq\./, ''));
       list.sort((a, b) => a.updated_at.localeCompare(b.updated_at));
       return json(200, list.slice(0, Number(url.searchParams.get('limit') || 1000)).map((r) => ({ id: r.id, data: r.data, deleted: r.deleted, updated_at: r.updated_at })));
     }

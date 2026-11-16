@@ -20,6 +20,8 @@
     --text: #e9edf2; --muted: #8d9aab; --accent: #8fb4ff; --ok: #5fd3a0;
     --warn: #f2b84b; --err: #ff7a6e; --lamp: #f2b84b; --fs: 19px;
     --bar-h: 56px;
+    /* 휴대폰 위쪽 상태 표시줄 높이. 안드로이드 앱(WebView)이 env() 를 0 으로 줄 때는 아래 스크립트가 채운다 */
+    --sat: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
@@ -87,6 +89,7 @@
   }
   #banner.info { background: #1b2433; color: #cfe0ff; border-bottom-color: #2a3a55; }
   #banner.show { display: block; }
+  @media (max-width: 760px) { body.idle #banner.show { padding-top: calc(10px + var(--sat)); } }
 
   #stageHome { flex: 1 1 auto; min-height: 0; display: flex; }
   #stage { position: relative; flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 14px 16px 60px; font-size: var(--fs); }
@@ -315,9 +318,9 @@
   .dlg-head { font-size: 16px; padding: 16px 18px; }
 
   /* 폰에 설치한 앱: 노치·홈 막대에 가리지 않게 */
-  header#bar { padding-top: max(8px, env(safe-area-inset-top)); padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
+  header#bar { padding-top: max(8px, var(--sat)); padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
   .assist { padding-bottom: max(10px, env(safe-area-inset-bottom)); }
-  #side { padding-top: max(12px, env(safe-area-inset-top)); padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  #side { padding-top: max(12px, var(--sat)); padding-bottom: max(12px, env(safe-area-inset-bottom)); }
   .install-tip { margin-top: 18px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; font-size: 13.5px; line-height: 1.6; color: var(--muted); }
   .install-tip b { color: var(--text); }
 
@@ -350,7 +353,8 @@
   .setup-sub { font-size: 13px; margin: 8px 0 4px; }
   .setup-list { list-style: none; margin: 0; padding: 0; }
   .setup-list button { display: flex; align-items: center; gap: 12px; width: 100%; background: none; border: 0; padding: 11px 0; color: var(--text); font-size: 15px; cursor: pointer; text-align: left; }
-  .setup-list .ck { flex: 0 0 22px; height: 22px; border-radius: 50%; border: 2px solid #3a4859; display: grid; place-items: center; font-size: 12px; font-weight: 800; }
+  .setup-list .ck { flex: 0 0 24px; height: 24px; border-radius: 50%; border: 1.5px solid #3a4859; position: relative; transition: background .2s, border-color .2s; }
+  .setup-list li.done .ck::after { content: ""; position: absolute; left: 7.5px; top: 4px; width: 6px; height: 11px; border: solid #0b2a1c; border-width: 0 2.5px 2.5px 0; border-radius: 1px; transform: rotate(45deg); }
   .setup-list li.done .ck { background: var(--ok); border-color: var(--ok); color: #0b2a1c; }
   .setup-list li.done .tx { color: var(--muted); }
   .setup-list .tx { flex: 1; }
@@ -414,7 +418,7 @@
     body.idle #fab { display: inline-flex; flex-direction: row; align-items: center; justify-content: center; gap: 7px;
       background: var(--text); color: var(--bg); border: 0; border-radius: 14px; padding: 12px 14px; font-size: 14.5px; font-weight: 800; cursor: pointer; white-space: nowrap; }
     #fab .lamp { background: var(--lamp); box-shadow: none; }
-    body.idle #stage { padding-top: max(18px, env(safe-area-inset-top)); padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+    body.idle #stage { padding-top: max(18px, var(--sat)); padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
     body.idle #empty { margin-top: 0; }
     body.idle #homeStart { display: none; }   /* 폰에서는 아래쪽 '회의 시작' 단추를 쓴다 */
   }
@@ -604,7 +608,7 @@
   #lvSend.ready { background: var(--text); color: var(--bg); }
   @media (max-width: 760px) {
     body:not(.idle):not(.popup) header#bar { display: none; }
-    body:not(.idle):not(.popup) #lvTop { display: block; flex: 0 0 auto; padding: max(10px, env(safe-area-inset-top)) 12px 8px; background: var(--bg); border-bottom: 1px solid var(--line); }
+    body:not(.idle):not(.popup) #lvTop { display: block; flex: 0 0 auto; padding: max(10px, var(--sat)) 12px 8px; background: var(--bg); border-bottom: 1px solid var(--line); }
     body:not(.idle):not(.popup) #lvBottom { display: flex; }
     body:not(.idle).lv-empty-on #lvEmpty { display: flex; }
     body:not(.idle).lv-sum #lvSum, body:not(.idle).lv-qa #lvQA { display: block; }
@@ -2043,7 +2047,7 @@ function studyOrder(items, prog, now) {
 // ---------------------------------------------------------------------------
 const WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 // 앱 버전: 고칠 때마다 올린다. 설정 창 아래에 보이고, 새 버전이 올라왔는지 확인할 때 쓴다
-const APP_VERSION = "2026.11.16-6";
+const APP_VERSION = "2026.11.16-7";
 const STORE_KEY = "meeting-interpreter.settings.v1";
 const DEFAULTS = {
   apiKey: "", hint: "en", target: "ko", terms: "", fontSize: "18",
@@ -2114,6 +2118,7 @@ function syncedSettings(s) {
   const o = {};
   for (const k of SYNC_SETTINGS) if (s[k] !== undefined) o[k] = s[k];
   if (s.keepKeys === false) for (const k of KEY_FIELDS) delete o[k];   // '키 기억하기'를 껐으면 키는 올리지 않는다
+  for (const k of KEY_FIELDS) if (!(o[k] || "").trim()) delete o[k];   // 비어 있는 키는 올리지 않는다 (키 없는 기기가 계정의 키를 지우지 않게)
   return o;
 }
 let settingsFp = JSON.stringify(syncedSettings(settings)), settingsFromCloud = false;
@@ -2190,6 +2195,17 @@ function setStatus(kind, text) {
 const DESKTOP = !!(window.desktop && window.desktop.popup);
 // 안드로이드 앱(Capacitor) 안에서 열렸는지. 앱은 MeetingNative 로 '앱을 나가도 계속 듣기'(알림이 뜨는 포그라운드 서비스)를 켠다
 const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+// 안드로이드 앱: 화면이 상태 표시줄 밑까지 그려지는데 WebView 가 그 높이(env)를 0 으로 주면, 대략 높이(28px)로 비워 둔다
+if (NATIVE) {
+  try {
+    const probe = document.createElement("div");
+    probe.style.cssText = "position:absolute;visibility:hidden;padding-top:var(--sat)";
+    document.body.append(probe);
+    const got = parseFloat(getComputedStyle(probe).paddingTop) || 0;
+    probe.remove();
+    if (got < 1 && window.screen && Math.abs(screen.height - window.innerHeight) < 8) document.documentElement.style.setProperty("--sat", "28px");
+  } catch (e) {}
+}
 const Native = {
   has(fn) { return !!(window.MeetingNative && window.MeetingNative[fn]); },
   keep(on) { try { if (this.has("keepRecording")) window.MeetingNative.keepRecording(!!on); } catch (e) {} },
@@ -3859,7 +3875,7 @@ const SB_DEFAULT_URL = "https://iqyknmtkbdpsitxwdfia.supabase.co";
 const SB_DEFAULT_KEY = "sb_publishable_oXSaiNSp7dwnWZdzfUCf1Q_qBuP69Lj";
 const Cloud = {
   S_KEY: "meetingassit.sb.session", O_KEY: "meetingassit.sb.outbox", C_KEY: "meetingassit.sb.cursor",
-  session: null, busy: false, timer: null, pulledAt: 0, lastOk: 0, err: "", gotSettings: false,
+  session: null, busy: false, timer: null, pulledAt: 0, lastOk: 0, err: "", gotSettings: false, setChecked: false,
   url() { return ((settings.sbUrl || "").trim() || SB_DEFAULT_URL).replace(/\/+$/, ""); },
   key() { return (settings.sbKey || "").trim() || SB_DEFAULT_KEY; },
   ready() { return !!(this.url() && this.key()); },
@@ -3971,7 +3987,15 @@ const Cloud = {
       const i = k.indexOf(":"), store = k.slice(0, i), id = k.slice(i + 1);
       // 프로필(내 이름·목소리)은 packs 표의 특별한 줄 하나에 둔다
       if (store === "profile") { rows.packs.push({ id: PROFILE_ID, data: Object.assign({}, profile), deleted: false }); continue; }
-      if (store === "settings") { rows.packs.push({ id: SETTINGS_ID, data: { s: syncedSettings(settings), updatedAt: settings.sAt || Date.now() }, deleted: false }); continue; }
+      if (store === "settings") {
+        // 이 기기에 없는 키는 계정에 있던 것을 그대로 둔다
+        const ss = syncedSettings(settings);
+        if (KEY_FIELDS.some((k) => !ss[k])) {
+          try { const cur = (await this.rest("packs?select=data&id=eq." + SETTINGS_ID)) || []; const prev = (cur[0] && cur[0].data && cur[0].data.s) || {}; for (const k of KEY_FIELDS) if (!ss[k] && prev[k]) ss[k] = prev[k]; } catch (e) {}
+        }
+        rows.packs.push({ id: SETTINGS_ID, data: { s: ss, updatedAt: settings.sAt || Date.now() }, deleted: false });
+        continue;
+      }
       if (!rows[store]) continue;
       const data = o[k] ? null : await StoreRaw.get(store, id);
       rows[store].push(data ? { id, data, deleted: false } : { id, data: {}, deleted: true });
@@ -4050,12 +4074,25 @@ const Cloud = {
     await this.sync();
     await afterCloudPull();   // 처음 받은 것을 화면에 반영한다
   },
+  // 이 기기에서 처음 동기화할 때 한 번: 계정의 설정 줄이 더 새것이면 받고, 없거나 이 기기 것이 새것이면(키가 있을 때) 올린다
+  async checkSettings() {
+    const rows = (await this.rest("packs?select=data,updated_at&id=eq." + SETTINGS_ID)) || [];
+    const d = rows[0] && rows[0].data;
+    if (d && d.s && (d.updatedAt || 0) > (settings.sAt || 0)) { applyCloudSettings(d); return 1; }
+    if ((settings.apiKey || "").trim() && (!d || !d.s || (settings.sAt || 0) > (d.updatedAt || 0) || !d.s.apiKey)) {
+      if (!settings.sAt) { settings.sAt = Date.now(); saveSettings(settings); }
+      const o = this.outbox(); o["settings:all"] = 0; this.setOutbox(o);
+      await this.push();
+    }
+    return 0;
+  },
   async sync() {
     if (!this.on() || this.busy) return;
     this.busy = true; this.err = "";
     try {
       await this.push();
-      const changed = await this.pull();
+      let changed = await this.pull();
+      if (!this.setChecked) { this.setChecked = true; changed += await this.checkSettings(); }
       this.lastOk = Date.now();
       if (changed) await afterCloudPull();
     } catch (e) {
@@ -5563,7 +5600,7 @@ function renderSetup(all) {
   for (const [label, ok, act] of items) {
     const li = mk("li", ok ? "done" : "");
     const b = mk("button"); b.type = "button";
-    b.append(mk("span", "ck", ok ? "✓" : ""), mk("span", "tx", label), mk("span", "go", "›"));
+    b.append(mk("span", "ck"), mk("span", "tx", label), mk("span", "go", "›"));
     b.addEventListener("click", act);
     li.append(b); ul.append(li);
   }

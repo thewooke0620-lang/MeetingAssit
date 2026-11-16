@@ -113,6 +113,16 @@ run('CLOUD TESTS', async (b) => {
   await E.context().route(SB + '/**', sb.handle); await E.reload(); await E.waitForTimeout(800);
   await E.click('#obSkip'); await E.waitForTimeout(200);
   assert.strictEqual(await E.isVisible('#obName'), true);
+  // 키가 없는 기기는 계정의 키를 지우지 않는다
+  await D.evaluate(async () => { settings.claudeKey = ''; settings.fontSize = '20'; saveSettings(settings); await Cloud.sync(); }); await D.waitForTimeout(300);
+  row = setRow();
+  assert.strictEqual(row.data.s.claudeKey, 'ck', '이 기기에 없는 키도 계정에는 남음'); assert.strictEqual(row.data.s.fontSize, '20');
+  assert.strictEqual(row.data.s.apiKey, 'k', 'Soniox 키는 그대로');
+  // 이미 로그인돼 있던 기기(새 버전 전부터): 처음 동기화 때 서버에 설정이 없으면 이 기기의 키를 올린다
+  sb.db.rows.packs.delete('u1|__settings__');
+  await A.evaluate(async () => { Cloud.setChecked = false; await Cloud.sync(); }); await A.waitForTimeout(400);
+  row = setRow();
+  assert(row && row.data.s.apiKey === 'k' && row.data.s.groqKey === 'gk', '기존 기기의 키가 계정에 올라감');
   console.log('7 OK 설정·API 키 계정 저장, 다시 설치 후 로그인으로 복원');
   for (const p of [A, D, E]) await p.context().close();
 });
