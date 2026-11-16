@@ -25,7 +25,9 @@
 ## 구조
 - 앱 전체가 `index.html` 한 파일이다. 빌드 과정이 없고, 외부 라이브러리를 쓰지 않는다.
 - 음성 인식: Soniox 실시간 API (웹소켓). 번역: Soniox 내장, Claude, Groq 중 선택.
-- API 키는 사용자가 설정 화면에 넣고, 그 브라우저의 localStorage에만 저장된다. 키를 코드나 저장소에 넣지 않는다. (예외: Supabase 공개 키, 아래 참고)
+- API 키는 사용자가 설정 화면에 넣고 그 기기의 localStorage에 저장한다. 키를 코드나 저장소(GitHub)에 넣지 않는다. (예외: Supabase 공개 키, 아래 참고)
+- 로그인하면 설정과 API 키도 사용자의 Supabase 계정에 올린다 (사용자 결정 2026-11-16, 다시 설치해도 로그인만 하면 복원). packs 표의 id `__settings__` 줄, 올리는 항목은 `SYNC_SETTINGS`(기기마다 다른 들을 소리·지금 폴더·onboarded 등은 뺌). '키 기억하기'를 끄면 키는 올리지 않는다. 바뀌면 `saveSettings` 가 지문(`settingsFp`)을 비교해 `Cloud.mark("settings","all")`, 받을 때는 `applyCloudSettings`(updatedAt 이 더 새것일 때만).
+- 처음 열면(키·등록 없음, 로그인 안 함) 사용자 등록을 로그인 단계(2)부터 연다(`OB.first`). 로그인해서 키를 받으면 바로 끝내고, 없으면 이름부터. '건너뛰기'도 이름부터.
 - 회의 폴더와 회의 기록은 브라우저 IndexedDB에 저장한다. 저장소 접근은 `Store` 객체 한 곳에 모아 두었다.
 - Supabase 동기화(`Cloud` 객체): 로그인하면 `Store` 의 put·update·del 이 바뀐 것을 표시해 두고 Supabase 표(packs, meetings, 기록을 통째로 JSON)에 올린다. 받을 때는 `StoreRaw` 로 써서 다시 올리지 않는다. 라이브러리 없이 Auth·REST 주소를 fetch 로 부른다. 표·보안 규칙은 `docs/supabase.sql`. 이 앱의 Supabase 프로젝트는 `MeetingAssit`(ref `iqyknmtkbdpsitxwdfia`, 서울)이고, 주소와 공개(publishable) 키는 사용자 결정(2026-11-15)으로 `index.html` 의 `SB_DEFAULT_URL`·`SB_DEFAULT_KEY` 에 넣어 두었다. 공개 키만 예외이며, 비밀(service_role) 키와 Soniox·Claude·Groq 키는 절대 코드에 넣지 않는다. 테스트는 `tests/cloud.e2e.js` 의 가짜 서버로 한다.
 - Soniox가 선택 설정(확정 대기 시간, 번역어 지정, 회의 배경)을 거부하면 그 설정만 빼고 다시 연결한다. 새 선택 설정을 추가할 때도 같은 방식으로 한다.
@@ -56,7 +58,8 @@
 - 좁은 화면(760px 이하)에서 회의 중이거나 기록이 화면에 있으면 위쪽 막대(#bar) 대신 `#lvTop`(❚❚/▶ · ■/✕ · 라이브|요약|질문 · 추천 · ⚙)과 아래 입력칸 `#lvBottom` 을 쓴다. 상태는 `LV`, 그리기는 `lvSync()`(updateMode·queueLive 에서 부름). 넓은 화면은 예전 그대로.
 - 일시정지: `R.paused = true; stop()` → `finishMeeting` 이 정리 화면·자동 정리를 건너뛴다. ■ 는 끝내기(일시정지 상태면 `finishMeeting` 을 직접 부름), 끝난 뒤 ✕ 는 `clearRecord(true)`(묻지 않고 지우기, 기록은 저장됨).
 - 요약 탭 `lvSummarize`(AI 요청에 `<livesum>`), 질문 `lvAsk`(`<ask>`), '영어로' 모드는 기존 `suggest("ko")`. 추천(#assist)은 폰에서 아래에서 올라오는 판(`body.lv-rec-open`).
-- 아래 탭 막대: 홈·폴더·[회의 시작]·리포트·학습. '표현' 탭은 학습 탭 아래 링크·계정 시트·왼쪽 메뉴에서 연다.
+- 아래 탭 막대: 홈·폴더·[회의 시작]·리포트·학습. 예전 '표현' 탭(words)은 화면 이름이 '라이브러리'(용어집·자주 받는 질문·중요 표시·내 지식)이고, 학습 탭 아래 링크·계정 시트의 라이브러리 상자(기기끼리 맞추기 위)·왼쪽 메뉴에서 연다.
+- 계정 시트 맨 아래는 '설정'·'로그아웃' 상자 두 개뿐이다 (폴더 준비·백업·처음 쓰는 방법 목록은 뺐다. 백업은 설정 안에 있다).
 - 학습 탭(`renderLearn`): 최근 회의 표현은 회의마다 AI 가 한 번 골라 `m.phrases` 에 저장(`<phrases>`), 자주 쓰는 표현은 `frequentPhrases`(CORE, 3~6단어 묶음 세기) + 뜻은 AI 에 한 번 물어 localStorage `meetingassit.phraseKo.v1`(`<meanings>`). 바로 학습(#studyDlg)은 `studyGrade`·`studyOrder`(CORE), 진도는 localStorage `meetingassit.study.v1`(서버에 안 올림).
 - 학습 내용 가져오기(#importDlg, `openImport`): 계정 시트의 개인화 칸과 내 지식의 '다른 AI에서 가져오기'에서 연다. 반영은 기존 `importKnowledge`.
 - 테스트 가짜 AI 는 `<livesum>`·`<ask>`·`<phrases>`·`<meanings>` 를 따로 알아본다 (`tests/helper.js`). 새 기능 테스트: `tests/phonelive.e2e.js`.

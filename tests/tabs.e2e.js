@@ -70,7 +70,7 @@ run('TABS TESTS', async (b) => {
   await p.click('#tabbar button[data-tab="learn"]'); await p.waitForTimeout(300);
   assert.strictEqual(await p.textContent('#pageTitle'), '학습');
   await p.click('#lnWords'); await p.waitForTimeout(300);
-  assert.strictEqual(await p.textContent('#pageTitle'), '표현');
+  assert.strictEqual(await p.textContent('#pageTitle'), '라이브러리');
   const words = await p.textContent('#wordsBody');
   assert(/escrow/.test(words) && /에스크로/.test(words) && /We reviewed the draft agreement/.test(words), words.slice(0, 300));
 
@@ -79,6 +79,9 @@ run('TABS TESTS', async (b) => {
   const sheet = await p.textContent('#acctBody');
   console.log('6 계정 시트:', sheet.replace(/\s+/g, ' ').slice(0, 200));
   assert(/로그인하지 않음/.test(sheet) && /이번 달 회의/.test(sheet) && /1건/.test(sheet) && /버전 /.test(sheet));
+  assert(/라이브러리/.test(sheet) && /중요 표시/.test(sheet), '라이브러리 상자');
+  assert.strictEqual(await p.$$eval('#acctBody .sh-box.link', (n) => n.map((x) => x.textContent.replace('›', '').trim()).join(',')), '설정', '로그인 전에는 설정 상자만');
+  assert.strictEqual(await p.$$eval('#acctBody .sh-list', (n) => n.length), 0, '예전 목록(폴더 준비·백업·처음 쓰는 방법)은 없음');
   await p.click('#acctBody button:has-text("로그인·가입")'); await p.waitForTimeout(200);
   assert.strictEqual(await p.evaluate(() => document.getElementById('settings').open), true);
   await p.click('#cancelSettings');

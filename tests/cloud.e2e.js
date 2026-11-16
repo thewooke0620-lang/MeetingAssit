@@ -3,8 +3,8 @@
 const assert = require('assert');
 const { openApp, speak, toggle, openSettings, closeSettings, BASE, run, newPack, fakeSupabase, SB } = require('./helper');
 
-// 서버의 폴더 수 (프로필 줄 __profile__ 은 빼고 센다)
-const packCount = (sb) => [...sb.db.rows.packs.keys()].filter((k) => !/__profile__/.test(k)).length;
+// 서버의 폴더 수 (프로필 줄 __profile__, 설정 줄 __settings__ 은 빼고 센다)
+const packCount = (sb) => [...sb.db.rows.packs.keys()].filter((k) => !/__profile__|__settings__/.test(k)).length;
 
 run('CLOUD TESTS', async (b) => {
   const sb = fakeSupabase();
@@ -84,5 +84,35 @@ run('CLOUD TESTS', async (b) => {
   assert(/다른 계정의 것이라/.test(await B.textContent('#cloudMsg')));
   assert.strictEqual([...sb.db.rows.meetings.values()].filter((r) => r.user_id === 'u2').length, 0);
   console.log('6 OK 계정 분리, 틀린 비밀번호, 같은 기기 다른 계정');
-  for (const p of [A, B, C]) await p.context().close();
+  for (const p of [B, C]) await p.context().close();
+
+  // 7) 설정과 API 키도 계정에 올라가고, 다시 설치한 기기(키 없음)는 처음 화면에서 로그인만 하면 그대로 불러온다
+  const setRow = () => [...sb.db.rows.packs.values()].find((r) => r.id === '__settings__' && r.user_id === 'u1');
+  let row = setRow();
+  assert(row && row.data.s.apiKey === 'k' && row.data.s.claudeKey === 'ck' && row.data.s.engine === 'claude', '설정 줄: ' + JSON.stringify(row && row.data));
+  assert(!('source' in row.data.s) && !('packId' in row.data.s) && !('onboarded' in row.data.s), '기기마다 다른 값은 올리지 않음');
+  // A 에서 설정을 바꾸면 다시 올라간다
+  await A.evaluate(() => { settings.groqKey = 'gk'; settings.fontSize = '24'; saveSettings(settings); });
+  await A.evaluate(() => Cloud.sync()); await A.waitForTimeout(600);
+  row = setRow();
+  assert(row.data.s.groqKey === 'gk' && row.data.s.fontSize === '24');
+  // 새로 설치한 기기: 키도 등록도 없음 → 처음 화면은 로그인
+  const D = await openApp(b, { sbUrl: SB, sbKey: 'anon-key', openAfterStop: false });
+  await D.context().route(SB + '/**', sb.handle); await D.reload(); await D.waitForTimeout(800);
+  assert.strictEqual(await D.evaluate(() => document.getElementById('onboard').open), true);
+  assert.strictEqual(await D.isVisible('#obEmail'), true, '처음 화면은 로그인 칸');
+  assert(/저장해 둔 API 키와 설정/.test(await D.textContent('#obAcctFirst')));
+  await D.fill('#obEmail', 'me@x.com'); await D.fill('#obPw', 'secret12'); await D.click('#obSignIn'); await D.waitForTimeout(1500);
+  const got = await D.evaluate(() => ({ open: document.getElementById('onboard').open, apiKey: settings.apiKey, claudeKey: settings.claudeKey, groqKey: settings.groqKey, engine: settings.engine, fontSize: settings.fontSize, onboarded: settings.onboarded }));
+  console.log('7 다시 설치한 기기:', JSON.stringify(got));
+  assert.deepStrictEqual(got, { open: false, apiKey: 'k', claudeKey: 'ck', groqKey: 'gk', engine: 'claude', fontSize: '24', onboarded: true });
+  assert(/계정에서 설정과 API 키/.test(await D.textContent('#banner')));
+  assert.strictEqual(await D.isVisible('#homeKey'), false, '키 경고가 사라짐');
+  // 계정이 없는 사람은 '건너뛰기'로 이름부터 등록
+  const E = await openApp(b, { sbUrl: SB, sbKey: 'anon-key', openAfterStop: false });
+  await E.context().route(SB + '/**', sb.handle); await E.reload(); await E.waitForTimeout(800);
+  await E.click('#obSkip'); await E.waitForTimeout(200);
+  assert.strictEqual(await E.isVisible('#obName'), true);
+  console.log('7 OK 설정·API 키 계정 저장, 다시 설치 후 로그인으로 복원');
+  for (const p of [A, D, E]) await p.context().close();
 });

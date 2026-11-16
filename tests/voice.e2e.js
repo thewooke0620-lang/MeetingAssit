@@ -17,6 +17,10 @@ run('VOICE TESTS', async (b) => {
 
   // 1) 처음 열면 사용자 등록이 뜬다. 이름이 없으면 넘어가지 않는다
   assert.strictEqual(await p.evaluate(() => document.getElementById('onboard').open), true, '처음 열면 사용자 등록');
+  // 처음 화면은 로그인 (계정이 있으면 설정을 불러온다). 계정이 없으면 건너뛰고 이름부터
+  assert.strictEqual(await p.textContent('#obCount'), '3 / 5');
+  assert.strictEqual(await p.isVisible('#obAcctFirst'), true);
+  await p.click('#obSkip'); await p.waitForTimeout(100);
   assert.strictEqual(await p.textContent('#obCount'), '1 / 5');
   await p.click('#obNext'); await p.waitForTimeout(100);
   assert.strictEqual(await p.textContent('#obCount'), '1 / 5', '이름 없으면 머무름');
@@ -145,9 +149,11 @@ run('VOICE TESTS', async (b) => {
   await toggle(p); await p.waitForTimeout(200);
   assert.strictEqual(await p.evaluate(() => R.vcur.prefixMs), 0);
   await toggle(p); await p.waitForTimeout(1500);
+  // 설정도 계정으로 맞춰지므로 다시 켜 두고 올린다 (10 에서 폰이 받는다)
+  await p.evaluate(async () => { settings.voiceMe = true; saveSettings(settings); await Cloud.sync(); }); await p.waitForTimeout(300);
   await p.context().close();
 
-  // 10) 다른 기기(폰)에서 같은 계정으로 로그인하면 이름·목소리를 받는다 (키는 다시 넣는다)
+  // 10) 다른 기기(폰)에서 같은 계정으로 로그인하면 이름·목소리와 설정을 받는다
   const q = await openApp(b, Object.assign({}, BASE, { sbUrl: SB, sbKey: 'anon-key' }), { context: devices['Pixel 7'] });
   await q.context().route(SB + '/**', sb.handle); await q.reload(); await q.waitForTimeout(600);
   assert.strictEqual(await q.evaluate(() => [profile.name, hasVoice()].join()), ',false');

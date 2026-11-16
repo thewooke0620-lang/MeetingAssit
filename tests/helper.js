@@ -138,7 +138,7 @@ const clickSettings = async (p) => {
   if (await p.isVisible('#openSettings')) { await p.click('#openSettings'); return; }
   if (await p.isVisible('#lvSet')) { await p.click('#lvSet'); return; }   // 폰 대화 듣기 화면의 ⚙
   await p.click('#acctChip'); await p.waitForTimeout(150);
-  await p.click('#acctSheet .sh-list button:has-text("설정")');
+  await p.click('#acctSheet .sh-box.link:has-text("설정")');
 };
 const openSettings = async (p) => { await clickSettings(p); await p.waitForTimeout(300); };
 // 폴더 창 (이름이 없으면 지금 폴더). 폴더의 지난 회의 목록(#meetList)도 여기에 있다
