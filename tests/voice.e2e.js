@@ -173,7 +173,9 @@ run('VOICE TESTS', async (b) => {
   await r.click('#pdOk'); await r.waitForTimeout(100);
   assert(/이름을 적어/.test(await r.textContent('#pdMsg')), '이름 없으면 안내');
   await r.fill('#pdName', 'B사'); await r.fill('#pdTopic', '물류 계약'); await r.click('#pdOk'); await r.waitForTimeout(400);
-  await r.click('#packPill'); await r.waitForTimeout(300);   // 위쪽 '폴더: B사' → 그 폴더 고치기
+  assert.strictEqual(await r.isVisible('#packPill'), false);
+  await r.click('#side .nav[data-tab="prep"]');
+  await r.locator('#prepList .prow').filter({ hasText: 'B사' }).getByRole('button', { name: '고치기' }).click();
   assert.strictEqual(await r.inputValue('#pdTopic'), '물류 계약');
   await r.fill('#pdPeople', 'Anna Kim'); await r.click('#pdOk'); await r.waitForTimeout(300);
   assert.strictEqual(await r.evaluate(() => currentPack().people), 'Anna Kim');
