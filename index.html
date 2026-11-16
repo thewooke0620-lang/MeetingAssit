@@ -790,6 +790,46 @@
   body.pipwin .lv-tabs button { font-size: 15.5px; }
   body.pipwin #asHide { display: none; }
   .lv-ctl.fresh #lvPause { width: auto; padding: 0 14px 0 10px; gap: 6px; display: inline-flex; align-items: center; background: var(--lamp); color: #1b1305; font-weight: 800; font-size: 14.5px; }
+
+  /* ================= 회의 기록(리포트) 화면 ================= */
+  #meetDlg { width: min(760px, 96vw); padding: 0; }
+  #meetDlg[open] { display: flex; flex-direction: column; }
+  .mv-top { padding: 16px 18px 0; border-bottom: 1px solid var(--line); }
+  .mv-hrow { display: flex; align-items: center; gap: 8px; }
+  .mv-h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: var(--text); line-height: 1.3; }
+  .mv-sp { flex: 1 1 auto; }
+  .mv-icon { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; border: 1px solid transparent; background: none; color: var(--muted); font-size: 15px; cursor: pointer; }
+  .mv-icon:hover { background: var(--panel2); color: var(--text); }
+  .mv-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 12px 0 14px; }
+  .mv-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font-size: 13.5px; color: var(--muted); }
+  .mv-chip { display: inline-flex; align-items: center; gap: 6px; }
+  .mv-chip .ci svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; display: block; }
+  .mv-chip.folder { color: var(--text); border: 1px solid var(--line); background: var(--panel2); border-radius: 999px; padding: 4px 11px; }
+  .mv-meta .btn.sm { border-radius: 999px; padding: 5px 12px; }
+  .mv-tabs { display: inline-flex; gap: 2px; background: var(--panel2); border-radius: 999px; padding: 4px; margin-bottom: 12px; }
+  .mv-tabs button { background: none; border: 0; color: var(--muted); font-size: 14px; font-weight: 700; padding: 7px 16px; border-radius: 999px; cursor: pointer; }
+  .mv-tabs button.on { background: var(--text); color: var(--bg); }
+  #mvBody { flex: 1 1 auto; max-height: none; min-height: 0; padding: 14px 18px 24px; }
+  #mvBody .mvh { font-size: 17px; margin: 22px 0 8px; }
+  #mvBody .mvlist { font-size: 15px; line-height: 1.75; }
+  #mvBody[data-tab="log"] .mv-sum, #mvBody[data-tab="learn"] .mv-sum, #mvBody[data-tab="learn"] .mvlog { display: none; }
+  #mvBody[data-tab="log"] .mvlog { border-top: 0; margin-top: 0; padding-top: 0; }
+  #mvBody[data-tab="log"] .mvlog summary { display: none; }
+  #mvBody .mv-learn > .btn.primary { margin: 4px 0 10px; }
+  .mv-qa { margin-top: 18px; border-top: 1px solid var(--line); }
+  .mv-ask { flex: 0 0 auto; display: flex; gap: 8px; align-items: center; margin: 0 14px 14px; padding: 6px 6px 6px 16px; background: var(--panel2); border: 1px solid var(--line); border-radius: 999px; }
+  .mv-ask input { flex: 1; min-width: 0; background: none; border: 0; outline: none; color: var(--text); font-size: 14.5px; padding: 8px 0; }
+  .mv-ask button { width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--text); color: var(--bg); font-size: 18px; font-weight: 800; cursor: pointer; }
+  @media (max-width: 760px) {
+    #meetDlg { margin: 0; width: 100vw; max-width: 100vw; height: 100vh; max-height: 100vh; border-radius: 0; border: 0; padding-top: var(--sat); padding-bottom: var(--sab); }
+    .mv-h1 { font-size: 19px; }
+  }
+  /* 넓은 화면: 내용 자리를 덮는 페이지 (왼쪽 메뉴는 그대로) */
+  #meetDlg.page { position: fixed; margin: 0; right: 0; bottom: 0; width: auto; max-width: none; height: auto; max-height: none; border: 0; border-radius: 0; background: var(--bg); z-index: 25; box-shadow: none; }
+  #meetDlg.page .mv-top, #meetDlg.page #mvBody, #meetDlg.page .mv-ask { width: 100%; max-width: 980px; margin-left: auto; margin-right: auto; }
+  #meetDlg.page .mv-top { border-bottom: 0; padding-top: 22px; }
+  #meetDlg.page .mv-h1 { font-size: 28px; }
+  #meetDlg.page .mv-ask { max-width: 720px; margin-bottom: 18px; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -1034,14 +1074,24 @@
 </dialog>
 
 <dialog id="meetDlg">
-  <div class="dlg-head"><span id="mvTitle">회의 기록</span></div>
-  <div class="dlg-body" id="mvBody"></div>
-  <div class="dlg-foot">
-    <button id="mvRename" class="btn" type="button">제목 수정</button>
-    <button id="mvRedo" class="btn" type="button">다시 정리</button>
-    <button id="mvDownload" class="btn" type="button">내려받기</button>
-    <button id="mvClose" class="btn primary" type="button">닫기</button>
+  <div class="mv-top">
+    <div class="mv-hrow">
+      <h1 id="mvTitle" class="mv-h1">회의 기록</h1>
+      <button id="mvRename" class="mv-icon" type="button" title="제목 고치기" aria-label="제목 수정">✎</button>
+      <span class="mv-sp"></span>
+      <button id="mvClose" class="mv-icon" type="button" title="닫기" aria-label="닫기">✕</button>
+    </div>
+    <div class="mv-meta"><span id="mvMeta" class="mv-chips"></span><span class="mv-sp"></span>
+      <button id="mvRedo" class="btn sm" type="button">다시 정리</button><button id="mvDownload" class="btn sm" type="button">내려받기</button></div>
+    <div class="mv-tabs" role="tablist" aria-label="회의 기록 보기">
+      <button type="button" role="tab" data-mv="sum" class="on">회의 요약</button><button type="button" role="tab" data-mv="log">대화록</button><button type="button" role="tab" data-mv="learn">표현 배우기</button>
+    </div>
   </div>
+  <div class="dlg-body" id="mvBody" data-tab="sum"></div>
+  <form id="mvAsk" class="mv-ask" autocomplete="off">
+    <input id="mvAskIn" type="text" maxlength="400" enterkeyhint="send" placeholder="이 회의에 대해 무엇이든 물어보세요 (누가 뭘 하기로 했어? 등)" aria-label="이 회의에 대해 묻기">
+    <button type="submit" aria-label="보내기">↑</button>
+  </form>
 </dialog>
 
 <dialog id="onboard" aria-label="사용자 등록">
@@ -2161,7 +2211,7 @@ function studyOrder(items, prog, now) {
 // ---------------------------------------------------------------------------
 const WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 // 앱 버전: 고칠 때마다 올린다. 설정 창 아래에 보이고, 새 버전이 올라왔는지 확인할 때 쓴다
-const APP_VERSION = "2026.11.16-13";
+const APP_VERSION = "2026.11.16-14";
 const STORE_KEY = "meeting-interpreter.settings.v1";
 const DEFAULTS = {
   apiKey: "", hint: "en", target: "ko", terms: "", fontSize: "18",
@@ -5008,10 +5058,34 @@ function srcButton(i) {
   return b;
 }
 
+function placeMeetPage() {
+  const dlg = $("meetDlg");
+  if (!dlg.classList.contains("page")) return;
+  const bar = $("bar"), side = $("side");
+  dlg.style.top = Math.max(0, bar.getBoundingClientRect().bottom) + "px";
+  dlg.style.left = (document.body.classList.contains("side-closed") || narrow() ? 0 : Math.round(side.getBoundingClientRect().right + 6)) + "px";
+}
+window.addEventListener("resize", placeMeetPage);
 function openMeeting(m) {
+  if (viewM !== m) MV.tab = "sum";
   viewM = m; viewNote = ""; viewAddMsg = "";
   renderMeeting();
-  if (!$("meetDlg").open) $("meetDlg").showModal();
+  const dlg = $("meetDlg");
+  if (!dlg.open) {
+    // 다른 창(폴더 창 등)이 떠 있을 때는 그 위에 뜨는 창으로 연다
+    const page = !narrow() && !POPUP && ![...document.querySelectorAll("dialog[open]")].some((x) => x !== dlg && x.matches(":modal"));
+    dlg.classList.toggle("page", page);
+    if (page) {
+      // 모달이 아니게 연다 (왼쪽 메뉴를 그대로 누를 수 있게). 뒤로가기로 닫히게 기록을 남긴다
+      dlg.show(); placeMeetPage(); try { document.activeElement && document.activeElement.blur(); } catch (e) {}
+      dlg._nav = true; navPush({ dlg: dlg.id });
+      dlg.addEventListener("close", () => {
+        dlg._nav = false;
+        if (dlg._byPop) { dlg._byPop = false; return; }
+        if (history.state && history.state.dlg === dlg.id) { try { history.replaceState({ ma: 1, stale: 1 }, ""); Nav.cur = history.state; } catch (e) {} }
+      }, { once: true });
+    } else dlg.showModal();
+  }
   // 정리가 없거나 그 뒤로 내용이 늘었으면 만든다 (열어 본 것이 곧 요청이다)
   if (helperSpec() && digestStale(m)) buildViewDigest(false);
 }
@@ -5046,6 +5120,17 @@ function harvestItems(d, pack) {
   return items;
 }
 
+// 회의 기록 화면의 탭(요약·대화록·표현 배우기)과 이 회의에 대한 질문과 답 (회의마다 이 창에서만 기억)
+const MV = { tab: "sum", qa: {}, phraseBusy: false };
+function mvChip(svg, text, cls) { const c = mk("span", "mv-chip" + (cls ? " " + cls : "")); if (svg) { const i = mk("span", "ci"); i.innerHTML = svg; c.append(i); } c.append(text); return c; }
+const MV_SVG = {
+  folder: '<svg viewBox="0 0 24 24"><path d="M3.5 7a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg>',
+  cal: '<svg viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg>',
+  clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>'
+};
+function korDate(t) { const d = new Date(t); return d.getFullYear() + "년 " + (d.getMonth() + 1) + "월 " + d.getDate() + "일 (" + "일월화수목금토"[d.getDay()] + ")"; }
+function korTime(t) { const d = new Date(t), h = d.getHours(); return (h < 12 ? "오전 " : "오후 ") + ((h % 12) || 12) + ":" + pad2(d.getMinutes()); }
+function korDur(secs) { const m = Math.max(1, Math.round((secs || 0) / 60)); return m >= 60 ? Math.floor(m / 60) + "시간" + (m % 60 ? " " + (m % 60) + "분" : "") : m + "분"; }
 function renderMeeting() {
   const m = viewM;
   if (!m) return;
@@ -5053,11 +5138,20 @@ function renderMeeting() {
   const busy = m.id ? digestBusy.has(m.id) : viewBusy;
   const d = m.digest;
   $("mvTitle").textContent = m.title || "회의 기록";
+  // 머리: 폴더 · 날짜 · 시간 · 길이
+  const chips = $("mvMeta"); chips.textContent = "";
+  if (pack) chips.append(mvChip(MV_SVG.folder, pack.name, "folder"));
+  chips.append(mvChip(MV_SVG.cal, korDate(m.startedAt || m.endedAt || 0)));
+  chips.append(mvChip(MV_SVG.clock, korTime(m.startedAt || 0) + (m.endedAt ? " – " + korTime(m.endedAt) : "")));
+  chips.append(mvChip("", korDur(m.secs) + " 진행"));
+  for (const b of document.querySelectorAll("#meetDlg .mv-tabs button")) b.classList.toggle("on", b.dataset.mv === MV.tab);
   const body = $("mvBody");
+  body.dataset.tab = MV.tab;
   const keepScroll = body.scrollTop;
   body.textContent = "";
-  const mins = Math.max(1, Math.round((m.secs || 0) / 60));
-  body.append(mk("div", "mmeta", stamp(m.startedAt) + " · " + mins + "분 · " + m.lines.length + "줄" + (pack ? " · 폴더: " + pack.name : "") + (m.id ? "" : " · 저장하지 않는 회의")));
+  const sumBox = mk("div", "mv-sum");   // '대화록' 탭에서는 숨기는 부분
+  const realBody = body;
+  if (!m.id) body.append(mk("div", "mmeta", "저장하지 않는 회의 · " + m.lines.length + "줄"));
   // 리포트 이름과 태그 (태그는 AI 가 회의 정리 때 달고, 여기서 고친다)
   const tg = mk("div", "mv-tags");
   tg.append(mk("span", "mmeta", "리포트: " + reportName(m)));
@@ -5150,6 +5244,9 @@ function renderMeeting() {
     }
     body.append(ul);
   }
+  // 여기까지 그린 요약 부분을 한 묶음으로 ('대화록' 탭에서는 숨긴다)
+  while (realBody.firstChild) sumBox.append(realBody.firstChild);
+  realBody.append(sumBox);
   const det = mk("details", "mvlog");
   det.append(mk("summary", "", "전체 기록 (" + m.lines.length + "줄)"));
   const gq = (m.gaps || []).slice().sort((a, b) => a.afterLine - b.afterLine);
@@ -5169,13 +5266,58 @@ function renderMeeting() {
     det.append(row);
   });
   for (const g of gq) det.append(mk("div", "gapmark", gapText(g)));
-  det.open = !d;
+  det.open = !d || MV.tab === "log";
   body.append(det);
+  // 표현 배우기: 이 회의에서 배울 만한 영어 표현 (학습 탭과 같은 것)
+  const learn = mk("div", "mv-learn");
+  if (MV.tab === "learn") {
+    if (m.phrases && m.phrases.length) {
+      const go = mk("button", "btn primary", "이 표현들 바로 학습"); go.type = "button";
+      go.addEventListener("click", () => openStudy(m.phrases.map((x) => Object.assign({ from: m.title || "" }, x)), m.title || "이 회의 표현"));
+      learn.append(go);
+      const prog = loadJSON(STUDY_KEY);
+      for (const x of m.phrases) learn.append(lnItem(x, prog));
+    } else if (m.phrases) learn.append(mk("div", "mvnote", "이 회의에서는 고를 만한 표현이 없었습니다."));
+    else if (!helperSpec("digest") || !m.id) learn.append(mk("div", "mvnote", m.id ? "표현을 고르려면 설정에서 Claude 또는 Groq API 키를 넣어 주세요." : "저장한 회의에서만 표현을 고를 수 있습니다."));
+    else {
+      learn.append(mk("div", "mvnote", "이 회의에서 배울 만한 표현을 고르는 중…"));
+      if (!MV.phraseBusy) {
+        MV.phraseBusy = true;
+        extractPhrases(m).catch(() => { m.phrases = []; }).finally(() => { MV.phraseBusy = false; if (viewM === m) renderMeeting(); });
+      }
+    }
+  }
+  body.append(learn);
+  // 이 회의에 대해 물어본 것
+  const qa = MV.qa[m.id || "cur"] || [];
+  if (qa.length) {
+    const box = mk("div", "mv-qa"); box.append(mk("h4", "mvh", "물어본 것"));
+    for (const x of qa) box.append(mk("div", "qa-q", x.q), mk("div", "qa-a" + (x.state === "run" ? " run" : x.state === "err" ? " err" : ""), x.state === "run" ? "답을 찾는 중…" : x.a));
+    body.append(box);
+  }
   body.scrollTop = keepScroll;
   $("mvRedo").textContent = d ? "다시 정리" : "정리 만들기";
   $("mvRedo").disabled = busy || !helperSpec();
   $("mvRename").style.display = m.id ? "" : "none";
 }
+// 이 회의에 대해 묻기 (아래 입력칸)
+async function mvAsk(q) {
+  const m = viewM; q = (q || "").trim();
+  if (!m || !q) return;
+  const key = m.id || "cur", list = MV.qa[key] = MV.qa[key] || [];
+  const item = { q, a: "", state: "run" }; list.push(item);
+  renderMeeting(); $("mvBody").scrollTop = $("mvBody").scrollHeight;
+  const spec = helperSpec("assist");
+  if (!spec) { item.state = "err"; item.a = "질문에 답하려면 설정에서 Claude 또는 Groq API 키를 넣어 주세요."; renderMeeting(); return; }
+  const d = m.digest || {};
+  const user = "<ask>\n" + (d.summary && d.summary.length ? "<summary>\n" + d.summary.join("\n") + "\n</summary>\n" : "") +
+    "<transcript>\n" + transcriptForAI(m.lines || [], 16000) + "\n</transcript>\n<question>" + q + "</question>\n</ask>";
+  try { item.a = (await llmAsk(spec, LIVE_ASK_SYSTEM.replace("that is happening right now", "that has ended").replace("so far", ""), user, 700, { tries: 1, timeout: 45000 })).trim() || "답을 받지 못했어요."; item.state = "done"; }
+  catch (e) { item.state = "err"; item.a = "답하지 못했습니다: " + (e && e.status ? llmErrorText(e) || "AI 응답 오류" : e && e.timeout ? "시간이 너무 오래 걸렸어요." : "연결을 확인해 주세요."); }
+  if (viewM === m) { renderMeeting(); $("mvBody").scrollTop = $("mvBody").scrollHeight; }
+}
+$("mvAsk").addEventListener("submit", (ev) => { ev.preventDefault(); const t = $("mvAskIn").value; $("mvAskIn").value = ""; mvAsk(t); });
+for (const b of document.querySelectorAll("#meetDlg .mv-tabs button")) b.addEventListener("click", () => { MV.tab = b.dataset.mv; renderMeeting(); $("mvBody").scrollTop = 0; });
 
 // 폴더 한 건을 고쳐서 저장한다
 async function patchPack(packId, fn) {
@@ -5223,6 +5365,7 @@ async function addDigestToPack(boxes) {
 }
 
 $("mvClose").addEventListener("click", () => $("meetDlg").close());
+document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && $("meetDlg").open && $("meetDlg").classList.contains("page") && !document.querySelector("dialog[open]:modal")) $("meetDlg").close(); });
 $("mvRedo").addEventListener("click", () => buildViewDigest(true));
 $("mvDownload").addEventListener("click", () => {
   const m = viewM;
@@ -5717,6 +5860,7 @@ const TABS = { home: "홈", prep: "폴더", report: "리포트", learn: "학습"
 let curTab = "home", tabTick = 0;
 function showTab(name, fromNav) {
   if (!TABS[name]) name = "home";
+  if ($("meetDlg").open && $("meetDlg").classList.contains("page")) $("meetDlg").close();   // 리포트 페이지를 보던 중 다른 메뉴
   if (!fromNav && name !== curTab && !R.running) navPush({ tab: name });   // 뒤로가기로 돌아올 수 있게 기록
   if (!document.body.classList.contains("idle")) {
     if (R.running) { showBanner("회의 중에는 다른 화면으로 갈 수 없습니다. 정지한 뒤 눌러 주세요.", true); return; }

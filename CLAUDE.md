@@ -59,6 +59,11 @@
 - 위쪽 막대(시작 화면): ☰, ‹ › (history), '최신 버전으로 새로고침'(#barUpd, 새 버전 때만), '새 회의 시작'(#homeStart, 호박색). 홈의 처음 시작하기 카드·계정 칩은 넓은 화면에서 숨긴다(폰은 그대로).
 - 리포트 줄(`meetRow`, 폰·PC 공통): 기기 아이콘(m.dev = phone/pc, saveMeeting 이 기록) · 날짜_제목과 '11월 14일 · 오후 10:40' · 길이(초/분). 홈은 '최근 리포트'를 지난 7일 / 그 전으로 나눠 8개까지.
 
+## 회의 기록(리포트) 화면 (#meetDlg, 2026-11-16)
+- 머리: 큰 제목(#mvTitle) + ✎(#mvRename) + ✕(#mvClose), 칩 줄(#mvMeta: 폴더·날짜·시간·길이) + 다시 정리·내려받기, 탭(회의 요약·대화록·표현 배우기 = `MV.tab`, #mvBody[data-tab]). 요약 부분은 .mv-sum 으로 묶어 대화록 탭에서 숨기고, 전체 기록(details.mvlog)은 요약 탭 맨 아래에도 그대로 둔다. 표현 배우기는 `extractPhrases`(m.phrases) + 바로 학습.
+- 아래 입력칸(#mvAsk → `mvAsk`, AI 요청 `<ask>`): 이 회의에 대해 묻고 답은 '물어본 것'(MV.qa, 창에서만 기억).
+- 넓은 화면에서는 모달이 아닌 페이지(`.page`, `dlg.show()` + 직접 navPush, `placeMeetPage` 가 위쪽 막대 아래·왼쪽 메뉴 오른쪽에 맞춤). 왼쪽 메뉴로 다른 탭을 누르거나 Esc 면 닫힌다. 다른 모달 창(폴더 창 등)이 떠 있을 때와 폰은 예전처럼 모달. 테스트: `tests/report.e2e.js`.
+
 ## PC 웹 떠 있는 회의 창 (문서 PiP, 2026-11-16)
 - 시작 화면 위쪽 '떠 있는 창으로 보기'(#barPip)와 회의 중 '작은 창'(#pip)이 `openPip()` 을 연다 (데스크톱 exe 는 예전 #popup 창). 크롬·엣지의 documentPictureInPicture 로 Teams·Zoom 위에 늘 떠 있다.
 - 폰 대화 듣기 화면을 그대로 옮긴다: #lvTop·#assist·#lvBottom 과 자막 자리(#transcript·#lvEmpty·#lvSum·#lvQA·#jump → #pipStage). 열려 있는 동안 `el.stage` 는 #pipStage, `$()` 는 `window.__pipDoc` 에서도 찾는다. 본 창 body 클래스를 MutationObserver 로 떠 있는 창 body(`pipwin`)에 옮긴다(idle 빼고). 닫으면(pagehide) 제자리로 돌린다. 본 창에는 #pipNote.
