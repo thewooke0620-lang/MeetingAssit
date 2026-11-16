@@ -123,14 +123,29 @@ run('PHONE LIVE TESTS', async (b) => {
   await p.click('#imCopy'); await p.waitForTimeout(150);
   assert(/복사했어요/.test(await p.textContent('#imCopy')));
   assert(/\[고유 용어\]/.test(await p.evaluate(() => navigator.clipboard.readText())));
-  assert.strictEqual(await p.getAttribute('#imClaude', 'href'), 'https://claude.ai/new');
+  assert((await p.getAttribute('#imClaude', 'href')).startsWith('https://claude.ai/new?q='));
   const learn0 = (await reqs(p, 'learn')).length;   // 회의 후 자동으로 배우기로 이미 보냈을 수 있다
   await p.fill('#imText', '나는 HR 컨설턴트이고 SuccessFactors 를 구축한다. 번역할 때 position 은 포지션으로 그대로 둬 줘.');
   assert.strictEqual(await p.textContent('#imCount'), String((await p.inputValue('#imText')).length));
   await p.click('#imOk'); await p.waitForTimeout(500);
   assert(/반영했습니다/.test(await p.textContent('#imMsg')));
   assert.strictEqual((await reqs(p, 'learn')).length, learn0 + 1);
+  // 칸 제목이 있는 답(요청 글 형식)은 AI 없이 나눠 넣고, 질문과 답·용어는 라이브러리에 들어간다
+  const learn1 = (await reqs(p, 'learn')).length;
+  assert(/chatgpt\.com\/\?q=/.test(await p.getAttribute('#imGpt', 'href')) && /claude\.ai\/new\?q=/.test(await p.getAttribute('#imClaude', 'href')), '요청 글이 실린 링크');
+  await p.fill('#imText', '[지금 하는 일]\n현대차 SuccessFactors 구축 PM\n\n[고유 용어]\nEmployee Central = 직원 중앙 관리\nPMGM\n\n[자주 받는 질문과 내 답변]\nQ: When is the go-live date?\nA: 내년 3월입니다.\n- Q: Who owns data migration?\n  A: 고객사 IT팀이 맡습니다.');
+  await p.click('#imOk'); await p.waitForTimeout(400);
+  const im = await p.textContent('#imMsg');
+  console.log('4 칸 나눠 반영:', im);
+  assert(/라이브러리에 용어 2개, 질문과 답 2개를 더했습니다/.test(im), im);
+  assert.strictEqual((await reqs(p, 'learn')).length, learn1, 'AI 를 부르지 않음');
+  assert(/go-live date[\s\S]*내년 3월/.test(await p.evaluate(() => profile.qa)));
   await p.click('#imBack'); await p.waitForTimeout(150);
+  await p.evaluate(() => showTab('words')); await p.waitForTimeout(300);
+  const lib = await p.textContent('#wordsBody');
+  assert(/내 고유 용어/.test(lib) && /PMGM/.test(lib) && /나에 대해/.test(lib) && /Who owns data migration/.test(lib), lib.slice(0, 300));
+  // 답변 제안에도 공통 질문·답을 넘긴다
+  assert(/go-live date/.test(await p.evaluate(() => assistContext(0))));
   console.log('4 OK 학습 내용 가져오기');
   await p.context().close();
 
@@ -144,7 +159,8 @@ run('PHONE LIVE TESTS', async (b) => {
       requestOverlay: () => NATIVELOG.push('reqOverlay'), setFloat: (on) => NATIVELOG.push('float:' + on),
       floatLines: (j) => { window.FLOAT = JSON.parse(j); },
       startCapture: () => { NATIVELOG.push('capture'); setTimeout(() => window.__phoneState('ok'), 50); },
-      stopCapture: () => NATIVELOG.push('stopCapture')
+      stopCapture: () => NATIVELOG.push('stopCapture'),
+      shareTo: (pkg, text) => { NATIVELOG.push('share:' + pkg + ':' + (/\[고유 용어\]/.test(text) ? 'prompt' : '?')); return true; }
     };
   });
   await p.reload(); await p.waitForTimeout(500);
@@ -155,6 +171,13 @@ run('PHONE LIVE TESTS', async (b) => {
   assert(/앱 밖에서 자막 창 띄우기/.test(acct) && /들을 소리/.test(acct));
   await p.click('#acctSheet .grab', { force: true }).catch(() => {});
   await p.evaluate(() => document.getElementById('acctSheet').close()); await p.waitForTimeout(150);
+  // 학습 내용 가져오기: 깔린 Claude 앱에 요청 글을 넘겨 연다
+  await p.evaluate(() => openImport()); await p.waitForTimeout(200);
+  await p.click('#imClaude'); await p.waitForTimeout(200);
+  assert(await p.evaluate(() => NATIVELOG.includes('share:com.anthropic.claude:prompt')));
+  assert(/앱을 열었어요/.test(await p.textContent('#imMsg')));
+  await p.click('#imBack'); await p.waitForTimeout(150);
+  await p.evaluate(() => { NATIVELOG.length = 0; });
   await p.click('#fab'); await p.waitForTimeout(400);
   assert.strictEqual(await p.evaluate(() => R.running && A.phone), true);
   assert.deepStrictEqual(await p.evaluate(() => NATIVELOG), ['capture', 'float:true', 'keep:true']);

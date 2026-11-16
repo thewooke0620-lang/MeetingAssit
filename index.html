@@ -680,7 +680,7 @@
   .im-card > p { margin: 8px 0 12px; font-size: 13.5px; color: var(--muted); line-height: 1.6; }
   .im-card details { margin: 0 0 10px; font-size: 13px; color: var(--muted); }
   .im-card details summary { cursor: pointer; }
-  .im-wide { display: flex; width: 100%; justify-content: center; align-items: center; gap: 8px; border-radius: 999px !important; padding: 13px !important; font-size: 15px !important; font-weight: 700; background: var(--panel) !important; text-decoration: none; }
+  #importDlg .im-wide, #importDlg a.im-wide { display: flex; width: 100%; justify-content: center; align-items: center; text-align: center; gap: 8px; border-radius: 999px !important; padding: 13px !important; font-size: 15px !important; font-weight: 700; background: var(--panel) !important; text-decoration: none; }
   .im-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
   #imText { width: 100%; min-height: 150px; resize: vertical; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px; color: var(--text); font: inherit; font-size: 14.5px; line-height: 1.6; }
   .im-count { text-align: right; font-size: 12.5px; color: var(--muted); margin: 6px 2px 12px; font-variant-numeric: tabular-nums; }
@@ -900,12 +900,14 @@
       <button id="imCopy" class="btn im-wide" type="button">⧉ 요청 글 복사</button>
     </section>
     <section class="im-card">
-      <div class="im-h"><span class="im-n">2</span><b>ChatGPT나 Claude를 열어 붙여 넣고 보내기</b></div>
-      <div class="im-two"><a id="imGpt" class="btn im-wide" href="https://chatgpt.com/" rel="noopener">ChatGPT 열기</a><a id="imClaude" class="btn im-wide" href="https://claude.ai/new" rel="noopener">Claude 열기</a></div>
+      <div class="im-h"><span class="im-n">2</span><b>ChatGPT나 Claude에 바로 물어보기</b></div>
+      <p>누르면 폰에 깔린 ChatGPT·Claude 앱이 요청 글이 들어간 채로 열려요. 보내기만 누르고, 받은 답을 길게 눌러 복사한 뒤 돌아오세요. (앱이 없으면 웹으로 열려요)</p>
+      <div class="im-two"><a id="imGpt" class="btn im-wide" href="https://chatgpt.com/" rel="noopener">ChatGPT에 물어보기</a><a id="imClaude" class="btn im-wide" href="https://claude.ai/new" rel="noopener">Claude에 물어보기</a></div>
     </section>
     <section class="im-card">
       <div class="im-h"><span class="im-n">3</span><b>받은 답 붙여 넣기, 또는 직접 적기</b></div>
-      <p>AI가 준 답을 그대로 붙여 넣어도 되고, 내 말투·업무 용어·번역에서 고쳤으면 하는 점처럼 기억했으면 하는 내용을 자유롭게 적어도 돼요.</p>
+      <p>AI가 준 답을 그대로 붙여 넣어도 되고, 내 말투·업무 용어·번역에서 고쳤으면 하는 점처럼 기억했으면 하는 내용을 자유롭게 적어도 돼요. 반영하면 내 정보와 함께 라이브러리(용어집·자주 받는 질문과 내 답변)가 채워져요.</p>
+      <button id="imPaste" class="btn im-wide" type="button" style="margin-bottom:10px">📋 복사한 답 붙여 넣기</button>
       <textarea id="imText" maxlength="10000" placeholder="받은 답을 붙여 넣거나, 기억했으면 하는 내용을 적어 주세요."></textarea>
       <div class="im-count"><span id="imCount">0</span>/10,000</div>
       <button id="imOk" class="btn im-wide" type="button" disabled>학습에 반영하기</button>
@@ -1821,8 +1823,8 @@ function mergeTermsText(a, b) {
 // 다른 AI가 정리해 준 글을 칸별로 나눈다: [기본 정보] [지금 하는 일] [관점·말투] [고유 용어]
 // 칸 제목이 하나도 없으면 null (그때는 AI로 정리하거나 '하는 일'에 넣는다)
 function parseImport(text) {
-  const keys = [["basic", /기본\s*정보|basic/i], ["work", /하는\s*일|업무|work/i], ["style", /말투|관점|style|tone/i], ["terms", /용어|terms|glossary/i]];
-  const out = { basic: "", work: "", style: "", terms: "" };
+  const keys = [["qa", /질문|Q\s*&\s*A|questions/i], ["basic", /기본\s*정보|basic/i], ["work", /하는\s*일|업무|work/i], ["style", /말투|관점|style|tone/i], ["terms", /용어|terms|glossary/i]];
+  const out = { basic: "", work: "", style: "", terms: "", qa: "" };
   let cur = null, found = false;
   for (const raw of String(text || "").split("\n")) {
     const line = raw.trim();
@@ -1834,7 +1836,7 @@ function parseImport(text) {
   if (!found) return null;
   // 용어는 "영어 = 한국어" 줄로 맞춘다 ("영어 - 한국어", "영어: 한국어" 도 받는다)
   out.terms = out.terms.split("\n").map((l) => l.replace(/\s+[-–:→]\s+/, " = ").trim()).filter(Boolean).join("\n");
-  for (const k of Object.keys(out)) out[k] = out[k].slice(0, k === "terms" ? 6000 : 1500);
+  for (const k of Object.keys(out)) out[k] = out[k].slice(0, k === "terms" || k === "qa" ? 6000 : 1500);
   return out;
 }
 
@@ -2049,7 +2051,7 @@ function studyOrder(items, prog, now) {
 // ---------------------------------------------------------------------------
 const WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 // 앱 버전: 고칠 때마다 올린다. 설정 창 아래에 보이고, 새 버전이 올라왔는지 확인할 때 쓴다
-const APP_VERSION = "2026.11.16-8";
+const APP_VERSION = "2026.11.16-9";
 const STORE_KEY = "meeting-interpreter.settings.v1";
 const DEFAULTS = {
   apiKey: "", hint: "en", target: "ko", terms: "", fontSize: "18",
@@ -2219,7 +2221,8 @@ const Native = {
   canOverlay() { try { return this.has("canOverlay") && !!window.MeetingNative.canOverlay(); } catch (e) { return false; } },
   requestOverlay() { try { if (this.has("requestOverlay")) window.MeetingNative.requestOverlay(); } catch (e) {} },
   setFloat(on) { try { if (this.has("setFloat")) window.MeetingNative.setFloat(!!on); } catch (e) {} },
-  floatLines(o) { try { if (this.has("floatLines")) window.MeetingNative.floatLines(JSON.stringify(o)); } catch (e) {} }
+  floatLines(o) { try { if (this.has("floatLines")) window.MeetingNative.floatLines(JSON.stringify(o)); } catch (e) {} },
+  shareTo(pkg, text) { try { return this.has("shareTo") && !!window.MeetingNative.shareTo(pkg, text); } catch (e) { return false; } }
 };
 // 자막 팝업 창(데스크톱): 같은 앱을 #popup 으로 연 것. 본 창이 보내 주는 자막만 보여 준다
 const POPUP = DESKTOP && location.hash === "#popup";
@@ -4666,10 +4669,11 @@ async function autoDigest(id, opts) {
 // 번역(용어)과 답변 제안(하는 일·말투)에 쓰인다
 // ---------------------------------------------------------------------------
 const LEARN_SYSTEM = "You keep a short profile of the user, a Korean professional who attends English meetings, to personalize live translation and reply suggestions.\n" +
-  "Read the current profile and the new material. Return JSON only, no other text: {\"work\": string, \"style\": string, \"terms\": [{\"en\": string, \"ko\": string}]}\n" +
+  "Read the current profile and the new material. Return JSON only, no other text: {\"work\": string, \"style\": string, \"terms\": [{\"en\": string, \"ko\": string}], \"qa\": [{\"q\": string, \"a\": string}]}\n" +
   "work: in Korean, at most 3 sentences: the user's role and what they are working on now. Merge with the current text; keep what is still true, update what changed.\n" +
   "style: in Korean, at most 3 sentences: how the user speaks in English meetings (tone, typical phrases). Base it only on lines the user said; if there are none, return the current text unchanged.\n" +
   "terms: up to 15 domain terms from the material that matter for the user's work (product names, acronyms, company or industry terms) and are not in the current list. ko = the Korean wording to use, or \"\" to keep it in English. Skip everyday words.\n" +
+  "qa: up to 8 objects {\"q\", \"a\"}: questions the user is likely to be asked in English meetings and the user's own answer, only when the material states or clearly implies the answer (q in English, a in Korean or English as given). Empty array if none.\n" +
   "Never invent facts. If the material says nothing new, return the current work and style unchanged and an empty terms list.";
 function parseLearn(raw) {
   const a = (raw || "").indexOf("{"), b = (raw || "").lastIndexOf("}");
@@ -4678,7 +4682,33 @@ function parseLearn(raw) {
   const S = (v, n) => (typeof v === "string" ? v.trim().slice(0, n) : "");
   const clean = (x) => x.replace(/[,=\n]/g, " ").replace(/\s+/g, " ").trim();
   return { work: S(j.work, 1500), style: S(j.style, 800),
-    terms: (Array.isArray(j.terms) ? j.terms : []).map((t) => ({ en: clean(S(t && t.en, 80)), ko: clean(S(t && t.ko, 80)) })).filter((t) => t.en).slice(0, 15) };
+    terms: (Array.isArray(j.terms) ? j.terms : []).map((t) => ({ en: clean(S(t && t.en, 80)), ko: clean(S(t && t.ko, 80)) })).filter((t) => t.en).slice(0, 15),
+    qa: (Array.isArray(j.qa) ? j.qa : []).map((x) => ({ q: S(x && x.q, 300).replace(/\n/g, " "), a: S(x && x.a, 600).replace(/\n/g, " ") })).filter((x) => x.q && x.a).slice(0, 8) };
+}
+// '자주 받는 질문과 내 답변' 글(Q: … / A: …)을 질문·답 쌍으로
+function parseQa(text) {
+  const out = []; let cur = null;
+  for (const raw of String(text || "").split("\n")) {
+    const line = raw.trim().replace(/^[-*•]\s*/, "").replace(/^\d+[.)]\s*/, "");
+    let m;
+    if ((m = line.match(/^(?:Q|질문)\s*\d*\s*[:：.)]\s*(.+)$/i))) { cur = { q: m[1].trim(), a: "" }; out.push(cur); }
+    else if ((m = line.match(/^(?:A|답|답변)\s*\d*\s*[:：.)]\s*(.+)$/i)) && cur) cur.a += (cur.a ? " " : "") + m[1].trim();
+    else if (line && cur && cur.a) cur.a += " " + line;
+  }
+  return out.filter((x) => x.q && x.a);
+}
+function qaText(list) { return list.map((x) => "Q: " + x.q + "\nA: " + x.a).join("\n\n"); }
+// 새 질문·답을 프로필의 '자주 받는 질문'(모든 폴더 공통)에 더한다. 같은 질문은 새 답으로 바꾼다. 돌려주는 값: 새로 더한 수
+function addProfileQa(list) {
+  if (!list || !list.length) return 0;
+  const cur = parseQa(profile.qa || ""), key = (q) => q.toLowerCase().replace(/[^a-z0-9가-힣]+/g, " ").trim();
+  let added = 0;
+  for (const x of list) {
+    const i = cur.findIndex((y) => key(y.q) === key(x.q));
+    if (i >= 0) cur[i] = x; else { cur.push(x); added++; }
+  }
+  saveProfile({ qa: qaText(cur.slice(-60)).slice(0, 12000) });
+  return added;
 }
 // 배운 것을 프로필에 넣는다. 돌려주는 값: 새로 더한 용어 수
 function applyLearn(d) {
@@ -4689,6 +4719,7 @@ function applyLearn(d) {
   if (d.work) ch.me = d.work;
   if (d.style) ch.style = d.style;
   saveProfile(ch);
+  d.qaAdded = addProfileQa(d.qa || []);
   return parseTerms(terms).length - before;
 }
 function currentProfileText() {
@@ -4729,19 +4760,21 @@ async function importKnowledge(text) {
     if (sec.basic && !profile.me && !sec.work) ch.me = sec.basic;
     if (sec.terms) ch.terms = mergeTermsText(profile.terms, sec.terms).map((t) => t.src + (t.dst ? " = " + t.dst : "")).join("\n");
     saveProfile(ch);
-    return "반영했습니다." + (sec.terms ? " 용어 " + parseTerms(sec.terms).length + "개를 살펴 더했습니다." : "");
+    const nq = addProfileQa(parseQa(sec.qa));
+    return "반영했습니다." + (sec.terms || nq ? " 라이브러리에" + (sec.terms ? " 용어 " + parseTerms(sec.terms).length + "개" : "") + (nq ? (sec.terms ? "," : "") + " 질문과 답 " + nq + "개" : "") + "를 더했습니다." : "");
   }
   const spec = helperSpec("digest");
   if (!spec) { saveProfile({ me: ((settings.me ? settings.me + "\n" : "") + text).slice(0, 1500) }); return "AI 키가 없어 '지금 하는 일'에 그대로 넣었습니다."; }
   const d = parseLearn(await llmAsk(spec, LEARN_SYSTEM, "<learn>\n" + currentProfileText() + "\n<material source=\"another AI assistant's notes about the user\">\n" + text + "\n</material>\n</learn>", 1200));
   if (!d) throw new Error("bad format");
   const n = applyLearn(d);
-  return "반영했습니다." + (n ? " 새 용어 " + n + "개를 더했습니다." : "");
+  return "반영했습니다." + (n || d.qaAdded ? " 라이브러리에" + (n ? " 새 용어 " + n + "개" : "") + (d.qaAdded ? (n ? "," : "") + " 질문과 답 " + d.qaAdded + "개" : "") + "를 더했습니다." : "");
 }
 const IMPORT_PROMPT = "지금까지 나와 나눈 대화를 바탕으로, 나에 대해 확실히 아는 것만 아래 형식으로 정리해 줘. 추측은 빼 줘.\n\n" +
   "[기본 정보]\n이름, 영어 이름, 회사·직무\n\n[지금 하는 일]\n맡은 일과 요즘 진행 중인 프로젝트 (3문장 이내)\n\n" +
   "[관점·말투]\n내가 영어로 말하거나 글을 쓸 때의 말투와 자주 쓰는 표현 (3문장 이내)\n\n" +
-  "[고유 용어]\n내 일에서 자주 쓰는 제품명·약어·업계 용어를 한 줄에 하나씩 '영어 = 한국어' 형식으로 (한국어로 옮기지 않는 말은 영어만)";
+  "[고유 용어]\n내 일에서 자주 쓰는 제품명·약어·업계 용어를 한 줄에 하나씩 '영어 = 한국어' 형식으로 (한국어로 옮기지 않는 말은 영어만)\n\n" +
+  "[자주 받는 질문과 내 답변]\n영어 회의에서 내가 받을 만한 질문과 그에 대한 내 답을 8개 이내로, 아래처럼 두 줄씩\nQ: (영어 질문)\nA: (내 답, 한국어나 영어)";
 // 회의 정리가 끝난 뒤 저절로 배운다 (설정: 회의 후 자동으로 배우기)
 function autoLearnAfter(m) {
   if (settings.autoLearn === false || !m || (profile.learned || []).includes(m.id) || !helperSpec("digest")) return;
@@ -5140,7 +5173,7 @@ function assistContext(end) {
   if (pack || brief) parts.push("<background>\n" + (pack ? "Meeting series: " + pack.name + "\n" : "") + brief + "\n</background>");
   const facts = cut(pack && pack.facts, 4000);
   if (facts) parts.push("<facts>\n" + facts + "\n</facts>");
-  const qa = cut(pack && pack.qa, 6000);
+  const qa = [cut(pack && pack.qa, 6000), cut(profile.qa, 4000)].filter(Boolean).join("\n\n");
   if (qa) parts.push("<saved_answers>\n" + qa + "\n</saved_answers>");
   const lines = [];
   for (let i = Math.max(0, end - 10); i < end; i++) {
@@ -5708,6 +5741,12 @@ function renderWords(all) {
   const sec = (title) => { const s = mk("section", "wsec"); s.append(mk("h2", "sec-h", title)); box.append(s); return s; };
   const t = sec("용어집");
   let any = false;
+  const mine = parseTerms(profile.terms || "");
+  if (mine.length) {
+    any = true;
+    t.append(mk("div", "month-h", "내 고유 용어 (모든 폴더)"));
+    for (const x of mine) { const r = mk("div", "wterm"); r.append(mk("span", "we", x.src), mk("span", "", x.dst || "(영어 그대로)")); t.append(r); }
+  }
   for (const p of packs) {
     const terms = parseTerms(p.terms || "");
     if (!terms.length) continue;
@@ -5718,6 +5757,7 @@ function renderWords(all) {
   if (!any) t.append(mk("p", "wempty", "아직 없습니다. '준비'에서 폴더의 용어집에 적거나, 회의 중 자막을 ✎로 고치면 쌓입니다."));
   const q = sec("자주 받는 질문과 내 답변");
   any = false;
+  if ((profile.qa || "").trim()) { any = true; q.append(mk("div", "month-h", "나에 대해 (모든 폴더)"), mk("div", "wqa", profile.qa.trim())); }
   for (const p of packs) {
     if (!(p.qa || "").trim()) continue;
     any = true;
@@ -5967,6 +6007,7 @@ function knEditor(value, ph, mono, save) {
 // 라이브러리에 모인 것 세기: 용어집(폴더들), 자주 받는 질문(폴더들의 Q:), 중요 표시한 발언
 function libraryCounts(all) {
   let terms = 0, qa = 0, stars = 0;
+  terms += parseTerms(profile.terms || "").length; qa += parseQa(profile.qa || "").length;
   for (const p of packs) { terms += parseTerms(p.terms || "").length; qa += ((p.qa || "").match(/^\s*Q\s*[:：]/gim) || []).length || ((p.qa || "").trim() ? 1 : 0); }
   for (const m of all || []) for (const l of m.lines || []) if (l.star) stars++;
   return { terms, qa, stars };
@@ -6936,10 +6977,28 @@ function openImport() {
   $("imText").value = ""; $("imCount").textContent = "0"; $("imOk").disabled = true; $("imOk").textContent = "학습에 반영하기";
   $("imMsg").textContent = ""; $("imMsg").className = "kn-msg"; $("imCopy").textContent = "⧉ 요청 글 복사";
   // 앱에서는 링크를 누르면 휴대폰의 ChatGPT·Claude 앱(또는 브라우저)이 열린다. 웹에서는 새 탭으로
+  // 링크에 요청 글을 실어 둔다 (앱이 없거나 웹일 때: 그 AI 의 웹이 요청 글이 들어간 채로 열린다)
+  const q = encodeURIComponent(IMPORT_PROMPT);
+  $("imGpt").href = "https://chatgpt.com/?q=" + q; $("imClaude").href = "https://claude.ai/new?q=" + q;
   for (const id of ["imGpt", "imClaude"]) { if (NATIVE) $(id).removeAttribute("target"); else $(id).target = "_blank"; }
   if (!$("importDlg").open) $("importDlg").showModal();
 }
 $("imBack").addEventListener("click", () => $("importDlg").close());
+// ChatGPT·Claude 에 물어보기: 요청 글을 복사해 두고, 안드로이드 앱이면 깔린 앱에 그 글을 넘겨 연다 (공유하기와 같은 방식)
+const AI_APPS = { imGpt: "com.openai.chatgpt", imClaude: "com.anthropic.claude" };
+for (const id of Object.keys(AI_APPS)) {
+  $(id).addEventListener("click", (ev) => {
+    try { navigator.clipboard.writeText(IMPORT_PROMPT).catch(() => {}); } catch (e) {}
+    if (Native.shareTo(AI_APPS[id], IMPORT_PROMPT)) { ev.preventDefault(); $("imMsg").className = "kn-msg"; $("imMsg").textContent = "앱을 열었어요. 보내기를 누르고, 받은 답을 복사해 돌아와 '복사한 답 붙여 넣기'를 눌러 주세요."; }
+  });
+}
+$("imPaste").addEventListener("click", async () => {
+  try {
+    const t = (await navigator.clipboard.readText()) || "";
+    if (!t.trim() || t.trim() === IMPORT_PROMPT.trim()) { $("imMsg").className = "kn-msg bad"; $("imMsg").textContent = "복사한 답이 없어요. AI 의 답을 길게 눌러 '복사'한 뒤 다시 눌러 주세요."; return; }
+    $("imText").value = t.slice(0, 10000); $("imText").dispatchEvent(new Event("input")); $("imMsg").textContent = "";
+  } catch (e) { $("imText").focus(); $("imMsg").className = "kn-msg"; $("imMsg").textContent = "아래 칸을 길게 눌러 '붙여넣기'를 해 주세요."; }
+});
 $("imCopy").addEventListener("click", async () => {
   try { await navigator.clipboard.writeText(IMPORT_PROMPT); $("imCopy").textContent = "✓ 복사했어요"; }
   catch (e) { $("imCopy").textContent = "복사하지 못했어요. 위 '미리 보기'를 열어 길게 눌러 복사해 주세요."; $("imCopy").closest(".im-card").querySelector("details").open = true; }

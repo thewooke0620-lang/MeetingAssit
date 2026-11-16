@@ -191,5 +191,19 @@ public class MainActivity extends BridgeActivity {
 
     @JavascriptInterface
     public void floatLines(String json) { FloatWindow.setData(json); }
+
+    // ChatGPT·Claude 앱에 글을 넘겨 연다 (공유하기). 그 앱이 없으면 false
+    @JavascriptInterface
+    public boolean shareTo(String pkg, String text) {
+      try {
+        Intent i = new Intent(Intent.ACTION_SEND);
+        i.setType("text/plain");
+        i.putExtra(Intent.EXTRA_TEXT, text);
+        i.setPackage(pkg);
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(i);
+        return true;
+      } catch (Throwable e) { return false; }
+    }
   }
 }

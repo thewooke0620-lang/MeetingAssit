@@ -61,7 +61,7 @@
 - 아래 탭 막대: 홈·폴더·[회의 시작]·리포트·학습. 예전 '표현' 탭(words)은 화면 이름이 '라이브러리'(용어집·자주 받는 질문·중요 표시·내 지식)이고, 학습 탭 아래 링크·계정 시트의 라이브러리 상자(기기끼리 맞추기 위)·왼쪽 메뉴에서 연다.
 - 계정 시트 맨 아래는 '설정'·'로그아웃' 상자 두 개뿐이다 (폴더 준비·백업·처음 쓰는 방법 목록은 뺐다. 백업은 설정 안에 있다).
 - 학습 탭(`renderLearn`): 최근 회의 표현은 회의마다 AI 가 한 번 골라 `m.phrases` 에 저장(`<phrases>`), 자주 쓰는 표현은 `frequentPhrases`(CORE, 3~6단어 묶음 세기) + 뜻은 AI 에 한 번 물어 localStorage `meetingassit.phraseKo.v1`(`<meanings>`). 바로 학습(#studyDlg)은 `studyGrade`·`studyOrder`(CORE), 진도는 localStorage `meetingassit.study.v1`(서버에 안 올림).
-- 학습 내용 가져오기(#importDlg, `openImport`): 계정 시트의 개인화 칸과 내 지식의 '다른 AI에서 가져오기'에서 연다. 반영은 기존 `importKnowledge`.
+- 학습 내용 가져오기(#importDlg, `openImport`): 계정 시트의 개인화 칸과 내 지식의 '다른 AI에서 가져오기'에서 연다. 'ChatGPT·Claude에 물어보기'는 안드로이드 앱이면 `MeetingNative.shareTo(패키지, 요청 글)`(공유하기 인텐트)로 깔린 앱을 열고, 아니면 `?q=` 링크로 웹을 연다. 반영은 `importKnowledge`: 칸 제목이 있으면 AI 없이 나누고(`parseImport`), 없으면 AI(`LEARN_SYSTEM`). '자주 받는 질문과 내 답변'(Q:/A:)은 `profile.qa`(모든 폴더 공통, `addProfileQa`)에 쌓여 라이브러리와 답변 제안(`<saved_answers>`)에 쓰인다. 내 고유 용어도 라이브러리 용어집 맨 위에 보인다.
 - 테스트 가짜 AI 는 `<livesum>`·`<ask>`·`<phrases>`·`<meanings>` 를 따로 알아본다 (`tests/helper.js`). 새 기능 테스트: `tests/phonelive.e2e.js`.
 
 ## 안드로이드: 폰 소리 듣기(실험)·떠 있는 자막 창
