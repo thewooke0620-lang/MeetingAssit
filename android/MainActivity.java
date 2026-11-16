@@ -9,10 +9,15 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Base64;
+import android.view.View;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import androidx.activity.OnBackPressedCallback;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 import com.getcapacitor.BridgeActivity;
 import org.json.JSONObject;
 
@@ -32,6 +37,17 @@ public class MainActivity extends BridgeActivity {
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    // 화면을 위쪽 상태 표시줄과 아래쪽 단추 줄 사이에만 그린다 (안드로이드 15 이상은 기본으로 그 밑까지 그려 겹친다)
+    // 키보드가 올라오면 그만큼 아래를 비워 입력칸이 가리지 않게 한다
+    getWindow().getDecorView().setBackgroundColor(0xFF10161F);
+    View content = findViewById(android.R.id.content);
+    ViewCompat.setOnApplyWindowInsetsListener(content, (v, insets) -> {
+      Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+      Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
+      v.setPadding(bars.left, bars.top, bars.right, Math.max(bars.bottom, ime.bottom));
+      return WindowInsetsCompat.CONSUMED;
+    });
+    try { WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView()).setAppearanceLightStatusBars(false); } catch (Throwable e) {}
     WebView web = getBridge().getWebView();
     web.addJavascriptInterface(new NativeBridge(), "MeetingNative");
     getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {

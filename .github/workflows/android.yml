@@ -64,6 +64,8 @@ jobs:
       - name: APK 빌드 (디버그 서명)
         working-directory: android/android
         run: |
+          # 매번 같은 서명 키를 쓴다 (키가 바뀌면 폰에서 앱을 지우고 다시 깔아야 해서 저장된 내용이 사라진다)
+          mkdir -p ~/.android && cp ../debug.keystore ~/.android/debug.keystore
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
           mkdir -p ../../out
