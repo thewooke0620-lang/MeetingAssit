@@ -163,7 +163,17 @@ run('PHONE LIVE TESTS', async (b) => {
       shareTo: (pkg, text) => { NATIVELOG.push('share:' + pkg + ':' + (/\[고유 용어\]/.test(text) ? 'prompt' : '?')); return true; }
     };
   });
-  await p.reload(); await p.waitForTimeout(500);
+  await p.context().route('https://x.test/shell.json*', (r) => r.fulfill({ body: JSON.stringify({ android: 2, androidUrl: 'https://example.test/app.apk', androidNote: '시험용' }), contentType: 'application/json' }));
+  await p.reload(); await p.waitForTimeout(3000);
+  // 앱 껍데기가 예전 것(shellVersion 없음 = 1)이면 '새 앱 받기' 띠
+  assert(/새 앱 버전이 나왔어요 \(시험용\)/.test(await p.textContent('#banner')));
+  assert.strictEqual(await p.getAttribute('#banner a', 'href'), 'https://example.test/app.apk');
+  await p.click('#banner button:has-text("나중에")'); await p.waitForTimeout(100);
+  assert.strictEqual(await p.isVisible('#banner'), false);
+  await p.evaluate(() => checkShellUpdate()); await p.waitForTimeout(300);
+  assert.strictEqual(await p.isVisible('#banner'), false, '나중에를 누르면 같은 버전은 다시 안 띄움');
+  await p.evaluate(() => { localStorage.removeItem('meetingassit.shellLater'); window.MeetingNative.shellVersion = () => 2; checkShellUpdate(); }); await p.waitForTimeout(300);
+  assert.strictEqual(await p.isVisible('#banner'), false, '최신 앱이면 안 띄움');
   assert.deepStrictEqual(await p.$$eval('#source option', (o) => o.map((x) => x.value)), ['mic', 'phone']);
   await p.evaluate(() => { el.source.value = 'phone'; el.source.dispatchEvent(new Event('change')); });   // 첫 열기(가짜 앱 연결 전)에 마이크로 돌아갔으므로 다시 고른다 (폰에서는 계정 시트에서 고른다)
   await p.click('#acctChip'); await p.waitForTimeout(300);

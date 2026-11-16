@@ -30,6 +30,9 @@ import org.json.JSONObject;
 // 뒤로 단추: 웹 화면의 기록(열린 창 → 이전 탭)을 하나씩 되돌리고, 더 돌아갈 곳이 없으면 앱을 끄지 않고 뒤로 보낸다
 public class MainActivity extends BridgeActivity {
   private static final int REQ_CAPTURE = 41, REQ_MIC_FOR_CAPTURE = 42;
+  // 앱 껍데기 버전: 이 파일들(자바·워크플로)을 바꿀 때마다 1씩 올리고, 저장소의 shell.json "android" 도 같이 올린다
+  // 웹 화면이 둘을 비교해 '새 앱 받기' 알림을 띄운다
+  private static final int SHELL_VERSION = 2;
   private volatile boolean keeping = false;
   private volatile boolean floatOn = true;
 
@@ -164,6 +167,9 @@ public class MainActivity extends BridgeActivity {
         }
       });
     }
+
+    @JavascriptInterface
+    public int shellVersion() { return SHELL_VERSION; }
 
     @JavascriptInterface
     public boolean canCapture() { return Build.VERSION.SDK_INT >= 29; }

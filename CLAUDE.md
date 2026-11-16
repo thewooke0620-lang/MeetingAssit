@@ -69,6 +69,7 @@
 - 안드로이드는 USAGE_MEDIA·GAME·UNKNOWN 소리만 캡처를 허용한다. **통화 소리(Teams·Zoom 통화 등)는 막힐 가능성이 높다** — 12초 동안 소리가 거의 없으면 마이크로 바꾸라는 안내를 띄운다. 실제 기기에서만 확인할 수 있다.
 - 떠 있는 자막 창 `FloatWindow`: 회의 기록 중(keepRecording) 앱이 onStop 되면 뜨고 onStart 에 닫힌다. 오버레이 Dialog(TYPE_APPLICATION_OVERLAY) + 안드로이드 12 이상 배경 흐림, 위쪽 막대 끌어 옮기기, 모서리로 크기 조절, '—' 로 버블. 자막은 웹의 `sendFloat()` 가 `MeetingNative.floatLines(JSON)` 으로 보낸다. '정지'는 `window.__nativeCmd("stop")`. 설정 `settings.floatSub`(계정 시트에서 켜면 '다른 앱 위에 표시' 허용 화면을 연다).
 - 화면 겹침: MainActivity 가 시스템 바·키보드 높이만큼 웹 화면 둘레를 비운다(Capacitor SystemBars 는 capacitor.config 에서 끔). 예전 APK 를 위해 웹은 `--sat`·`--sab`(상태 표시줄·아래 단추 줄) 변수를 쓰고, 앱이 화면 끝까지 그리면 30px·48px 로 채운다.
+- 새 앱 알림: 자바·워크플로를 바꿔 APK 가 달라지면 `MainActivity.SHELL_VERSION` 과 저장소 맨 위 `shell.json` 의 "android"(와 androidNote)를 같이 1 올린다. 웹의 `checkShellUpdate()` 가 비교해 '새 앱 받기' 띠를 띄운다. 웹(index.html)만 바꿀 때는 올리지 않는다 (앱이 웹을 불러오므로 저절로 반영).
 - 서명: `android/debug.keystore`(비밀번호 android)를 워크플로가 ~/.android 에 넣어 매번 같은 키로 서명한다. 키가 바뀌면 폰에서 앱을 지우고 다시 깔아야 해 저장된 내용이 사라지므로 이 파일을 바꾸지 않는다.
 - 매니페스트 권한(SYSTEM_ALERT_WINDOW, FOREGROUND_SERVICE_MEDIA_PROJECTION)과 CaptureService 는 워크플로가 sed 로 넣는다. 이 환경에서는 안드로이드를 빌드할 수 없으므로 Java 를 고치면 main 에 올려 Actions(android-apk) 성공을 확인한다.
 
