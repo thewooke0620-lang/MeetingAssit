@@ -217,4 +217,18 @@ run('PHONE LIVE TESTS', async (b) => {
   assert(/허용하지 않아/.test(await p.textContent('#banner')));
   console.log('5 OK 폰 소리·떠 있는 자막 창');
   await p.context().close();
+
+  // 자동 저장을 끈 회의는 닫기를 눌러도 대화가 남고 명시적으로 버려야 닫힌다.
+  const unsaved = await openApp(b, { ...BASE, autoSave: false }, { context: { viewport: { width: 390, height: 844 } } });
+  await unsaved.evaluate(async () => {
+    core.blocks = [{ en: "Unsaved line", ko: "저장 전 발언" }];
+    await clearRecord(true);
+  });
+  assert(await unsaved.isVisible('#discardDlg'));
+  await unsaved.click('#discardDlg button[value="cancel"]');
+  assert.strictEqual(await unsaved.evaluate(() => core.blocks.length), 1);
+  await unsaved.evaluate(() => clearRecord(true));
+  await unsaved.click('#discardDlg button[value="discard"]');
+  await unsaved.waitForFunction(() => core.blocks.length === 0);
+  await unsaved.context().close();
 });

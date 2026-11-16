@@ -13,7 +13,7 @@ run('FOLDERS TESTS', async (b) => {
   assert.strictEqual(await p.isVisible('#meetTopic'), false, '홈에는 새 회의 칸이 없음');
   await p.click('#homeStart'); await p.waitForTimeout(200);
   assert.strictEqual(await p.evaluate(() => document.getElementById('startDlg').open), true);
-  assert(/배경 정보를 등록할까요/.test(await p.textContent('#sdAsk')) && /기본/.test(await p.textContent('#sdCur')));
+  assert(/저장할 폴더/.test(await p.textContent('#sdAsk')) && /기본/.test(await p.textContent('#sdCur')));
   await p.click('#sdSkip'); await p.waitForTimeout(400);
   assert.strictEqual(await p.evaluate(() => R.running), true, '그냥 진행하기 → 바로 시작');
   await speak(p, 'We need to agree on the delivery schedule.'); await p.waitForTimeout(300);
