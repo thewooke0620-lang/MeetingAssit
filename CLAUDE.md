@@ -52,6 +52,21 @@
 - 폴더 탭(TABS.prep = '폴더'): 폴더 목록 → 누르면 폴더 보기(`FV.id`, 그 폴더 회의를 날짜순, 제목·태그·내용으로 찾기). 뒤로가기 기록에 folder 를 남긴다.
 - 리포트 이름은 `reportName(m)` = 날짜_제목(제목만 고칠 수 있음). 태그는 회의 정리(DIGEST_SYSTEM 의 tags)로 5개까지 달고 m.tags 에 둔다. 손으로 고치면 tagsManual 이라 다시 덮어쓰지 않는다. 찾기는 `meetMatch`.
 
+## 폰 대화 듣기 화면·학습 탭 (2026-11-16)
+- 좁은 화면(760px 이하)에서 회의 중이거나 기록이 화면에 있으면 위쪽 막대(#bar) 대신 `#lvTop`(❚❚/▶ · ■/✕ · 라이브|요약|질문 · 추천 · ⚙)과 아래 입력칸 `#lvBottom` 을 쓴다. 상태는 `LV`, 그리기는 `lvSync()`(updateMode·queueLive 에서 부름). 넓은 화면은 예전 그대로.
+- 일시정지: `R.paused = true; stop()` → `finishMeeting` 이 정리 화면·자동 정리를 건너뛴다. ■ 는 끝내기(일시정지 상태면 `finishMeeting` 을 직접 부름), 끝난 뒤 ✕ 는 `clearRecord(true)`(묻지 않고 지우기, 기록은 저장됨).
+- 요약 탭 `lvSummarize`(AI 요청에 `<livesum>`), 질문 `lvAsk`(`<ask>`), '영어로' 모드는 기존 `suggest("ko")`. 추천(#assist)은 폰에서 아래에서 올라오는 판(`body.lv-rec-open`).
+- 아래 탭 막대: 홈·폴더·[회의 시작]·리포트·학습. '표현' 탭은 학습 탭 아래 링크·계정 시트·왼쪽 메뉴에서 연다.
+- 학습 탭(`renderLearn`): 최근 회의 표현은 회의마다 AI 가 한 번 골라 `m.phrases` 에 저장(`<phrases>`), 자주 쓰는 표현은 `frequentPhrases`(CORE, 3~6단어 묶음 세기) + 뜻은 AI 에 한 번 물어 localStorage `meetingassit.phraseKo.v1`(`<meanings>`). 바로 학습(#studyDlg)은 `studyGrade`·`studyOrder`(CORE), 진도는 localStorage `meetingassit.study.v1`(서버에 안 올림).
+- 학습 내용 가져오기(#importDlg, `openImport`): 계정 시트의 개인화 칸과 내 지식의 '다른 AI에서 가져오기'에서 연다. 반영은 기존 `importKnowledge`.
+- 테스트 가짜 AI 는 `<livesum>`·`<ask>`·`<phrases>`·`<meanings>` 를 따로 알아본다 (`tests/helper.js`). 새 기능 테스트: `tests/phonelive.e2e.js`.
+
+## 안드로이드: 폰 소리 듣기(실험)·떠 있는 자막 창
+- 들을 소리 "phone"(안드로이드 앱에서만): `MeetingNative.startCapture()` → MainActivity 가 마이크 권한·화면 캡처 허용을 받고 `CaptureService`(mediaProjection 포그라운드 서비스, AudioPlaybackCapture 16kHz 모노)를 띄운다. 0.1초 조각을 `window.__phonePcm(base64)`, 상태를 `window.__phoneState("ok"|"stopped"|"error:…")` 로 넘긴다. 웹은 `startPhoneAudio` 에서 받아 `onChunk` 로 보낸다.
+- 안드로이드는 USAGE_MEDIA·GAME·UNKNOWN 소리만 캡처를 허용한다. **통화 소리(Teams·Zoom 통화 등)는 막힐 가능성이 높다** — 12초 동안 소리가 거의 없으면 마이크로 바꾸라는 안내를 띄운다. 실제 기기에서만 확인할 수 있다.
+- 떠 있는 자막 창 `FloatWindow`: 회의 기록 중(keepRecording) 앱이 onStop 되면 뜨고 onStart 에 닫힌다. 오버레이 Dialog(TYPE_APPLICATION_OVERLAY) + 안드로이드 12 이상 배경 흐림, 위쪽 막대 끌어 옮기기, 모서리로 크기 조절, '—' 로 버블. 자막은 웹의 `sendFloat()` 가 `MeetingNative.floatLines(JSON)` 으로 보낸다. '정지'는 `window.__nativeCmd("stop")`. 설정 `settings.floatSub`(계정 시트에서 켜면 '다른 앱 위에 표시' 허용 화면을 연다).
+- 매니페스트 권한(SYSTEM_ALERT_WINDOW, FOREGROUND_SERVICE_MEDIA_PROJECTION)과 CaptureService 는 워크플로가 sed 로 넣는다. 이 환경에서는 안드로이드를 빌드할 수 없으므로 Java 를 고치면 main 에 올려 Actions(android-apk) 성공을 확인한다.
+
 ## 데스크톱 앱 (desktop/)
 - Electron 껍데기다. 화면은 GitHub Pages의 웹 앱 주소를 불러온다(`desktop/main.js` 의 `APP_URL`). 웹을 배포하면 exe에도 반영된다.
 - 껍데기가 더하는 것: 컴퓨터 소리 바로 듣기(getDisplayMedia → loopback), 자막 팝업(따로 떠 있는 항상 위 창, Windows 11 acrylic 블러). 화면 쪽은 `window.desktop` 이 있으면 `body.desktop`, 팝업 창은 같은 주소의 `#popup` 으로 열려 `body.popup` 으로 동작한다. 본 창과 팝업은 BroadcastChannel(`meetingassit-live`)로 자막·명령을 주고받는다.

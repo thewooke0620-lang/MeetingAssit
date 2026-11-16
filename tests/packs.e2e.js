@@ -94,7 +94,7 @@ const closeFolder = async (p) => { await p.click('#pdCancel'); await p.waitForTi
   await p.click('#cancelSettings');
 
   // 6) 지우기 → 새 회의 → 두 번째 기록
-  await p.click('#clear'); await p.waitForTimeout(200);
+  await p.click((await p.isVisible('#clear')) ? '#clear' : '#lvStop'); await p.waitForTimeout(200);   // 폰: ✕ 로 닫기
   await clickToggle(p); await p.waitForTimeout(300);
   await speak(p, "Can you confirm the penalty clause by Friday?"); await p.waitForTimeout(500);
   await clickToggle(p); await p.waitForTimeout(4600);
@@ -145,7 +145,8 @@ const closeFolder = async (p) => { await p.click('#pdCancel'); await p.waitForTi
 
   // 10) 자동 저장 끔
   await openDlg(p); await p.uncheck('#autoSave'); await save(p);
-  if (await p.isVisible('#clear')) { await p.click('#clear'); await p.waitForTimeout(100); }   // 시작 화면이면 지울 것이 없다
+  if (await p.isVisible('#clear')) { await p.click('#clear'); await p.waitForTimeout(100); }
+  else if (await p.isVisible('#lvStop')) { await p.click('#lvStop'); await p.waitForTimeout(100); }   // 시작 화면이면 지울 것이 없다
   await clickToggle(p); await p.waitForTimeout(300); await speak(p, "This one is confidential."); await clickToggle(p); await p.waitForTimeout(4600);
   await openFolder(p, '기본');
   assert.deepStrictEqual(await meets(p), ['아직 저장된 회의가 없습니다.']);

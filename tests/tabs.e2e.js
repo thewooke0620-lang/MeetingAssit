@@ -27,15 +27,20 @@ run('TABS TESTS', async (b) => {
   assert.strictEqual(await p.isVisible('#setupList'), false);
   await p.click('#setupToggle');
 
-  // 2) '회의 시작'(아래 단추) → 회의 화면에서는 탭 막대가 사라지고 위쪽 막대가 보인다
+  // 2) '회의 시작'(아래 단추) → 폰의 대화 듣기 화면: 탭 막대 대신 위쪽 ❚❚·■, 라이브·요약·질문, 추천, ⚙ 와 아래 입력칸
   await p.click('#fab'); await p.waitForTimeout(300);
   assert.strictEqual(await p.evaluate(() => R.running), true);
   assert.strictEqual(await p.isVisible('#tabbar'), false);
-  assert.strictEqual(await p.isVisible('#bar'), true);
+  assert.strictEqual(await p.isVisible('#bar'), false);
+  assert.strictEqual(await p.isVisible('#lvTop'), true);
+  assert.strictEqual(await p.isVisible('#lvBottom'), true);
+  assert.strictEqual(await p.isVisible('#lvEmpty'), true, '아직 말이 없으면 듣고 있다는 안내');
   await speak(p, "We reviewed the draft agreement.");
   await p.evaluate(() => { core.blocks[0].star = true; core.blocks[0].dirty = true; render(); });
+  assert.strictEqual(await p.isVisible('#lvEmpty'), false, '자막이 나오면 안내는 사라진다');
   await toggle(p); await p.waitForTimeout(1500);
-  await p.click('#clear'); await p.waitForTimeout(600);
+  assert.strictEqual(await p.getAttribute('#lvStop', 'aria-label'), '닫고 홈으로');
+  await p.click('#lvStop'); await p.waitForTimeout(600);   // ✕: 묻지 않고 닫는다 (기록은 저장됨)
   assert.strictEqual(await p.isVisible('#tabbar'), true, '지우면 다시 탭 화면');
   assert(/계약 초안 검토/.test(await p.textContent('#homeRecent')));
   assert.strictEqual(await p.textContent('#setupCount'), '2/5', '첫 회의를 하면 하나 더');
@@ -60,8 +65,12 @@ run('TABS TESTS', async (b) => {
   await p.fill('#reportSearch', 'nothing like this'); await p.waitForTimeout(200);
   assert(/찾는 말이 들어간 회의가 없습니다/.test(await p.textContent('#reportList')));
 
-  // 5) 표현: 용어집과 중요 표시한 발언
-  await p.click('#tabbar button[data-tab="words"]'); await p.waitForTimeout(300);
+  // 5) 학습(아래 탭): 최근 회의 표현 / 자주 쓰는 표현 → 표현(용어집·중요 표시)은 학습 탭 아래 링크로
+  assert.strictEqual(await p.isVisible('#tabbar button[data-tab="words"]'), false, '아래 탭에는 표현 대신 학습');
+  await p.click('#tabbar button[data-tab="learn"]'); await p.waitForTimeout(300);
+  assert.strictEqual(await p.textContent('#pageTitle'), '학습');
+  await p.click('#lnWords'); await p.waitForTimeout(300);
+  assert.strictEqual(await p.textContent('#pageTitle'), '표현');
   const words = await p.textContent('#wordsBody');
   assert(/escrow/.test(words) && /에스크로/.test(words) && /We reviewed the draft agreement/.test(words), words.slice(0, 300));
 

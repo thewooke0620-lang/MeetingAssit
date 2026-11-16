@@ -30,9 +30,20 @@ function pageMock(st) {
     const body = JSON.parse(opt.body);
     const system = groq ? body.messages[0].content : body.system;
     const user = groq ? body.messages[1].content : body.messages[0].content;
-    const kind = !body.stream ? (/<learn>/.test(user) ? 'learn' : 'digest') : /<translate>/.test(user) ? 'translate' : /<korean>/.test(user) ? 'assist-ko' : /<action>/.test(user) ? 'assist-act' : 'assist-q';
+    const kind = !body.stream ? (/<learn>/.test(user) ? 'learn' : /<livesum>/.test(user) ? 'livesum' : /<ask>/.test(user) ? 'ask' : /<phrases>/.test(user) ? 'phrases' : /<meanings>/.test(user) ? 'meanings' : 'digest') : /<translate>/.test(user) ? 'translate' : /<korean>/.test(user) ? 'assist-ko' : /<action>/.test(user) ? 'assist-act' : 'assist-q';
     const rec = { kind, p: groq ? 'groq' : 'claude', model: body.model, system, user, aborted: false };
     window.REQ.push(rec);
+    // 폰 대화 듣기의 요약·질문, 학습 탭의 표현 고르기·뜻 묻기
+    if (kind === 'livesum' || kind === 'ask' || kind === 'phrases' || kind === 'meanings') {
+      await wait(window.MOCK.extraDelay || 60);
+      let d;
+      if (kind === 'livesum') d = window.MOCK.livesum || { summary: ['가격 조건을 논의했다.', '납기를 확인했다.'], decisions: ['금요일까지 답을 준다.'], todos: [], open: ['위약금 조항은 아직 미정.'] };
+      else if (kind === 'ask') d = window.MOCK.ask || '가격과 납기를 이야기했습니다. (질문: ' + (user.match(/<question>([\s\S]*?)<\/question>/) || [, ''])[1] + ')';
+      else if (kind === 'phrases') d = window.MOCK.phrases || { phrases: [{ en: 'circle back', ko: '나중에 다시 논의하다', note: '회의 끝에 다음 논의를 약속할 때', example: 'Can we circle back on the pricing next week?' }, { en: 'on the same page', ko: '생각이 같다', note: '서로 이해가 맞는지 확인할 때', example: 'I think we are on the same page.' }] };
+      else d = { items: (user.match(/^- (.+)$/gm) || []).map((l) => ({ en: l.slice(2), ko: '뜻:' + l.slice(2) })) };
+      const text = typeof d === 'string' ? d : JSON.stringify(d);
+      return { ok: true, status: 200, json: async () => (groq ? { choices: [{ message: { content: text } }] } : { content: [{ type: 'text', text }] }) };
+    }
     if (kind === 'learn') {
       const text = JSON.stringify(window.MOCK.learn || { work: 'HR 시스템 구축 컨설턴트. SuccessFactors EC 설계 중.', style: '공손하고 결론부터 말함.', terms: [{ en: 'Employee Central', ko: '' }, { en: 'role mapping', ko: '역할 매핑' }] });
       return { ok: true, status: 200, json: async () => (groq ? { choices: [{ message: { content: text } }] } : { content: [{ type: 'text', text }] }) };
@@ -111,13 +122,21 @@ async function speak(p, text, gap) {
 }
 
 // 시작·정지: 시작 화면에서는 큰 '회의 시작' 단추, 그 밖에는 위쪽 막대의 시작·정지 단추를 누른다
-const clickToggle = async (p) => { await p.click((await p.isVisible('#homeStart')) ? '#homeStart' : (await p.isVisible('#fab')) ? '#fab' : '#toggle'); };
+// 폰(좁은 화면)의 대화 듣기 화면에서는 위쪽의 ❚❚/▶(다시 시작)와 ■(끝내기)를 쓴다
+const clickToggle = async (p) => {
+  if (await p.isVisible('#homeStart')) return p.click('#homeStart');
+  if (await p.isVisible('#fab')) return p.click('#fab');
+  if (await p.isVisible('#toggle')) return p.click('#toggle');
+  const running = await p.evaluate(() => R.running || R.starting);
+  return p.click(running ? '#lvStop' : '#lvPause');
+};
 const toggle = async (p) => { await clickToggle(p); await p.waitForTimeout(300); };
 // 시작 → 말하기 → 정지 → 자동 저장과 정리가 끝날 때까지 기다림
 async function meeting(p, text, after) { await toggle(p); await speak(p, text); await p.waitForTimeout(400); await clickToggle(p); await p.waitForTimeout(after || 4900); }
 // 설정 열기: 위쪽 막대의 '설정', 폰의 시작 화면처럼 막대가 없으면 계정 단추 → '설정'
 const clickSettings = async (p) => {
   if (await p.isVisible('#openSettings')) { await p.click('#openSettings'); return; }
+  if (await p.isVisible('#lvSet')) { await p.click('#lvSet'); return; }   // 폰 대화 듣기 화면의 ⚙
   await p.click('#acctChip'); await p.waitForTimeout(150);
   await p.click('#acctSheet .sh-list button:has-text("설정")');
 };

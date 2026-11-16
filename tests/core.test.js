@@ -164,4 +164,39 @@ assert.strictEqual(vc.blocks[vc.blocks.length - 1].speaker, '1');
 // 토큰에 시각이 없으면(예전 방식) 손대지 않는다
 vm = V.createVoiceMap(3000, true);
 assert.deepStrictEqual(V.mapVoiceTokens(vm, [{ text: 'a', is_final: true, speaker: '1' }]), [{ text: 'a', is_final: true, speaker: '1' }]);
+// ---- 학습: 자주 쓰는 표현과 반복 학습 순서 ----
+{
+  const L = new Function(src + '; return { frequentPhrases, studyGrade, studyOrder, studyKey };')();
+  const M = [
+    { id: 'a', title: '1차', lines: [
+      { en: "Let me check with the team and get back to you." },
+      { en: "Can we circle back on the pricing next week?" },
+      { en: "I think we are on the same page here.", me: true } ] },
+    { id: 'b', title: '2차', lines: [
+      { en: "Sure, let me check with the team first." },
+      { en: "Good, so we are on the same page." },
+      { en: "Um, um, the the the." } ] },
+    { id: 'c', title: '3차', lines: [ { en: "Let me check with the legal side and get back to you by Friday." } ] }
+  ];
+  const fp = L.frequentPhrases(M);
+  const texts = fp.map((x) => x.text);
+  console.log('phrases:', fp.map((x) => [x.text, x.count, x.meetings]));
+  assert(texts.includes('let me check'), '세 회의에 나온 표현');
+  assert(texts.includes('get back to you'), '두 회의에 나온 표현');
+  assert(texts.some((t) => /same page/.test(t)), '같은 뜻 표현');
+  assert(!texts.some((t) => /^(the|um)\b|\b(the|to|with the)$/.test(t)), '앞뒤가 어색한 묶음은 뺌');
+  assert(!texts.some((t) => /^me /.test(t)), '앞이 잘린 조각은 뺌');
+  const top = fp.find((x) => x.text === 'let me check');
+  assert.strictEqual(top.meetings, 3); assert(top.example.length > 0);
+  assert.deepStrictEqual(L.frequentPhrases([{ id: 'x', lines: [{ en: 'just once here and there' }] }]), [], '한 번만 나온 것은 없음');
+  // 반복 학습: 알면 상자가 오르고, 모르면 0. 볼 때가 된 것 → 처음 보는 것 → 나머지 순
+  const prog = {}, now = 1e12;
+  const items = [{ en: 'A one' }, { en: 'B two' }, { en: 'C three' }, { en: 'D four' }];
+  L.studyGrade(prog, L.studyKey('A one'), true, now);            // 상자 1, 10분 뒤
+  L.studyGrade(prog, L.studyKey('B two'), false, now);           // 상자 0, 바로
+  for (let i = 0; i < 6; i++) L.studyGrade(prog, L.studyKey('D four'), true, now);   // 다 외움
+  assert.strictEqual(prog['a one'].box, 1); assert.strictEqual(prog['b two'].box, 0); assert.strictEqual(prog['d four'].box, 5);
+  assert.deepStrictEqual(L.studyOrder(items, prog, now).map((x) => x.en), ['B two', 'C three', 'A one', 'D four']);
+  assert.deepStrictEqual(L.studyOrder(items, prog, now + 11 * 60e3).map((x) => x.en), ['B two', 'A one', 'C three', 'D four'], '10분 지나면 A 도 볼 때');
+}
 console.log('CORE TESTS PASSED');

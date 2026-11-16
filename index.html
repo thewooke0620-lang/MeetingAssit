@@ -539,6 +539,136 @@
   .mv-audio audio { flex: 1; min-width: 220px; height: 36px; }
   .play-at { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 999px; font-size: 11px; padding: 1px 7px; margin-right: 6px; cursor: pointer; }
   .play-at:hover { color: var(--text); border-color: var(--accent); }
+
+  /* ================= 폰: 대화 듣기 화면 (회의 중·회의 기록이 화면에 있을 때) ================= */
+  #lvTop, #lvBottom, #lvEmpty, .lv-pane { display: none; }
+  .lv-row { display: flex; align-items: center; gap: 8px; }
+  .lv-ctl { display: inline-flex; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 3px; flex: 0 0 auto; }
+  .lv-ctl button { width: 40px; height: 36px; display: grid; place-items: center; background: none; border: 0; color: var(--text); border-radius: 999px; cursor: pointer; }
+  .lv-ctl button:active { background: var(--panel2); }
+  .lv-ctl svg, .lv-gear svg { width: 18px; height: 18px; fill: currentColor; }
+  .lv-sep { width: 1px; height: 18px; background: var(--line); }
+  .lv-tabs { flex: 1 1 auto; display: flex; justify-content: center; align-items: center; gap: 2px; min-width: 0; }
+  .lv-tabs button { background: none; border: 0; color: var(--muted); font-size: 16.5px; font-weight: 700; padding: 6px 7px; cursor: pointer; white-space: nowrap; }
+  .lv-tabs button.on { color: var(--text); }
+  .lv-tabs button + button { border-left: 1px solid var(--line); }
+  .lv-rec { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; background: rgba(242,184,75,.10); border: 1px solid rgba(242,184,75,.45); color: var(--lamp);
+    border-radius: 999px; padding: 4px 4px 4px 12px; font-size: 14.5px; font-weight: 800; cursor: pointer; }
+  .lv-rec .lv-star { width: 28px; height: 28px; border-radius: 50%; background: var(--lamp); color: #1b1305; display: grid; place-items: center; font-size: 14px; }
+  .lv-rec.off { opacity: .5; }
+  .lv-rec.new { box-shadow: 0 0 0 3px rgba(242,184,75,.35), 0 0 16px rgba(242,184,75,.6); animation: blink 1.4s infinite; }
+  body.lv-rec-open .lv-rec { background: var(--lamp); color: #1b1305; }
+  .lv-gear { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--panel); border: 1px solid var(--line); color: var(--text); cursor: pointer; }
+  .lv-sub { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); margin-top: 6px; padding-left: 4px; }
+  .lv-sub .lamp { width: 8px; height: 8px; }
+  #lvTime { font-variant-numeric: tabular-nums; color: var(--text); font-weight: 600; }
+  #lvPack { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lv-empty { flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 6px; min-height: 58vh; color: var(--muted); font-size: 14.5px; line-height: 1.6; padding: 0 24px; }
+  .lv-empty b { color: var(--text); font-size: 19px; margin-top: 10px; }
+  .lv-empty p { margin: 0; }
+  .lv-wave { width: 62px; height: 62px; border-radius: 50%; background: var(--panel); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; }
+  .lv-wave i { display: inline-block; width: 3px; margin: 0 1.5px; border-radius: 2px; background: var(--muted); height: 10px; vertical-align: middle; }
+  body.live .lv-wave i { background: var(--lamp); animation: lvwave 1.1s ease-in-out infinite; }
+  .lv-wave i:nth-child(2) { animation-delay: .15s; height: 18px; } .lv-wave i:nth-child(3) { animation-delay: .3s; height: 24px; }
+  .lv-wave i:nth-child(4) { animation-delay: .45s; height: 16px; } .lv-wave i:nth-child(5) { animation-delay: .6s; }
+  @keyframes lvwave { 50% { transform: scaleY(.45); } }
+  .lv-pane { max-width: 860px; margin: 0 auto; padding-bottom: 20px; }
+  .lv-ph { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 2px 0 14px; }
+  .lv-ph .mmeta { font-size: 12.5px; }
+  .lv-h { font-size: 14px; color: var(--lamp); font-weight: 800; margin: 18px 0 6px; }
+  .lv-list { margin: 0; padding-left: 18px; font-size: 15.5px; line-height: 1.7; color: var(--text); }
+  .lv-list li { margin-bottom: 4px; }
+  .lv-note { color: var(--muted); font-size: 14px; line-height: 1.65; padding: 18px 2px; }
+  .lv-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .lv-chips button { background: var(--panel); border: 1px solid var(--line); color: var(--text); border-radius: 999px; padding: 8px 13px; font-size: 13.5px; cursor: pointer; }
+  .qa-q { margin: 14px 0 6px auto; max-width: 85%; width: fit-content; background: var(--panel2); border: 1px solid var(--line); border-radius: 16px 16px 4px 16px; padding: 9px 13px; font-size: 15px; line-height: 1.55; color: var(--text); }
+  .qa-a { max-width: 100%; font-size: 15.5px; line-height: 1.7; color: var(--text); white-space: pre-wrap; padding: 4px 2px 10px; border-bottom: 1px solid var(--line); }
+  .qa-a.run { color: var(--muted); }
+  .qa-a.err { color: var(--err); }
+  .lv-bottom { flex: 0 0 auto; align-items: center; gap: 8px; padding: 8px 12px max(10px, env(safe-area-inset-bottom)); background: var(--bg); border-top: 1px solid var(--line); }
+  .lv-in { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 4px 6px 4px 4px; }
+  .lv-mode { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px; background: var(--panel2); border: 1px solid var(--line); color: var(--text); border-radius: 999px; padding: 7px 11px; font-size: 13.5px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .lv-mode .q { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; background: #2c3747; }
+  #lvInput { flex: 1 1 auto; min-width: 0; background: none; border: 0; padding: 8px 4px; font-size: 15px; color: var(--text); outline: none; }
+  #lvSend { flex: 0 0 auto; width: 46px; height: 46px; border-radius: 50%; border: 0; background: var(--panel2); color: var(--text); font-size: 20px; font-weight: 700; cursor: pointer; }
+  #lvSend.ready { background: var(--text); color: var(--bg); }
+  @media (max-width: 760px) {
+    body:not(.idle):not(.popup) header#bar { display: none; }
+    body:not(.idle):not(.popup) #lvTop { display: block; flex: 0 0 auto; padding: max(10px, env(safe-area-inset-top)) 12px 8px; background: var(--bg); border-bottom: 1px solid var(--line); }
+    body:not(.idle):not(.popup) #lvBottom { display: flex; }
+    body:not(.idle).lv-empty-on #lvEmpty { display: flex; }
+    body:not(.idle).lv-sum #lvSum, body:not(.idle).lv-qa #lvQA { display: block; }
+    body.lv-sum #transcript, body.lv-qa #transcript, body.lv-sum #jump, body.lv-qa #jump { display: none !important; }
+    /* 답변 추천은 '추천'을 눌렀을 때 아래에서 올라오는 판으로 */
+    body:not(.idle) #work > #assist { display: none !important; }
+    body:not(.idle).lv-rec-open #work > #assist:not([style*="none"]) { display: flex !important; flex-direction: column; position: fixed; z-index: 35; left: 0; right: 0;
+      bottom: calc(66px + env(safe-area-inset-bottom)); max-height: 58vh; border: 1px solid var(--line); border-bottom: 0; border-radius: 20px 20px 0 0;
+      background: var(--panel); box-shadow: 0 -12px 40px rgba(0,0,0,.5); padding: 14px 14px 12px; }
+    body:not(.idle).lv-rec-open #assist .as-body { display: flex !important; max-height: none; flex: 1 1 auto; min-height: 0; }
+    body:not(.idle).lv-rec-open #assist .as-acts { display: flex !important; }
+    body:not(.idle) #assist .as-form { display: none !important; }
+    body:not(.idle) #stage { padding-bottom: 24px; }
+    body:not(.idle):not(.popup) #empty { display: none !important; }   /* 시작 화면 내용 대신 '듣고 있어요' */
+  }
+  @media (max-width: 380px) {
+    .lv-tabs button { font-size: 15px; padding: 6px 5px; }
+    .lv-rec { padding-left: 9px; font-size: 13.5px; gap: 4px; }
+    .lv-rec .lv-star { width: 24px; height: 24px; }
+    .lv-ctl button { width: 34px; }
+    .lv-gear { width: 36px; height: 36px; }
+  }
+
+  /* ================= 학습 탭 ================= */
+  .seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 4px; margin-bottom: 16px; }
+  .seg button { background: none; border: 0; color: var(--muted); font-size: 14.5px; font-weight: 700; padding: 10px 6px; border-radius: 10px; cursor: pointer; }
+  .seg button.on { background: var(--panel2); color: var(--text); }
+  .ln-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--panel); border-radius: 16px; padding: 14px 16px; margin-bottom: 14px; }
+  .ln-head b { display: block; font-size: 16px; color: var(--text); }
+  .ln-head span { font-size: 13px; color: var(--muted); }
+  .ln-head .btn.primary { border-radius: 999px; padding: 10px 18px; }
+  .ln-group { font-size: 12.5px; color: var(--muted); font-weight: 700; margin: 18px 0 2px; display: flex; justify-content: space-between; gap: 8px; }
+  .ln-item { display: flex; align-items: flex-start; gap: 10px; border-top: 1px solid var(--line); padding: 12px 0; }
+  .ln-item .tx { flex: 1; min-width: 0; }
+  .ln-en { font-size: 16px; font-weight: 700; color: var(--text); line-height: 1.4; }
+  .ln-ko { font-size: 14px; color: var(--text); opacity: .85; margin-top: 2px; }
+  .ln-note { font-size: 12.5px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+  .ln-ex { font-size: 12.5px; color: var(--muted); margin-top: 4px; line-height: 1.5; font-style: italic; }
+  .ln-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .ln-meta span { font-size: 11px; padding: 1px 8px; border-radius: 999px; background: rgba(143,180,255,.12); color: var(--accent); }
+  .ln-meta span.mine { background: rgba(95,211,160,.12); color: var(--ok); }
+  .ln-meta span.box { background: rgba(242,184,75,.12); color: var(--lamp); }
+  .ln-say { flex: 0 0 auto; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: none; color: var(--text); cursor: pointer; font-size: 15px; }
+  .ln-busy { color: var(--muted); font-size: 13.5px; padding: 10px 0; }
+  /* 바로 학습 (카드) */
+  #studyDlg, #importDlg { width: min(600px, 100vw); max-width: 100vw; max-height: 100vh; height: min(100vh, 860px); }
+  #studyDlg[open], #importDlg[open] { display: flex; flex-direction: column; }
+  #studyDlg .dlg-body, #importDlg .dlg-body { flex: 1 1 auto; max-height: none; }
+  @media (max-width: 760px) { #studyDlg, #importDlg { margin: 0; height: 100vh; border-radius: 0; } }
+  .st-bar { height: 4px; background: var(--line); }
+  .st-bar i { display: block; height: 100%; width: 0; background: var(--lamp); transition: width .25s; }
+  .st-body { display: flex; align-items: center; justify-content: center; }
+  .st-card { width: 100%; max-width: 480px; background: var(--panel2); border-radius: 22px; padding: 26px 22px; text-align: center; }
+  .st-q { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+  .st-big { font-size: 24px; font-weight: 800; color: var(--text); line-height: 1.4; }
+  .st-sub { font-size: 16px; color: var(--text); opacity: .85; margin-top: 10px; line-height: 1.5; }
+  .st-note { font-size: 13.5px; color: var(--muted); margin-top: 14px; line-height: 1.6; }
+  .st-ex { font-size: 14px; color: #c3cad6; margin-top: 16px; line-height: 1.6; text-align: left; border-left: 3px solid var(--line); padding-left: 12px; }
+  .st-ex mark { background: rgba(242,184,75,.22); color: #fff; border-radius: 3px; padding: 0 2px; }
+  .st-ex .k { display: block; color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .st-foot .btn { flex: 1 1 0; padding: 13px; border-radius: 14px; font-size: 15px; }
+  /* 학습 내용 가져오기 */
+  .im-card { background: var(--panel2); border-radius: 20px; padding: 16px 16px 18px; margin-bottom: 12px; }
+  .im-h { display: flex; align-items: center; gap: 10px; }
+  .im-h b { font-size: 16.5px; color: var(--text); line-height: 1.4; }
+  .im-n { flex: 0 0 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--panel); color: var(--muted); font-weight: 700; font-size: 14px; }
+  .im-card > p { margin: 8px 0 12px; font-size: 13.5px; color: var(--muted); line-height: 1.6; }
+  .im-card details { margin: 0 0 10px; font-size: 13px; color: var(--muted); }
+  .im-card details summary { cursor: pointer; }
+  .im-wide { display: flex; width: 100%; justify-content: center; align-items: center; gap: 8px; border-radius: 999px !important; padding: 13px !important; font-size: 15px !important; font-weight: 700; background: var(--panel) !important; text-decoration: none; }
+  .im-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  #imText { width: 100%; min-height: 150px; resize: vertical; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px; color: var(--text); font: inherit; font-size: 14.5px; line-height: 1.6; }
+  .im-count { text-align: right; font-size: 12.5px; color: var(--muted); margin: 6px 2px 12px; font-variant-numeric: tabular-nums; }
+  #imOk:not(:disabled) { background: var(--text) !important; color: var(--bg); }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -569,6 +699,18 @@
   </div>
 </header>
 
+<div id="lvTop">
+  <div class="lv-row">
+    <div class="lv-ctl"><button id="lvPause" type="button" aria-label="일시정지"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg></button><span class="lv-sep" aria-hidden="true"></span><button id="lvStop" type="button" aria-label="회의 끝내기"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button></div>
+    <div class="lv-tabs" role="tablist" aria-label="회의 화면">
+      <button type="button" role="tab" data-lv="live" class="on">라이브</button><button type="button" role="tab" data-lv="sum">요약</button><button type="button" role="tab" data-lv="qa">질문</button>
+    </div>
+    <button id="lvRec" class="lv-rec" type="button" title="지금 대화에 맞는 영어 답변 추천">추천<span class="lv-star" aria-hidden="true">✦</span></button>
+    <button id="lvSet" class="lv-gear" type="button" aria-label="설정"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.4-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3.5h-4l-.4 2.6a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.4 2.5-1a7.4 7.4 0 0 0 1.7 1l.4 2.5h4l.4-2.6a7.4 7.4 0 0 0 1.7-1l2.5 1 2-3.4zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg></button>
+  </div>
+  <div class="lv-sub"><span class="lamp" aria-hidden="true"></span><span id="lvState">대기</span><span id="lvTime"></span><span id="lvPack"></span></div>
+</div>
+
 <div id="banner"></div>
 
 <div id="work">
@@ -576,6 +718,7 @@
   <button id="sideNew" class="side-item strong nav" type="button" data-tab="home">홈 · 새 회의</button>
   <button class="side-item nav" type="button" data-tab="prep">폴더</button>
   <button class="side-item nav" type="button" data-tab="report">리포트</button>
+  <button class="side-item nav" type="button" data-tab="learn">학습</button>
   <button class="side-item nav" type="button" data-tab="words">표현</button>
   <button id="sideNow" class="side-item now" type="button" style="display:none">지금 화면의 회의</button>
   <div class="side-h">회의 폴더</div>
@@ -654,6 +797,16 @@
         <div id="reportList"></div>
       </section>
 
+      <section id="tabLearn" class="pane" data-tab="learn" hidden>
+        <div class="seg" role="tablist" aria-label="학습할 표현">
+          <button id="lnRecentT" type="button" role="tab" class="on">최근 회의 표현</button>
+          <button id="lnFreqT" type="button" role="tab">자주 쓰는 표현</button>
+        </div>
+        <div id="lnHead" class="ln-head" style="display:none"></div>
+        <div id="lnList"></div>
+        <button id="lnWords" class="linkbtn" type="button">용어집 · 자주 받는 질문 · 중요 표시 보기 ›</button>
+      </section>
+
       <section id="tabWords" class="pane" data-tab="words" hidden>
         <p class="pane-sub">나에 대해 기억하는 내용과 회의에서 쓸 표현을 모아 봅니다. 폴더의 용어집과 자주 받는 질문은 '준비'에서, 중요 표시는 회의 중 ☆ 나 B 키로 더합니다.</p>
         <section class="wsec" id="knSec"><h2 class="sec-h">내 지식</h2><div id="knBody"></div></section>
@@ -661,6 +814,9 @@
       </section>
     </div>
     <div id="transcript"></div>
+    <div id="lvEmpty" class="lv-empty"><div class="lv-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><b id="lvEmptyH">듣고 있어요</b><p id="lvEmptyP">영어가 들리면 자막과 한국어 번역이 바로 여기에 나와요.</p></div>
+    <section id="lvSum" class="lv-pane" aria-label="지금까지 요약"></section>
+    <section id="lvQA" class="lv-pane" aria-label="회의에 대해 묻기"></section>
     <button id="jump">최신으로 ↓</button>
   </div>
 </div>
@@ -681,12 +837,20 @@
 </div>
 </div>
 
+<form id="lvBottom" class="lv-bottom" autocomplete="off">
+  <div class="lv-in">
+    <button id="lvMode" class="lv-mode" type="button" title="눌러서 '질문' ↔ '영어로' 바꾸기"><span class="q" aria-hidden="true">?</span><span id="lvModeT">질문</span></button>
+    <input id="lvInput" type="text" maxlength="400" enterkeyhint="send" placeholder="이 회의에 대해 물어보세요 (요약, 방금 한 말 등)" aria-label="질문 입력">
+  </div>
+  <button id="lvSend" type="submit" aria-label="보내기">↑</button>
+</form>
+
 <nav id="tabbar" aria-label="화면 바꾸기">
   <button type="button" data-tab="home" class="on"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5h-5v5H5a1 1 0 0 1-1-1z"/></svg><span>홈</span></button>
   <button type="button" data-tab="prep"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg><span>폴더</span></button>
   <button id="fab" type="button" aria-label="회의 시작"><span class="lamp" aria-hidden="true"></span><span>회의 시작</span></button>
   <button type="button" data-tab="report"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10M10 20V5M15 20v-7M20 20V8"/></svg><span>리포트</span></button>
-  <button type="button" data-tab="words"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6a2 2 0 0 1 2-2h11v14H7a2 2 0 0 0-2 2zM5 20V6M9 8h5"/></svg><span>표현</span></button>
+  <button type="button" data-tab="learn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.5 12 5l9 4.5-9 4.5z"/><path d="M7 11.5V16c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5v-4.5M21 9.5V15"/></svg><span>학습</span></button>
 </nav>
 
 <dialog id="acctSheet" class="sheet" aria-label="계정">
@@ -709,6 +873,37 @@
   </div>
   <div id="pvLines" class="pv-lines"><p class="pv-wait">회의를 시작하면 여기에 자막이 나옵니다.</p></div>
 </div>
+
+<dialog id="importDlg" aria-label="학습 내용 가져오기">
+  <div class="dlg-head"><button id="imBack" class="btn icon" type="button" aria-label="뒤로">‹</button><span style="margin-left:10px">학습 내용 가져오기</span></div>
+  <div class="dlg-body">
+    <section class="im-card">
+      <div class="im-h"><span class="im-n">1</span><b>정리 요청 글 복사하기</b></div>
+      <p>다른 AI에게 '나에 대해 아는 것'을 정리해 달라고 부탁하는 글이에요. 복사해서 ChatGPT나 Claude 대화창에 붙여 넣으세요.</p>
+      <details><summary>복사할 글 미리 보기</summary><div id="imPrompt" class="kn-prompt"></div></details>
+      <button id="imCopy" class="btn im-wide" type="button">⧉ 요청 글 복사</button>
+    </section>
+    <section class="im-card">
+      <div class="im-h"><span class="im-n">2</span><b>ChatGPT나 Claude를 열어 붙여 넣고 보내기</b></div>
+      <div class="im-two"><a id="imGpt" class="btn im-wide" href="https://chatgpt.com/" rel="noopener">ChatGPT 열기</a><a id="imClaude" class="btn im-wide" href="https://claude.ai/new" rel="noopener">Claude 열기</a></div>
+    </section>
+    <section class="im-card">
+      <div class="im-h"><span class="im-n">3</span><b>받은 답 붙여 넣기, 또는 직접 적기</b></div>
+      <p>AI가 준 답을 그대로 붙여 넣어도 되고, 내 말투·업무 용어·번역에서 고쳤으면 하는 점처럼 기억했으면 하는 내용을 자유롭게 적어도 돼요.</p>
+      <textarea id="imText" maxlength="10000" placeholder="받은 답을 붙여 넣거나, 기억했으면 하는 내용을 적어 주세요."></textarea>
+      <div class="im-count"><span id="imCount">0</span>/10,000</div>
+      <button id="imOk" class="btn im-wide" type="button" disabled>학습에 반영하기</button>
+      <div id="imMsg" class="kn-msg"></div>
+    </section>
+  </div>
+</dialog>
+
+<dialog id="studyDlg" aria-label="바로 학습">
+  <div class="dlg-head"><button id="stClose" class="btn icon" type="button" aria-label="닫기">✕</button><span id="stTitle" style="margin-left:10px">바로 학습</span><span style="flex:1"></span><span id="stCount" class="mmeta"></span></div>
+  <div class="st-bar" aria-hidden="true"><i id="stBar"></i></div>
+  <div class="dlg-body st-body"><div id="stCard" class="st-card"></div></div>
+  <div id="stFoot" class="dlg-foot st-foot"></div>
+</dialog>
 
 <dialog id="meetDlg">
   <div class="dlg-head"><span id="mvTitle">회의 기록</span></div>
@@ -786,6 +981,7 @@
 <dialog id="startDlg" aria-label="회의 시작">
   <div class="dlg-head" id="sdTitle">회의 시작</div>
   <div class="dlg-body">
+    <div class="field" id="sdSourceF"><label for="homeSource">들을 소리</label><select id="homeSource"></select></div>
     <section id="sdAsk">
       <h3 style="margin:2px 0 8px;font-size:18px">회의 배경 정보를 등록할까요?</h3>
       <p class="hint" style="font-size:14px;line-height:1.65">폴더를 고르고 이번 회의 주제와 참여자를 적어 두면 이름과 용어를 더 정확하게 받아 적고 번역합니다. 등록하지 않으면 지금 폴더(<b id="sdCur"></b>)로 바로 시작합니다.</p>
@@ -794,7 +990,6 @@
     <section id="sdForm" hidden>
       <div class="field"><label for="homePack">회의 폴더</label>
         <div class="row"><select id="homePack" style="flex:3 1 0"></select><button id="sdNewPack" class="btn" type="button">＋ 새 폴더</button></div></div>
-      <div class="field" id="sdSourceF"><label for="homeSource">들을 소리</label><select id="homeSource"></select></div>
       <div class="field"><label for="meetTopic">이번 회의 주제 (선택)</label><input id="meetTopic" type="text" maxlength="200" autocomplete="off" placeholder="예) 2분기 납기 일정 조정"></div>
       <div class="field"><label for="meetPeople">이번 회의 참여자 (선택, 쉼표로 구분)</label><input id="meetPeople" type="text" maxlength="400" autocomplete="off" placeholder="예) John Smith, Sarah Lee">
         <span id="peopleChips" class="chips"></span>
@@ -1747,6 +1942,89 @@ function relabelVoice(core, sock, v) {
   }
   return { removed };
 }
+
+// ---- 학습: 자주 쓰는 표현 ----
+// 회의 기록들의 영어 문장에서 3~6단어 묶음을 세어, 여러 번(또는 여러 회의에서) 나온 표현을 고른다
+// meetings: [{ id, title, startedAt, lines: [{ en, ko, me }] }]
+// 돌려주는 값: [{ text, count, meetings, mine, example, exampleKo, from }] (자주 나온 순)
+const PH_START_BAD = new Set("a an the and or but um uh so is are was were of me".split(" "));
+const PH_END_BAD = new Set("a an the and or but of to in on at for with from by as is are was were be that um uh my your our their his her its we i they".split(" "));
+const PH_FILLER = new Set("um uh like yeah okay ok you know i mean".split(" "));
+function phraseWords(s) {
+  return String(s || "").toLowerCase().replace(/[’‘]/g, "'").replace(/[^a-z0-9' ]+/g, " ").split(/\s+/).filter((w) => w && w !== "'");
+}
+function frequentPhrases(meetings, opts) {
+  opts = opts || {};
+  const minN = opts.minN || 3, maxN = opts.maxN || 6, limit = opts.limit || 30;
+  const map = new Map();
+  for (const m of meetings || []) {
+    const lines = (m && m.lines) || [];
+    lines.forEach((l, li) => {
+      const en = String((l && l.en) || "");
+      for (const seg of en.split(/[.,!?;:()"“”]+/)) {
+        const w = phraseWords(seg);
+        const seenHere = new Set();
+        for (let n = minN; n <= maxN; n++) {
+          for (let i = 0; i + n <= w.length; i++) {
+            const g = w.slice(i, i + n);
+            if (PH_START_BAD.has(g[0]) || PH_END_BAD.has(g[n - 1])) continue;
+            if (g.filter((x) => PH_FILLER.has(x)).length * 2 >= n) continue;
+            if (new Set(g).size < Math.ceil(n / 2)) continue;   // "no no no" 같은 반복
+            const key = g.join(" ");
+            if (seenHere.has(key)) continue;
+            seenHere.add(key);
+            let x = map.get(key);
+            if (!x) { x = { text: key, n, count: 0, mset: new Set(), mine: 0, example: en.trim(), exampleKo: String((l && l.ko) || "").trim(), from: m.title || "" }; map.set(key, x); }
+            x.count++; x.mset.add(m.id || m); if (l && l.me) x.mine++;
+          }
+        }
+      }
+    });
+  }
+  let list = [...map.values()].map((x) => ({ text: x.text, n: x.n, count: x.count, meetings: x.mset.size, mine: x.mine, example: x.example, exampleKo: x.exampleKo, from: x.from }))
+    .filter((x) => x.count >= 3 || (x.count >= 2 && x.meetings >= 2));
+  const score = (x) => x.count + (x.meetings - 1) * 2 + x.mine + (x.n - 3) * 0.5;
+  list.sort((a, b) => score(b) - score(a) || b.n - a.n || (a.text < b.text ? -1 : 1));
+  // 짧은 묶음이 긴 묶음 안에 들어 있고 거의 같은 만큼 나왔으면 긴 것만 남긴다 (반대로 긴 것이 짧은 것보다 훨씬 드물면 짧은 것만)
+  const kept = [];
+  for (const x of list) {
+    const pad = " " + x.text + " ";
+    let drop = false;
+    for (const k of kept) {
+      const kp = " " + k.text + " ";
+      if (kp.includes(pad) && k.count >= x.count * 0.8) { drop = true; break; }
+      if (pad.includes(kp) && x.count < k.count * 0.8) { drop = true; break; }
+    }
+    if (drop) continue;
+    for (let i = kept.length - 1; i >= 0; i--) {
+      const kp = " " + kept[i].text + " ";
+      if (pad.includes(kp) && x.count >= kept[i].count * 0.8) kept.splice(i, 1);
+    }
+    kept.push(x);
+    if (kept.length >= limit * 2) break;
+  }
+  return kept.slice(0, limit);
+}
+// ---- 학습: 외운 정도 (간단한 반복 학습 상자) ----
+// prog: { [key]: { box: 0~5, due: 다음에 볼 시각 } }. 알면 상자가 올라가고 다음 볼 날이 멀어진다
+const STUDY_GAPS = [0, 10 * 60e3, 24 * 3600e3, 3 * 24 * 3600e3, 7 * 24 * 3600e3, 14 * 24 * 3600e3];
+function studyKey(text) { return phraseWords(text).join(" "); }
+function studyGrade(prog, key, knew, now) {
+  const cur = prog[key] || { box: 0, due: 0 };
+  const box = knew ? Math.min(5, cur.box + 1) : 0;
+  prog[key] = { box, due: now + STUDY_GAPS[box], seen: (cur.seen || 0) + 1 };
+  return prog[key];
+}
+// 공부할 순서: 볼 때가 된 것(상자가 낮은 것부터) → 처음 보는 것 → 나머지. 다 외운(상자 5) 것은 맨 뒤
+function studyOrder(items, prog, now) {
+  const rank = (it) => {
+    const p = prog[studyKey(it.en)];
+    if (!p) return [1, 0];
+    if (p.box >= 5) return [3, p.due];
+    return p.due <= now ? [0, p.box] : [2, p.due];
+  };
+  return items.map((it, i) => [rank(it), i, it]).sort((a, b) => a[0][0] - b[0][0] || a[0][1] - b[0][1] || a[1] - b[1]).map((x) => x[2]);
+}
 /*CORE-END*/
 
 // ---------------------------------------------------------------------------
@@ -1754,7 +2032,7 @@ function relabelVoice(core, sock, v) {
 // ---------------------------------------------------------------------------
 const WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 // 앱 버전: 고칠 때마다 올린다. 설정 창 아래에 보이고, 새 버전이 올라왔는지 확인할 때 쓴다
-const APP_VERSION = "2026.11.16-4";
+const APP_VERSION = "2026.11.16-5";
 const STORE_KEY = "meeting-interpreter.settings.v1";
 const DEFAULTS = {
   apiKey: "", hint: "en", target: "ko", terms: "", fontSize: "18",
@@ -1878,7 +2156,13 @@ const DESKTOP = !!(window.desktop && window.desktop.popup);
 // 안드로이드 앱(Capacitor) 안에서 열렸는지. 앱은 MeetingNative 로 '앱을 나가도 계속 듣기'(알림이 뜨는 포그라운드 서비스)를 켠다
 const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 const Native = {
-  keep(on) { try { if (window.MeetingNative && window.MeetingNative.keepRecording) window.MeetingNative.keepRecording(!!on); } catch (e) {} }
+  has(fn) { return !!(window.MeetingNative && window.MeetingNative[fn]); },
+  keep(on) { try { if (this.has("keepRecording")) window.MeetingNative.keepRecording(!!on); } catch (e) {} },
+  canCapture() { try { return this.has("canCapture") && !!window.MeetingNative.canCapture(); } catch (e) { return false; } },
+  canOverlay() { try { return this.has("canOverlay") && !!window.MeetingNative.canOverlay(); } catch (e) { return false; } },
+  requestOverlay() { try { if (this.has("requestOverlay")) window.MeetingNative.requestOverlay(); } catch (e) {} },
+  setFloat(on) { try { if (this.has("setFloat")) window.MeetingNative.setFloat(!!on); } catch (e) {} },
+  floatLines(o) { try { if (this.has("floatLines")) window.MeetingNative.floatLines(JSON.stringify(o)); } catch (e) {} }
 };
 // 자막 팝업 창(데스크톱): 같은 앱을 #popup 으로 연 것. 본 창이 보내 주는 자막만 보여 준다
 const POPUP = DESKTOP && location.hash === "#popup";
@@ -1890,6 +2174,7 @@ function updateMode() {
   const idle = !live && el.empty.style.display !== "none";
   const was = document.body.classList.contains("idle");
   document.body.classList.toggle("idle", idle);
+  lvSync();
   if (idle && !was) renderHome();
   else if (live !== modeLive) renderSide();
   modeLive = live;
@@ -2195,7 +2480,7 @@ class PCMTap extends AudioWorkletProcessor {
 registerProcessor("pcm-tap", PCMTap);
 `;
 
-const A = { stream: null, ctx: null, src: null, src2: null, node: null, mute: null };
+const A = { stream: null, ctx: null, src: null, src2: null, node: null, mute: null, phone: false };
 
 async function getStream(source) {
   const md = navigator.mediaDevices;
@@ -2235,6 +2520,52 @@ function domOf(e) {
   return 0;
 }
 
+// ---- 폰 소리 (안드로이드 앱, 실험): 다른 앱이 재생하는 소리를 앱(CaptureService)이 0.1초씩 넘겨 준다 ----
+// 안드로이드는 통화 소리(Teams·Zoom 통화 등)와 캡처를 막은 앱의 소리는 넘겨주지 않는다. 그때는 조용한 소리만 온다
+const PHONE = { peak: 0, at: 0, warned: false, timer: null };
+function phonePcm(b64, onChunk) {
+  const bin = atob(b64), n = bin.length & ~1;
+  const buf = new ArrayBuffer(n), u8 = new Uint8Array(buf);
+  for (let i = 0; i < n; i++) u8[i] = bin.charCodeAt(i);
+  const v = new Int16Array(buf);
+  let pk = 0;
+  for (let i = 0; i < v.length; i += 8) { const a = v[i] < 0 ? -v[i] : v[i]; if (a > pk) pk = a; }
+  if (pk > PHONE.peak) PHONE.peak = pk;
+  buf.dom = 0;
+  onChunk(buf);
+}
+function startPhoneAudio(onChunk) {
+  return new Promise((resolve, reject) => {
+    let done = false;
+    const fail = (msg) => { if (done) return; done = true; clearTimeout(t); window.__phonePcm = null; reject(new Error(msg)); };
+    const t = setTimeout(() => fail("폰 소리 허용을 기다리다 멈췄습니다. 다시 시작해 주세요."), 90000);
+    window.__phoneState = (s) => {
+      s = String(s || "");
+      if (s === "ok") {
+        if (done) return;
+        done = true; clearTimeout(t); A.phone = true;
+        PHONE.peak = 0; PHONE.at = Date.now(); PHONE.warned = false;
+        clearTimeout(PHONE.timer);
+        // 12초 동안 거의 소리가 없으면, 그 앱이 소리 캡처를 막는 것일 수 있다고 알려 준다
+        PHONE.timer = setTimeout(() => {
+          if (A.phone && R.running && PHONE.peak < 60 && !PHONE.warned) {
+            PHONE.warned = true;
+            showBanner("다른 앱 소리가 들어오지 않습니다. Teams·Zoom 같은 통화 앱은 안드로이드가 소리 캡처를 막아 둘 수 있습니다. 소리가 계속 안 잡히면 정지 후 '들을 소리'를 마이크로 바꾸고 스피커로 들어 주세요.", true);
+          }
+        }, 12000);
+        resolve(16000);
+      } else if (s.startsWith("error:")) fail(s.slice(6));
+      else if (s === "stopped" && A.phone && R.running) { showBanner("폰 소리 듣기가 끝났습니다 (캡처가 중지됨).", true); stop(); }
+    };
+    window.__phonePcm = (b64) => { if (A.phone) phonePcm(b64, onChunk); };
+    try { window.MeetingNative.startCapture(); } catch (e) { fail("이 기기에서는 폰 소리 듣기를 쓸 수 없습니다."); }
+  });
+}
+function stopPhoneAudio() {
+  A.phone = false; window.__phonePcm = null; clearTimeout(PHONE.timer);
+  try { window.MeetingNative.stopCapture(); } catch (e) {}
+}
+
 async function startAudio(stream, onChunk) {
   const AC = window.AudioContext || window.webkitAudioContext;
   let ctx;
@@ -2269,6 +2600,7 @@ async function startAudio(stream, onChunk) {
 }
 
 function stopAudio() {
+  if (A.phone) stopPhoneAudio();
   try { if (A.node) { A.node.port.onmessage = null; A.node.disconnect(); } } catch (e) {}
   try { if (A.src) A.src.disconnect(); } catch (e) {}
   try { if (A.src2) A.src2.disconnect(); } catch (e) {}
@@ -3111,6 +3443,7 @@ function fmt(ms) {
 
 async function start() {
   if (R.running || R.starting) return;
+  R.paused = false;
   if (!settings.apiKey.trim()) { openSettingsDialog(); showBanner("먼저 설정에서 Soniox API 키를 입력해 주세요.", true); return; }
   if (settings.engine === "claude" && settings.target !== "none" && !settings.claudeKey.trim()) {
     openSettingsDialog(); showBanner("번역 방식이 Claude로 되어 있습니다. 설정에서 Claude API 키를 입력해 주세요.", true); return;
@@ -3133,12 +3466,23 @@ async function start() {
   el.toggle.disabled = true;
   setStatus("wait", "소리 연결 중");
   try {
+    if (settings.source === "phone") {
+      setStatus("wait", "폰 소리 허용 기다리는 중");
+      R.running = true;
+      R.sampleRate = await startPhoneAudio(onChunk);
+    } else {
     const stream = await getStream(settings.source);
     stream.getTracks().concat(stream.mic ? stream.mic.getTracks() : []).forEach((t) => t.addEventListener("ended", () => { if (R.running) stop(); }));
     R.running = true;
     R.sampleRate = await startAudio(stream, onChunk);
+    }
     AudioKeep.start();                                       // 켜 두었으면 회의 소리를 이 기기에 저장
+    Native.setFloat(settings.floatSub !== false);            // 안드로이드 앱: 앱 밖에서 떠 있는 자막 창
     if (settings.bgKeep !== false) Native.keep(true);        // 안드로이드 앱: 앱을 나가도 계속 듣기
+    if (NATIVE && settings.floatSub !== false && Native.has("canOverlay") && !Native.canOverlay() && !settings.floatAsked) {
+      settings.floatAsked = true; saveSettings(settings);
+      setTimeout(() => showBanner("홈으로 나가도 자막을 띄워 보려면 '다른 앱 위에 표시'를 허용해 주세요. 계정 → '앱 밖에서 자막 창 띄우기'를 켜면 허용 화면이 열립니다.", true), 1500);
+    }
   } catch (e) {
     R.running = false; R.starting = false;
     stopAudio();
@@ -3252,6 +3596,7 @@ async function finishMeeting(sess) {
   }
   if (id && R.meetingId === id) await saveMeeting(true, pendingTranslations(core));
   if (R.running && R.session !== sess) return;   // 그사이 다시 시작했으면 같은 회의가 이어지므로 정리는 다음 정지 때 한다
+  if (R.paused) { Cloud.schedule(1000); return; }   // 일시정지: 정리는 회의를 끝낼 때 한다
   // 회의가 끝나면 정리 화면으로 넘어간다 (작은 창이거나 다른 창이 열려 있으면 그대로 둔다)
   if (id && settings.openAfterStop !== false && !R.running && !$("meetDlg").open && !el.dlg.open) {
     try { const m = await Store.get("meetings", id); if (m && !R.running) openMeeting(m); } catch (e) {}
@@ -3269,9 +3614,11 @@ el.toggle.addEventListener("click", () => { if (R.running) stop(); else if (docu
 
 el.source.addEventListener("change", () => { settings.source = el.source.value; saveSettings(settings); });
 
-el.clear.addEventListener("click", async () => {
+el.clear.addEventListener("click", () => clearRecord(false));
+// 화면의 회의 기록을 지운다 (기록은 저장해 둔다). noAsk 면 묻지 않는다 (폰 대화 듣기 화면의 ✕)
+async function clearRecord(noAsk) {
   const kept = Store.ok && settings.autoSave !== false && !R.noSave;
-  if (core.blocks.length && !window.confirm(kept ? "화면의 기록을 모두 지울까요?\n(지금까지의 기록은 회의 폴더에 저장해 둡니다.)" : "화면의 기록을 모두 지울까요?")) return;
+  if (!noAsk && core.blocks.length && !window.confirm(kept ? "화면의 기록을 모두 지울까요?\n(지금까지의 기록은 회의 폴더에 저장해 둡니다.)" : "화면의 기록을 모두 지울까요?")) return;
   const prevMeeting = R.meetingId;
   await saveMeeting();
   if (prevMeeting) autoDigest(prevMeeting);      // 정지 없이 지운 회의에도 제목과 정리를 붙인다
@@ -3284,8 +3631,9 @@ el.clear.addEventListener("click", async () => {
   if (R.running) R.startedAt = Date.now();
   core.blocks = []; core.nf = { en: "", ko: "", speaker: null }; core.breakNext = false; resetDraft();
   el.transcript.textContent = ""; ghostEl = null;
+  R.paused = false; lvReset();
   if (!R.running) el.empty.style.display = "";
-});
+}
 
 el.save.addEventListener("click", () => {
   const text = exportText(core, speakerNames, core.mode === "llm" && !!settings.compare);
@@ -4714,7 +5062,7 @@ async function suggest(kind, text, block) {
   const ac = new AbortController();
   const cur = { kind, text, block: block || null, out: "", state: "run", err: "" };
   AS.ac = ac; AS.cur = cur; T.counts.assist++;
-  renderAssist();
+  renderAssist(); lvNotify();
   const idx = block ? core.blocks.indexOf(block) : -1;
   const act = kind === "act" ? (QUICK_ACTS.find((a) => a[0] === text) || [text, text])[1] : "";
   const user = assistContext(idx >= 0 ? idx : core.blocks.length) + "\n" +
@@ -4805,7 +5153,7 @@ function pumpAssist() {
 
 function pumpExtras() { pumpSonioxStats(); pumpAssist(); }
 
-$("asHide").addEventListener("click", () => { settings.assistOpen = settings.assistOpen === false; saveSettings(settings); updateAssistUI(); });
+$("asHide").addEventListener("click", () => { if (lvMode()) { lvSetRec(false); return; } settings.assistOpen = settings.assistOpen === false; saveSettings(settings); updateAssistUI(); });
 $("asNow").addEventListener("click", () => {
   for (let i = core.blocks.length - 1; i >= 0; i--) {
     const b = core.blocks[i], src = b.en.trim();
@@ -5036,7 +5384,14 @@ $("saveSettings").addEventListener("click", () => {
   if (mobile) document.body.classList.add("phone");
   if (!canShare || mobile) {
     for (const v of ["system", "both"]) { const opt = el.source.querySelector('option[value="' + v + '"]'); if (opt) opt.remove(); }
-    settings.source = "mic";
+    // 안드로이드 앱: 다른 앱이 내는 소리(이어폰으로 나가는 소리 포함)를 바로 듣는다 (실험)
+    if (Native.canCapture()) {
+      const o = document.createElement("option"); o.value = "phone"; o.textContent = "폰 소리 (다른 앱·이어폰, 실험)";
+      el.source.append(o);
+      el.source.querySelector('option[value="mic"]').textContent = "마이크 (스피커로 듣기)";
+    }
+    if (!el.source.querySelector('option[value="' + settings.source + '"]')) settings.source = "mic";
+    el.source.value = settings.source;
   }
   applyDisplaySettings();
   if (!/^https?:$/.test(location.protocol)) {
@@ -5075,7 +5430,7 @@ function renderHome() {
 }
 
 // ---- 탭: 홈 · 준비 · 리포트 · 표현 (회의 중이 아닐 때의 화면) ----
-const TABS = { home: "홈", prep: "폴더", report: "리포트", words: "표현" };
+const TABS = { home: "홈", prep: "폴더", report: "리포트", learn: "학습", words: "표현" };
 let curTab = "home", tabTick = 0;
 function showTab(name, fromNav) {
   if (!TABS[name]) name = "home";
@@ -5109,6 +5464,7 @@ async function renderTab() {
   if (curTab === "home") { renderSetup(all); renderRecent(all); }
   else if (curTab === "prep") renderPrep(all);
   else if (curTab === "report") renderReport(all);
+  else if (curTab === "learn") renderLearn(all);
   else renderWords(all);
 }
 document.querySelectorAll("#tabbar button[data-tab], #side .nav:not(#sideNew)").forEach((b) => b.addEventListener("click", () => { if (b.dataset.tab === "prep") FV.id = null; showTab(b.dataset.tab); }));
@@ -5305,7 +5661,9 @@ async function openAcct() {
   const pk = mk("p"); pk.append(mk("b", "", lv.name), " · " + (lv.next ? "다음: " + lv.next : "가장 높은 단계"));
   const kb = mk("button", "btn wide", "개인화 관리하기 ›"); kb.type = "button";
   kb.addEventListener("click", () => { $("acctSheet").close(); openKnow(); });
-  bk.append(rk, lvBar(lv.level), pk, kb);
+  const ib = mk("button", "btn wide", "학습 내용 가져오기 ›"); ib.type = "button"; ib.style.marginTop = "8px";
+  ib.addEventListener("click", () => { $("acctSheet").close(); openImport(); });
+  bk.append(rk, lvBar(lv.level), pk, kb, ib);
   const al = swRow("회의 후 자동으로 배우기", "회의 정리가 끝나면 그 회의에서 쓴 용어와 내 말투를 저절로 기억합니다. (Claude 또는 Groq 키 필요)",
     settings.autoLearn !== false, (v) => { settings.autoLearn = v; saveSettings(settings); });
   al.style.marginTop = "12px";
@@ -5337,6 +5695,19 @@ async function openAcct() {
     : "다른 창·앱으로 가도 계속 듣습니다. 끄면 이 화면을 떠날 때 회의가 멈춥니다. 폰 브라우저는 화면을 잠그면 멈출 수 있으니 안드로이드 앱을 쓰세요.",
     settings.bgKeep !== false, (v) => { settings.bgKeep = v; saveSettings(settings); if (R.running) Native.keep(v); }));
   bb.firstChild.style.borderTop = "0"; bb.firstChild.style.paddingTop = "0";
+  if (NATIVE && Native.has("canOverlay")) {
+    const can = Native.canOverlay();
+    bb.append(swRow("앱 밖에서 자막 창 띄우기", "회의 중에 홈으로 나가거나 다른 앱을 보면 뒤가 흐리게 비치는 자막 창이 떠 있습니다. 위쪽을 끌어 옮기고, 오른쪽 아래 모서리로 크기를 바꾸고, '—'를 누르면 버블로 작아집니다." +
+      (can ? "" : " 켜면 '다른 앱 위에 표시' 허용 화면이 열립니다. 허용한 뒤 돌아오세요."),
+      settings.floatSub !== false && can, (v) => { settings.floatSub = v; saveSettings(settings); Native.setFloat(v); if (v && !Native.canOverlay()) Native.requestOverlay(); }));
+  }
+  if (el.source.options.length > 1) {
+    const sr = mk("label", "sh-set"), tx = mk("div", "tx"), sel = mk("select", "btn");
+    tx.append(mk("b", "", "들을 소리"), mk("span", "", el.source.querySelector('option[value="phone"]') ? "'폰 소리'는 다른 앱이 내는 소리(이어폰 포함)를 바로 듣습니다. 통화 앱은 안드로이드가 막을 수 있어 실험 기능입니다." : "회의 소리를 어디서 들을지 고릅니다."));
+    sel.innerHTML = el.source.innerHTML; sel.value = el.source.value; sel.disabled = !!(R.running || R.starting);
+    sel.addEventListener("change", () => { el.source.value = sel.value; el.source.dispatchEvent(new Event("change")); });
+    sr.append(tx, sel); bb.append(sr);
+  }
   body.append(bb);
   // 동기화
   const b2 = mk("div", "sh-box"), r2 = mk("div", "row2");
@@ -5363,6 +5734,7 @@ async function openAcct() {
   const item = (label, fn) => { const b = mk("button", "", label); b.type = "button"; b.append(mk("span", "chev", "›")); b.addEventListener("click", () => { $("acctSheet").close(); fn(); }); list.append(b); };
   item("설정", () => openSettingsDialog());
   item("회의 폴더 준비", () => showTab("prep"));
+  item("표현 (용어집·자주 받는 질문·중요 표시)", () => showTab("words"));
   item("백업 파일로 내보내기·가져오기", () => { openSettingsDialog(); setTimeout(() => { const n = $("packExport"); if (n) n.scrollIntoView({ block: "center" }); }, 60); });
   item("처음 쓰는 방법", () => { showTab("home"); const d = document.querySelector("#empty details.howto"); if (d) { d.open = true; d.scrollIntoView({ block: "start" }); } });
   if (on) item("로그아웃", async () => { await Cloud.signOut(); Cloud.err = ""; renderCloud(); renderAcctChip(); renderTab(); });
@@ -5434,8 +5806,8 @@ async function renderKnow() {
   body.append(c3);
   const c4 = mk("div", "kn-card"), r4 = mk("div", "kn-row"), t4 = mk("div");
   t4.append(mk("h4", "", "다른 AI에서 가져오기"), mk("p", "", "ChatGPT·Claude 같은 다른 AI가 알고 있는 나에 대한 내용을 가져옵니다. 아래 글을 복사해 그 AI에 보내고, 받은 답을 붙여 넣으세요."));
-  const b4 = mk("button", "btn", KN.open === "import" ? "닫기" : "가져오기 시작"); b4.type = "button";
-  b4.addEventListener("click", () => { KN.open = KN.open === "import" ? "" : "import"; renderKnow(); });
+  const b4 = mk("button", "btn", "가져오기 시작"); b4.type = "button";
+  b4.addEventListener("click", () => openImport());
   r4.append(t4, b4); c4.append(r4);
   if (KN.open === "import") {
     const ed = mk("div", "kn-edit");
@@ -6080,11 +6452,397 @@ $("meVoiceBtn").addEventListener("click", () => { el.dlg.close(); openOnboard(3)
 new MutationObserver(updateMode).observe(el.empty, { attributes: true, attributeFilter: ["style"] });
 updateMode();
 
+// ---------------------------------------------------------------------------
+// 폰: 대화 듣기 화면 (라이브 · 요약 · 질문, 추천, 아래 입력칸)
+// 좁은 화면에서 회의 중이거나 회의 기록이 화면에 있을 때 위쪽 막대 대신 보인다 (넓은 화면은 예전 그대로)
+// ---------------------------------------------------------------------------
+var LV = null;   // 아래에서 채운다 (그 전에 불려도 괜찮게)
+const SVG_PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>';
+const SVG_PAUSE = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg>';
+const SVG_STOP = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+const SVG_CLOSE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6L6.4 19 5 17.6l5.6-5.6L5 6.4z"/></svg>';
+const LIVE_SUM_SYSTEM =
+  "You summarize an ongoing business meeting for a Korean professional who is in it right now. Read the transcript so far and reply with one JSON object only (no markdown) with these keys:\n" +
+  "summary: array of 3 to 7 short Korean sentences covering the main points discussed so far, in order.\n" +
+  "decisions: array of short Korean sentences for things decided or agreed so far (empty array if none).\n" +
+  "todos: array of short Korean sentences for follow-up actions mentioned so far, with owner and deadline only if said (empty array if none).\n" +
+  "open: array of short Korean sentences for questions still open or waiting for the user's answer (empty array if none).\n" +
+  "Use only what is in the transcript. Do not invent anything.";
+const LIVE_ASK_SYSTEM =
+  "You help a Korean professional during an English business meeting that is happening right now. Answer the user's question using the meeting transcript so far (and the background, if given). " +
+  "Answer in Korean, short and to the point (at most 6 sentences or a short list). When the user asks how to say something or asks for a reply, give natural English they can say, each with its Korean meaning in parentheses. " +
+  "When something was not said in the meeting, say so plainly instead of guessing. Plain text only, no markdown headings.";
+LV = { tab: "live", mode: "ask", qa: [], sum: null, sumBusy: false, sumErr: "", rec: false };
+function lvMode() { return narrow() && !document.body.classList.contains("idle") && !POPUP; }
+function lvReset() { LV.qa = []; LV.sum = null; LV.sumErr = ""; LV.sumBusy = false; lvSetRec(false); lvSetTab("live"); }
+function lvLines() {
+  return core.blocks.filter((b) => b.en.trim()).map((b) => ({ en: b.en.trim(), ko: (b.ko || "").trim(), who: b.speaker && b.speaker !== "me" ? aiSpeaker(b.speaker) : "", me: b.speaker === "me" }));
+}
+function lvSync() {
+  if (!LV || POPUP) return;
+  const live = R.running || R.starting;
+  const pb = $("lvPause"), sb = $("lvStop");
+  const pauseHtml = live ? SVG_PAUSE : SVG_PLAY;
+  if (pb.dataset.k !== pauseHtml) { pb.innerHTML = pauseHtml; pb.dataset.k = pauseHtml; }
+  pb.setAttribute("aria-label", live ? "일시정지" : R.paused ? "이어서 듣기" : "다시 시작");
+  const ended = !live && !R.paused;
+  const stopHtml = ended ? SVG_CLOSE : SVG_STOP;
+  if (sb.dataset.k !== stopHtml) { sb.innerHTML = stopHtml; sb.dataset.k = stopHtml; }
+  sb.setAttribute("aria-label", ended ? "닫고 홈으로" : "회의 끝내기");
+  $("lvState").textContent = R.starting ? el.status.textContent : live ? el.status.textContent : R.paused ? "일시정지" : "회의가 끝났습니다";
+  $("lvTime").textContent = el.timer.textContent;
+  const p = currentPack();
+  $("lvPack").textContent = p ? "· " + p.name : "";
+  const empty = LV.tab === "live" && !core.blocks.some((b) => b.en.trim()) && !((core.nf && core.nf.en) || "").trim();
+  document.body.classList.toggle("lv-empty-on", empty);
+  if (empty) {
+    $("lvEmptyH").textContent = live ? "듣고 있어요" : R.paused ? "잠시 멈췄어요" : "기록이 없어요";
+    $("lvEmptyP").textContent = live ? (settings.source === "phone" ? "폰에서 재생되는 영어가 들리면 자막과 한국어 번역이 바로 여기에 나와요." : "영어가 들리면 자막과 한국어 번역이 바로 여기에 나와요.")
+      : R.paused ? "▶ 를 누르면 이어서 들어요." : "✕ 를 누르면 홈으로 돌아가요.";
+  }
+  $("lvRec").classList.toggle("off", !assistOn());
+}
+function lvSetTab(t) {
+  if (!LV) return;
+  LV.tab = t;
+  document.body.classList.toggle("lv-sum", t === "sum");
+  document.body.classList.toggle("lv-qa", t === "qa");
+  for (const b of document.querySelectorAll("#lvTop .lv-tabs button")) b.classList.toggle("on", b.dataset.lv === t);
+  if (t === "sum") { lvRenderSum(); const n = lvLines().length; if (!LV.sumBusy && n >= 1 && (!LV.sum || n - LV.sum.n >= 4)) lvSummarize(); }
+  if (t === "qa") lvRenderQA();
+  if (t === "live") el.stage.scrollTop = el.stage.scrollHeight; else el.stage.scrollTop = 0;
+  lvSync();
+}
+function lvSetRec(on) {
+  if (!LV) return;
+  LV.rec = !!on;
+  document.body.classList.toggle("lv-rec-open", LV.rec);
+  if (on) $("lvRec").classList.remove("new");
+}
+// 답변 추천이 새로 만들어지는데 판이 닫혀 있으면 '추천' 단추를 반짝인다
+function lvNotify() { if (LV && lvMode() && !LV.rec) $("lvRec").classList.add("new"); }
+
+// ---- 요약: 지금까지의 대화 ----
+async function lvSummarize() {
+  const lines = lvLines();
+  LV.sumErr = "";
+  if (!lines.length) { LV.sumErr = "아직 요약할 내용이 적어요. 대화가 조금 더 쌓이면 다시 눌러 주세요."; lvRenderSum(); return; }
+  const spec = helperSpec("digest");
+  if (!spec) { LV.sumErr = "요약하려면 설정에서 Claude 또는 Groq API 키를 넣어 주세요."; lvRenderSum(); return; }
+  LV.sumBusy = true; lvRenderSum();
+  try {
+    const raw = await llmAsk(spec, LIVE_SUM_SYSTEM, "<livesum>\n<transcript>\n" + transcriptForAI(lines, 16000) + "\n</transcript>\n</livesum>", 900, { tries: 1, timeout: 45000 });
+    const a = raw.indexOf("{"), b = raw.lastIndexOf("}");
+    const j = JSON.parse(raw.slice(a, b + 1));
+    const arr = (v) => (Array.isArray(v) ? v : []).map((x) => String(typeof x === "string" ? x : (x && x.text) || "").trim()).filter(Boolean).slice(0, 10);
+    LV.sum = { at: Date.now(), n: lines.length, summary: arr(j.summary), decisions: arr(j.decisions), todos: arr(j.todos), open: arr(j.open) };
+  } catch (e) {
+    LV.sumErr = "요약하지 못했습니다: " + (e && e.status ? llmErrorText(e) || "AI 응답 오류" : e && e.timeout ? "시간이 너무 오래 걸렸어요. 다시 눌러 주세요." : "응답을 읽지 못했어요. 다시 눌러 주세요.");
+  }
+  LV.sumBusy = false; lvRenderSum();
+}
+function lvRenderSum() {
+  const box = $("lvSum"); box.textContent = "";
+  const head = mk("div", "lv-ph");
+  head.append(mk("span", "mmeta", LV.sum ? hhmm(LV.sum.at) + " 기준 · " + LV.sum.n + "줄을 요약" : "지금까지 나온 이야기를 정리해요"));
+  const again = mk("button", "btn sm", LV.sumBusy ? "요약하는 중…" : LV.sum ? "새로 요약" : "요약하기"); again.type = "button"; again.disabled = LV.sumBusy;
+  again.addEventListener("click", () => lvSummarize());
+  head.append(again); box.append(head);
+  if (LV.sumErr) box.append(mk("div", "lv-note", LV.sumErr));
+  if (!LV.sum) { if (!LV.sumErr && !LV.sumBusy) box.append(mk("div", "lv-note", "요약 탭을 열 때마다 새로 나온 대화가 있으면 다시 정리합니다.")); return; }
+  const sec = (title, items) => {
+    if (!items.length) return;
+    box.append(mk("div", "lv-h", title));
+    const ul = mk("ul", "lv-list"); for (const x of items) ul.append(mk("li", "", x)); box.append(ul);
+  };
+  sec("핵심 내용", LV.sum.summary); sec("정해진 것", LV.sum.decisions); sec("할 일", LV.sum.todos); sec("아직 열린 질문", LV.sum.open);
+}
+
+// ---- 질문: 회의 내용에 대해 묻기 ----
+const LV_QUICK = ["지금까지 요약해 줘", "방금 무슨 이야기였어?", "나한테 온 질문이 있었어?", "정해진 게 뭐야?"];
+async function lvAsk(q) {
+  q = (q || "").trim(); if (!q) return;
+  const item = { q, a: "", state: "run" };
+  LV.qa.push(item);
+  if (LV.tab !== "qa") lvSetTab("qa"); else lvRenderQA();
+  const spec = helperSpec("assist");
+  if (!spec) { item.state = "err"; item.a = "질문에 답하려면 설정에서 Claude 또는 Groq API 키를 넣어 주세요."; lvRenderQA(); return; }
+  const lines = lvLines();
+  const prev = LV.qa.slice(0, -1).filter((x) => x.state === "done").slice(-3).map((x) => "Q: " + x.q + "\nA: " + x.a).join("\n\n");
+  const user = "<ask>\n" + assistContext(0) + "\n<transcript>\n" + (lines.length ? transcriptForAI(lines, 14000) : "(nothing has been said yet)") + "\n</transcript>\n" +
+    (prev ? "<earlier_questions>\n" + prev + "\n</earlier_questions>\n" : "") + "<question>" + q + "</question>\n</ask>";
+  try { item.a = (await llmAsk(spec, LIVE_ASK_SYSTEM, user, 700, { tries: 1, timeout: 45000 })).trim() || "답을 받지 못했어요."; item.state = "done"; }
+  catch (e) { item.state = "err"; item.a = "답하지 못했습니다: " + (e && e.status ? llmErrorText(e) || "AI 응답 오류" : e && e.timeout ? "시간이 너무 오래 걸렸어요." : "연결을 확인해 주세요."); }
+  lvRenderQA();
+}
+function lvRenderQA() {
+  const box = $("lvQA"); box.textContent = "";
+  if (!LV.qa.length) {
+    box.append(mk("div", "lv-note", "지금 회의에 대해 무엇이든 물어보세요. 아래 칸 왼쪽의 '질문'을 누르면 '영어로'로 바뀌어, 한국어로 적은 말을 영어 표현으로 바꿔 줍니다."));
+    const chips = mk("div", "lv-chips");
+    for (const t of LV_QUICK) { const b = mk("button", "", t); b.type = "button"; b.addEventListener("click", () => lvAsk(t)); chips.append(b); }
+    box.append(chips);
+    return;
+  }
+  for (const x of LV.qa) {
+    box.append(mk("div", "qa-q", x.q));
+    box.append(mk("div", "qa-a" + (x.state === "run" ? " run" : x.state === "err" ? " err" : ""), x.state === "run" ? "답을 찾는 중…" : x.a));
+  }
+  el.stage.scrollTop = el.stage.scrollHeight;
+}
+
+// ---- 단추 ----
+$("lvPause").addEventListener("click", () => {
+  if (R.starting) return;
+  if (R.running) { R.paused = true; stop(); setStatus("", "일시정지"); }
+  else start();
+});
+$("lvStop").addEventListener("click", () => {
+  if (R.starting) return;
+  if (R.running) { R.paused = false; stop(); }
+  else if (R.paused) { R.paused = false; setStatus("", "정지됨"); finishMeeting(R.session); }
+  else clearRecord(true);
+  lvSync();
+});
+for (const b of document.querySelectorAll("#lvTop .lv-tabs button")) b.addEventListener("click", () => lvSetTab(b.dataset.lv));
+$("lvRec").addEventListener("click", () => {
+  if (!assistOn()) { showBanner("답변 추천을 쓰려면 설정에서 Claude 또는 Groq API 키를 넣고 '답변 제안'을 켜 주세요.", true); return; }
+  if (!LV.rec && !AS.cur) $("asNow").click();   // 아직 추천이 없으면 방금 들린 말로 하나 만든다
+  lvSetRec(!LV.rec);
+});
+$("lvSet").addEventListener("click", () => openSettingsDialog());
+$("lvMode").addEventListener("click", () => {
+  LV.mode = LV.mode === "ask" ? "ko" : "ask";
+  $("lvModeT").textContent = LV.mode === "ask" ? "질문" : "영어로";
+  $("lvInput").placeholder = LV.mode === "ask" ? "이 회의에 대해 물어보세요 (요약, 방금 한 말 등)" : "하고 싶은 말을 한국어로 적으면 영어로 바꿔 줘요";
+  $("lvInput").focus();
+});
+$("lvInput").addEventListener("input", () => $("lvSend").classList.toggle("ready", !!$("lvInput").value.trim()));
+$("lvBottom").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const t = $("lvInput").value.trim();
+  if (!t) return;
+  if (LV.mode === "ko") {
+    if (!assistOn()) { showBanner("영어로 바꾸려면 설정에서 Claude 또는 Groq API 키를 넣고 '답변 제안'을 켜 주세요.", true); return; }
+    suggest("ko", t, null); lvSetRec(true);
+  } else lvAsk(t);
+  $("lvInput").value = ""; $("lvSend").classList.remove("ready");
+});
+window.matchMedia("(max-width: 760px)").addEventListener("change", lvSync);
+
+// ---------------------------------------------------------------------------
+// 학습 탭: 최근 회의 표현 / 자주 쓰는 표현, 바로 학습(카드)
+// ---------------------------------------------------------------------------
+const PHRASES_SYSTEM =
+  "You help a Korean professional learn English from their own business meetings. From the transcript, pick up to 8 English expressions worth learning: natural business phrases, idioms, collocations or useful sentence patterns that were actually said. " +
+  "Prefer ones the user can reuse in their own meetings; skip names, single plain words, numbers and filler. " +
+  "Reply with one JSON object only (no markdown): {\"phrases\": [{\"en\": the expression as said (2 to 10 words), \"ko\": its natural Korean meaning, \"note\": one short Korean tip on when or how to use it, \"example\": the full sentence from the transcript where it appeared}]}.";
+const MEANINGS_SYSTEM = "Give the natural Korean meaning of each English expression as used in business meetings. Reply with one JSON object only (no markdown): {\"items\": [{\"en\": the expression exactly as given, \"ko\": short Korean meaning}]}.";
+const STUDY_KEY = "meetingassit.study.v1", PHKO_KEY = "meetingassit.phraseKo.v1";
+const LN = { tab: "recent", busy: new Set(), failed: new Set(), err: "", meanBusy: false, tick: 0 };
+function loadJSON(k) { try { return JSON.parse(localStorage.getItem(k) || "{}") || {}; } catch (e) { return {}; } }
+function saveJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+function parseJSONObj(raw) { const a = (raw || "").indexOf("{"), b = (raw || "").lastIndexOf("}"); if (a < 0 || b <= a) return null; try { return JSON.parse(raw.slice(a, b + 1)); } catch (e) { return null; } }
+const canSay = "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined";
+function say(text) {
+  if (!canSay) return;
+  try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = "en-US"; u.rate = 0.95; speechSynthesis.speak(u); } catch (e) {}
+}
+// 한 회의에서 배울 표현을 AI 로 고른다. 결과는 회의 기록(m.phrases)에 넣어 둔다
+async function extractPhrases(m) {
+  const spec = helperSpec("digest");
+  if (!spec) throw new Error("no engine");
+  const raw = await llmAsk(spec, PHRASES_SYSTEM, "<phrases>\n<transcript>\n" + transcriptForAI(m.lines || [], 12000) + "\n</transcript>\n</phrases>", 1200, { tries: 1, timeout: 60000 });
+  const j = parseJSONObj(raw);
+  if (!j || !Array.isArray(j.phrases)) throw new Error("bad format");
+  const S = (v, n) => (typeof v === "string" ? v.trim().slice(0, n) : "");
+  const list = j.phrases.map((x) => ({ en: S(x && x.en, 120), ko: S(x && x.ko, 120), note: S(x && x.note, 200), example: S(x && x.example, 400) })).filter((x) => x.en).slice(0, 10);
+  const cur = await Store.get("meetings", m.id);
+  if (cur) { cur.phrases = list; cur.phrasesAt = Date.now(); await Store.put("meetings", cur); }
+  m.phrases = list;
+  return list;
+}
+function renderLearn(all) {
+  const t = ++LN.tick;
+  $("lnRecentT").classList.toggle("on", LN.tab === "recent");
+  $("lnFreqT").classList.toggle("on", LN.tab === "freq");
+  const list = $("lnList"); list.textContent = "";
+  const prog = loadJSON(STUDY_KEY), now = Date.now();
+  let items = [];
+  const withLines = all.filter((m) => m.lines && m.lines.length >= 3);
+  if (LN.tab === "recent") {
+    const recent = withLines.slice(0, 5);
+    if (!recent.length) list.append(mk("p", "wempty", "아직 회의 기록이 없습니다. 회의를 하면 그 회의에서 나온, 배워 둘 만한 영어 표현을 골라 여기에 모아 줍니다."));
+    const ai = !!helperSpec("digest");
+    for (const m of recent) {
+      const g = mk("div", "ln-group"); g.append(mk("span", "", reportName(m)));
+      list.append(g);
+      if (m.phrases && m.phrases.length) {
+        for (const p of m.phrases) { const it = Object.assign({ from: m.title || "" }, p); items.push(it); list.append(lnItem(it, prog)); }
+      } else if (m.phrases) list.append(mk("div", "ln-busy", "이 회의에서는 고를 만한 표현이 없었습니다."));
+      else if (!ai) list.append(mk("div", "ln-busy", "표현을 고르려면 설정에서 Claude 또는 Groq API 키를 넣어 주세요."));
+      else if (LN.failed.has(m.id)) {
+        const r = mk("div", "ln-busy", "표현을 고르지 못했습니다. "), b = mk("button", "btn sm", "다시 시도"); b.type = "button";
+        b.addEventListener("click", () => { LN.failed.delete(m.id); renderTab(); });
+        r.append(b); list.append(r);
+      } else {
+        list.append(mk("div", "ln-busy", "배울 표현을 고르는 중…"));
+        if (!LN.busy.has(m.id)) {
+          LN.busy.add(m.id);
+          extractPhrases(m).catch(() => { LN.failed.add(m.id); })
+            .finally(() => { LN.busy.delete(m.id); if (curTab === "learn" && t === LN.tick) renderTab(); });
+        }
+      }
+    }
+  } else {
+    const fp = frequentPhrases(withLines, { limit: 30 });
+    const ko = loadJSON(PHKO_KEY);
+    if (!fp.length) list.append(mk("p", "wempty", "회의가 쌓이면 여러 번 나온 표현을 모아 보여 줍니다. 같은 표현이 두 번 넘게(또는 두 회의 이상에서) 나와야 여기에 올라옵니다."));
+    for (const x of fp) {
+      const it = { en: x.text, ko: ko[x.text] || "", example: x.example, exampleKo: x.exampleKo, count: x.count, meetings: x.meetings, mine: x.mine };
+      items.push(it); list.append(lnItem(it, prog));
+    }
+    // 뜻이 없는 표현은 AI 에 한 번에 물어 이 기기에 저장해 둔다
+    const need = fp.filter((x) => !ko[x.text]).map((x) => x.text);
+    const spec = helperSpec("digest");
+    if (need.length && spec && !LN.meanBusy) {
+      LN.meanBusy = true;
+      llmAsk(spec, MEANINGS_SYSTEM, "<meanings>\n" + need.map((x) => "- " + x).join("\n") + "\n</meanings>", 900, { tries: 1, timeout: 45000 })
+        .then((raw) => { const j = parseJSONObj(raw); const map = loadJSON(PHKO_KEY); for (const r of (j && j.items) || []) if (r && r.en && r.ko) map[String(r.en).toLowerCase().trim()] = String(r.ko).slice(0, 120); saveJSON(PHKO_KEY, map); })
+        .catch(() => {})
+        .finally(() => { if (curTab === "learn" && LN.tab === "freq") renderTab(); setTimeout(() => { LN.meanBusy = false; }, 30000); });
+    }
+  }
+  // 위쪽: 몇 개, 오늘 볼 것, 바로 학습
+  const head = $("lnHead");
+  head.textContent = "";
+  head.style.display = items.length ? "" : "none";
+  if (items.length) {
+    const keys = new Set(); items = items.filter((x) => { const k = studyKey(x.en); if (keys.has(k)) return false; keys.add(k); return true; });
+    const due = items.filter((x) => { const p = prog[studyKey(x.en)]; return !p || (p.box < 5 && p.due <= now); }).length;
+    const tx = mk("div"); tx.append(mk("b", "", items.length + "개 표현"), mk("span", "", due ? "지금 볼 차례 " + due + "개" : "다 봤어요. 다음 복습 때 다시 올라와요"));
+    const go = mk("button", "btn primary", "바로 학습"); go.type = "button";
+    go.addEventListener("click", () => openStudy(items, LN.tab === "recent" ? "최근 회의 표현" : "자주 쓰는 표현"));
+    head.append(tx, go);
+  }
+}
+function lnItem(it, prog) {
+  const row = mk("div", "ln-item"), tx = mk("div", "tx");
+  tx.append(mk("div", "ln-en", it.en));
+  if (it.ko) tx.append(mk("div", "ln-ko", it.ko));
+  if (it.note) tx.append(mk("div", "ln-note", it.note));
+  if (it.example && it.example.toLowerCase() !== it.en.toLowerCase()) tx.append(mk("div", "ln-ex", "“" + it.example + "”"));
+  const meta = mk("div", "ln-meta");
+  if (it.count) meta.append(mk("span", "", it.count + "번 · 회의 " + it.meetings + "건"));
+  if (it.mine) meta.append(mk("span", "mine", "내가 씀"));
+  const p = prog[studyKey(it.en)];
+  if (p) meta.append(mk("span", "box", p.box >= 5 ? "외웠어요" : "익힘 " + p.box + "/5"));
+  if (meta.childNodes.length) tx.append(meta);
+  row.append(tx);
+  if (canSay) { const b = mk("button", "ln-say", "🔊"); b.type = "button"; b.setAttribute("aria-label", "읽어 주기"); b.addEventListener("click", () => say(it.en)); row.append(b); }
+  return row;
+}
+$("lnRecentT").addEventListener("click", () => { LN.tab = "recent"; renderTab(); });
+$("lnFreqT").addEventListener("click", () => { LN.tab = "freq"; renderTab(); });
+$("lnWords").addEventListener("click", () => showTab("words"));
+
+// ---- 바로 학습: 한국어 뜻 → 영어로 떠올리기 (뜻이 없으면 영어 → 쓰임 확인) ----
+const ST = { items: [], i: 0, back: false, knew: 0, miss: [], title: "" };
+function openStudy(items, title) {
+  const prog = loadJSON(STUDY_KEY);
+  const seen = new Set(), uniq = items.filter((x) => { const k = studyKey(x.en); if (!k || seen.has(k)) return false; seen.add(k); return true; });
+  ST.items = studyOrder(uniq, prog, Date.now()).slice(0, 15);
+  ST.i = 0; ST.back = false; ST.knew = 0; ST.miss = []; ST.title = title || "바로 학습";
+  $("stTitle").textContent = ST.title;
+  renderStudy();
+  if (!$("studyDlg").open) $("studyDlg").showModal();
+}
+function markIn(text, phrase) {
+  const span = mk("span"), i = text.toLowerCase().indexOf(phrase.toLowerCase());
+  if (i < 0) { span.textContent = text; return span; }
+  span.append(text.slice(0, i), mk("mark", "", text.slice(i, i + phrase.length)), text.slice(i + phrase.length));
+  return span;
+}
+function renderStudy() {
+  const card = $("stCard"), foot = $("stFoot"); card.textContent = ""; foot.textContent = "";
+  const n = ST.items.length;
+  $("stBar").style.width = (n ? Math.round((ST.i / n) * 100) : 0) + "%";
+  $("stCount").textContent = ST.i < n ? (ST.i + 1) + " / " + n : "";
+  const btn = (label, cls, fn) => { const b = mk("button", "btn" + (cls ? " " + cls : ""), label); b.type = "button"; b.addEventListener("click", fn); foot.append(b); return b; };
+  if (ST.i >= n) {
+    card.append(mk("div", "st-q", "끝!"), mk("div", "st-big", n + "개 중 " + ST.knew + "개 알았어요"),
+      mk("div", "st-note", ST.miss.length ? "헷갈린 표현은 곧 다시 올라와요. 지금 한 번 더 볼 수도 있어요." : "아는 표현은 며칠 뒤 다시 복습하도록 올라와요."));
+    if (ST.miss.length) btn("헷갈린 것만 다시", "", () => openStudy(ST.miss, ST.title));
+    btn("닫기", "primary", () => $("studyDlg").close());
+    return;
+  }
+  const it = ST.items[ST.i];
+  if (!ST.back) {
+    if (it.ko) card.append(mk("div", "st-q", "영어로 어떻게 말할까요?"), mk("div", "st-big", it.ko));
+    else card.append(mk("div", "st-q", "이 표현, 어떤 뜻이고 언제 쓸까요?"), mk("div", "st-big", it.en));
+    if (it.note && it.ko) card.append(mk("div", "st-note", "힌트: " + it.note));
+    btn("정답 보기", "primary", () => { ST.back = true; renderStudy(); if (canSay) say(it.en); });
+    return;
+  }
+  card.append(mk("div", "st-q", "정답"), mk("div", "st-big", it.en));
+  if (it.ko) card.append(mk("div", "st-sub", it.ko));
+  if (it.note) card.append(mk("div", "st-note", it.note));
+  if (it.example) {
+    const ex = mk("div", "st-ex"); ex.append(markIn(it.example, it.en));
+    if (it.exampleKo) ex.append(mk("span", "k", it.exampleKo));
+    card.append(ex);
+  }
+  if (canSay) { const s = mk("button", "btn sm", "🔊 다시 듣기"); s.type = "button"; s.style.marginTop = "14px"; s.addEventListener("click", () => say(it.en)); card.append(s); }
+  const grade = (knew) => {
+    const prog = loadJSON(STUDY_KEY); studyGrade(prog, studyKey(it.en), knew, Date.now()); saveJSON(STUDY_KEY, prog);
+    if (knew) ST.knew++; else ST.miss.push(it);
+    ST.i++; ST.back = false; renderStudy();
+  };
+  btn("다시 볼게요", "", () => grade(false));
+  btn("알았어요", "primary", () => grade(true));
+}
+$("stClose").addEventListener("click", () => $("studyDlg").close());
+$("studyDlg").addEventListener("close", () => { try { if (canSay) speechSynthesis.cancel(); } catch (e) {} if (curTab === "learn" && document.body.classList.contains("idle")) renderTab(); });
+
+// ---- 학습 내용 가져오기 (계정 → 개인화, 내 지식 → 다른 AI에서 가져오기) ----
+function openImport() {
+  $("imPrompt").textContent = IMPORT_PROMPT;
+  $("imText").value = ""; $("imCount").textContent = "0"; $("imOk").disabled = true; $("imOk").textContent = "학습에 반영하기";
+  $("imMsg").textContent = ""; $("imMsg").className = "kn-msg"; $("imCopy").textContent = "⧉ 요청 글 복사";
+  // 앱에서는 링크를 누르면 휴대폰의 ChatGPT·Claude 앱(또는 브라우저)이 열린다. 웹에서는 새 탭으로
+  for (const id of ["imGpt", "imClaude"]) { if (NATIVE) $(id).removeAttribute("target"); else $(id).target = "_blank"; }
+  if (!$("importDlg").open) $("importDlg").showModal();
+}
+$("imBack").addEventListener("click", () => $("importDlg").close());
+$("imCopy").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText(IMPORT_PROMPT); $("imCopy").textContent = "✓ 복사했어요"; }
+  catch (e) { $("imCopy").textContent = "복사하지 못했어요. 위 '미리 보기'를 열어 길게 눌러 복사해 주세요."; $("imCopy").closest(".im-card").querySelector("details").open = true; }
+});
+$("imText").addEventListener("input", () => {
+  const n = $("imText").value.length;
+  $("imCount").textContent = n.toLocaleString("en-US");
+  $("imOk").disabled = !$("imText").value.trim();
+});
+$("imOk").addEventListener("click", async () => {
+  const ok = $("imOk"), msg = $("imMsg");
+  ok.disabled = true; ok.textContent = "반영하는 중…"; msg.textContent = ""; msg.className = "kn-msg";
+  try {
+    msg.textContent = await importKnowledge($("imText").value);
+    ok.textContent = "반영했어요";
+    $("imText").value = ""; $("imCount").textContent = "0";
+    if (curTab === "words" && document.body.classList.contains("idle")) renderKnow();
+  } catch (e) {
+    msg.className = "kn-msg bad"; msg.textContent = "반영하지 못했습니다: " + askFailText(e).replace(/'다시 정리'를 눌러/g, "다시 눌러").replace(/ 회의 기록은 그대로 저장되어 있습니다\./, "");
+    ok.disabled = false; ok.textContent = "학습에 반영하기";
+  }
+});
+
 // ---- 자막 팝업(데스크톱)과 주고받기 ----
 // 본 창 → 팝업: 마지막 두 줄(강조 표시 포함), 상태, 시간 / 팝업 → 본 창: 정지, 중요 표시
 const LIVE = "BroadcastChannel" in window ? new BroadcastChannel("meetingassit-live") : null;
 let liveTimer = null;
 function queueLive() {
+  queueFloat(); lvSync();
   if (!LIVE || POPUP || !popupOpen || liveTimer) return;
   liveTimer = setTimeout(() => { liveTimer = null; sendLive(); }, 80);
 }
@@ -6096,6 +6854,24 @@ function sendLive() {
     tome: n.classList.contains("tome"), star: n.classList.contains("starred"), mine: n.classList.contains("mine") }));
   LIVE.postMessage({ type: "state", lines, status: el.status.textContent, timer: el.timer.textContent, running: !!(R.running || R.starting) });
 }
+// ---- 안드로이드 앱: 앱 밖에서 떠 있는 자막 창(FloatWindow)에 마지막 줄들을 보낸다 ----
+let floatTimer = null;
+function queueFloat() {
+  if (!NATIVE || POPUP || floatTimer || !(R.running || R.starting || R.paused)) return;
+  floatTimer = setTimeout(() => { floatTimer = null; sendFloat(); }, 120);
+}
+function sendFloat() {
+  const lines = [];
+  for (let i = core.blocks.length - 1; i >= 0 && lines.length < 3; i--) {
+    const b = core.blocks[i], en = b.en.trim(), ko = (b.ko || b.draftKo || "").trim();
+    if (en || ko) lines.unshift({ en, ko, mine: b.speaker === "me" });
+  }
+  const nf = core.nf && (core.nf.en || "").trim();
+  if (nf) { lines.push({ en: nf, ko: (core.nf.ko || "").trim(), partial: true }); if (lines.length > 3) lines.shift(); }
+  Native.floatLines({ t: el.timer.textContent, s: R.paused ? "일시정지" : R.running ? "듣는 중" : "정지됨", lines });
+}
+// 떠 있는 자막 창의 '정지' 단추
+window.__nativeCmd = (c) => { if (c === "stop" && R.running) { R.paused = false; stop(); } };
 function starLast() {
   for (let i = core.blocks.length - 1; i >= 0; i--) { if (core.blocks[i].en.trim()) { toggleStar(core.blocks[i]); return; } }
 }
