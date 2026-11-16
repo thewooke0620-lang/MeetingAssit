@@ -40,7 +40,7 @@ run('ASSIST TESTS', async (b) => {
   assert(/Never invent facts/.test(ar[0].system));
   s = await panel(p);
   console.log(s);
-  assert(/들린 말\s*Can you confirm the penalty clause by Friday\?/.test(s.head));
+  assert(/상대 질문\s*Can you confirm the penalty clause by Friday\?/.test(s.head));
   assert.deepStrictEqual(s.opts, ['Yes, we can confirm by Friday. / 네, 금요일까지 확인드리겠습니다.', 'Let me check with my team and get back to you by Friday. / 팀과 확인한 뒤 금요일까지 답변드리겠습니다.']);
   assert(s.text.includes('번역[Can you confirm]'), '질문의 번역도 함께 보여 줌');
   // 제안을 누르면 영어 문장이 복사된다

@@ -51,8 +51,8 @@ run('ROUND2 TESTS', async (b) => {
   await p.click('#digestBtn'); await p.waitForTimeout(500);
   const view = await p.textContent('#mvBody');
   assert(/중요 표시한 발언 \(2\)/.test(view));
-  assert.strictEqual(await p.$$eval('#mvBody .mvlist li .srcbtn', (n) => n.length), 4, '결정 1 + 할 일 1 + 중요 표시 2');
-  await p.click('#mvBody h4:has-text("결정 사항") + ul .srcbtn');
+  assert.strictEqual(await p.$$eval('#mvBody .mv-sum .srcbtn', (n) => n.length), 4, '결정 1 + 할 일 1 + 중요 표시 2');
+  await p.click('#mvBody .decision-row .srcbtn');
   await p.waitForTimeout(200);
   assert.strictEqual(await p.evaluate(() => document.querySelector('#mvBody details.mvlog').open), true);
   assert(/Please confirm the numbers/.test(await p.textContent('#mvBody .mvline.flash')));

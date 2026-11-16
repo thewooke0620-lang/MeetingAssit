@@ -49,7 +49,7 @@ run('ROUND4 TESTS', async (b) => {
   // 4) 키가 없으면 안내하고, '회의 시작'은 설정을 연다. 폴더를 바꾸면 그 폴더로 저장된다
   p = await openApp(b, Object.assign({}, BASE, { apiKey: '' }));
   assert.strictEqual(await p.isVisible('#homeKey'), true);
-  await p.click('#homeStart'); await p.waitForTimeout(200);
+  await p.click('#homeKeyBtn'); await p.waitForTimeout(200);
   assert.strictEqual(await p.evaluate(() => document.getElementById('settings').open), true);
   await p.fill('#apiKey', 'k'); await p.click('#saveSettings'); await p.waitForTimeout(300);
   assert.strictEqual(await p.isVisible('#homeKey'), false, '키를 넣으면 안내가 사라짐');

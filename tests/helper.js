@@ -135,6 +135,7 @@ const toggle = async (p) => { await clickToggle(p); await p.waitForTimeout(300);
 async function meeting(p, text, after) { await toggle(p); await speak(p, text); await p.waitForTimeout(400); await clickToggle(p); await p.waitForTimeout(after || 4900); }
 // 설정 열기: 위쪽 막대의 '설정', 폰의 시작 화면처럼 막대가 없으면 계정 단추 → '설정'
 const clickSettings = async (p) => {
+  if (await p.isVisible('#liveMore') && !(await p.isVisible('#openSettings'))) await p.click('#liveMore');
   if (await p.isVisible('#openSettings')) { await p.click('#openSettings'); return; }
   if (await p.isVisible('#lvSet')) { await p.click('#lvSet'); return; }   // 폰 대화 듣기 화면의 ⚙
   await p.click((await p.isVisible('#acctChip')) ? '#acctChip' : '#sideAcct'); await p.waitForTimeout(150);   // PC 시작 화면: 계정은 왼쪽 아래
