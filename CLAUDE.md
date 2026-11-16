@@ -54,6 +54,11 @@
 - 폴더 탭(TABS.prep = '폴더'): 폴더 목록 → 누르면 폴더 보기(`FV.id`, 그 폴더 회의를 날짜순, 제목·태그·내용으로 찾기). 뒤로가기 기록에 folder 를 남긴다.
 - 리포트 이름은 `reportName(m)` = 날짜_제목(제목만 고칠 수 있음). 태그는 회의 정리(DIGEST_SYSTEM 의 tags)로 5개까지 달고 m.tags 에 둔다. 손으로 고치면 tagsManual 이라 다시 덮어쓰지 않는다. 찾기는 `meetMatch`.
 
+## PC(넓은 화면) 시작 화면 (2026-11-16)
+- 왼쪽 메뉴(#side)는 떠 있는 판: 로고 → 홈·폴더·리포트·학습·라이브러리(아이콘) → 회의 폴더(＋ = #sidePackNew, 트리만 스크롤) → 맞춤 설정 진행률 카드(#sideSetup, `renderSideSetup`, 다 끝나면 사라짐) → 계정(#sideAcct → `openAcct`). 예전 #sideCloud·#sideSettings 는 숨김(요소는 남김).
+- 위쪽 막대(시작 화면): ☰, ‹ › (history), '최신 버전으로 새로고침'(#barUpd, 새 버전 때만), '새 회의 시작'(#homeStart, 호박색). 홈의 처음 시작하기 카드·계정 칩은 넓은 화면에서 숨긴다(폰은 그대로).
+- 리포트 줄(`meetRow`, 폰·PC 공통): 기기 아이콘(m.dev = phone/pc, saveMeeting 이 기록) · 날짜_제목과 '11월 14일 · 오후 10:40' · 길이(초/분). 홈은 '최근 리포트'를 지난 7일 / 그 전으로 나눠 8개까지.
+
 ## 폰 대화 듣기 화면·학습 탭 (2026-11-16)
 - 좁은 화면(760px 이하)에서 회의 중이거나 기록이 화면에 있으면 위쪽 막대(#bar) 대신 `#lvTop`(❚❚/▶ · ■/✕ · 라이브|요약|질문 · 추천 · ⚙)과 아래 입력칸 `#lvBottom` 을 쓴다. 상태는 `LV`, 그리기는 `lvSync()`(updateMode·queueLive 에서 부름). 넓은 화면은 예전 그대로.
 - 일시정지: `R.paused = true; stop()` → `finishMeeting` 이 정리 화면·자동 정리를 건너뛴다. ■ 는 끝내기(일시정지 상태면 `finishMeeting` 을 직접 부름), 끝난 뒤 ✕ 는 `clearRecord(true)`(묻지 않고 지우기, 기록은 저장됨).

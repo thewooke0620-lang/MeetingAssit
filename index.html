@@ -692,6 +692,75 @@
   #imText { width: 100%; min-height: 150px; resize: vertical; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px; color: var(--text); font: inherit; font-size: 14.5px; line-height: 1.6; }
   .im-count { text-align: right; font-size: 12.5px; color: var(--muted); margin: 6px 2px 12px; font-variant-numeric: tabular-nums; }
   #imOk:not(:disabled) { background: var(--text) !important; color: var(--bg); }
+
+  /* ================= PC(넓은 화면) 시작 화면: 떠 있는 왼쪽 메뉴, 위쪽 단추 줄, 리포트 목록 ================= */
+  .idle-only { display: none; }
+  .side-brand { display: none; }
+  .side-h { display: flex; align-items: center; justify-content: space-between; }
+  .side-plus { background: none; border: 0; color: var(--muted); font-size: 16px; width: 26px; height: 26px; border-radius: 7px; cursor: pointer; }
+  .side-plus:hover { background: var(--panel2); color: var(--text); }
+  .side-item.nav { display: flex; align-items: center; gap: 10px; }
+  .side-item.nav svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; opacity: .85; }
+  .side-acct { display: flex; align-items: center; gap: 10px; width: 100%; background: var(--panel2); border: 1px solid var(--line); border-radius: 14px; padding: 8px 10px; color: var(--text); cursor: pointer; text-align: left; margin-top: 8px; }
+  .side-acct:hover { border-color: #3d4c60; }
+  .side-acct .av { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 14px; background: #2c3747; }
+  .side-acct .av.on { background: var(--lamp); color: #1b1305; }
+  .side-acct .tx { flex: 1; min-width: 0; }
+  .side-acct .tx b { display: block; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .side-acct .tx span { display: block; font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .side-acct .chev { color: var(--muted); font-size: 12px; }
+  .side-setup { border: 1px solid var(--line); background: var(--bg); border-radius: 14px; padding: 12px 12px 6px; margin-top: 8px; }
+  .ss-head { display: flex; align-items: center; justify-content: space-between; width: 100%; background: none; border: 0; padding: 0; color: var(--text); font-size: 14px; cursor: pointer; }
+  .ss-head .chev { color: var(--muted); font-size: 12px; }
+  .ss-row { display: flex; align-items: center; gap: 8px; margin: 10px 0 6px; }
+  .ss-bar { flex: 1; height: 5px; border-radius: 5px; background: #263243; overflow: hidden; }
+  .ss-bar i { display: block; height: 100%; background: var(--lamp); border-radius: 5px; }
+  .ss-pct { font-size: 12.5px; font-weight: 800; color: var(--lamp); font-variant-numeric: tabular-nums; }
+  .ss-sub { font-size: 12px; color: var(--muted); margin: 4px 0 2px; line-height: 1.5; }
+  .ss-list button { padding: 8px 0 !important; font-size: 13px !important; gap: 10px !important; }
+  .ss-list .ck { flex-basis: 20px !important; height: 20px !important; }
+  .ss-list li.done .ck::after { left: 6px !important; top: 3px !important; width: 5px !important; height: 9px !important; }
+  .btn.amber { display: inline-flex; align-items: center; gap: 8px; background: var(--lamp); border-color: var(--lamp); color: #1b1305; font-weight: 800; padding: 9px 18px; border-radius: 12px; }
+  .btn.amber:hover { background: #f6c76a; border-color: #f6c76a; }
+  .btn.amber .lamp { background: #1b1305; box-shadow: none; width: 8px; height: 8px; }
+  .navarrows { align-items: center; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .navarrows button { background: none; border: 0; color: var(--muted); width: 36px; height: 32px; font-size: 18px; cursor: pointer; }
+  .navarrows button:hover { color: var(--text); background: var(--panel); }
+  .sec-row { display: flex; align-items: baseline; justify-content: space-between; }
+  .rgrp { font-size: 13px; color: var(--muted); font-weight: 600; margin: 14px 0 4px; }
+  /* 리포트 줄 (폰·PC 같이) */
+  .rrow { display: grid !important; grid-template-columns: 40px minmax(0, 1fr) auto 14px !important; gap: 14px !important; align-items: center !important; border-top: 0 !important; border-bottom: 0 !important;
+    border-radius: 12px; padding: 10px 8px !important; }
+  .rrow:last-child { border-bottom: 0 !important; }
+  .rrow:hover { background: var(--panel); }
+  .rrow:hover .rt { text-decoration: none !important; }
+  .ricon { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); display: grid; place-items: center; color: var(--muted); }
+  .ricon svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .rbody { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .rrow .rt { font-size: 15.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rrow .rd { font-size: 13px; color: var(--muted); grid-column: auto !important; }
+  .rrow .rm { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: var(--muted); }
+  .rrow .rm svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+  .rchev { color: var(--muted); }
+  @media (max-width: 560px) { .rrow { grid-template-columns: 36px minmax(0, 1fr) auto !important; gap: 10px !important; } .rchev { display: none; } .ricon { width: 36px; height: 36px; } .rrow .rt { font-size: 14.5px; } }
+  @media (min-width: 761px) {
+    #side { margin: 10px 0 10px 10px; border: 1px solid var(--line); border-radius: 18px; background: var(--panel); padding: 12px 10px; width: 236px; overflow: hidden; }
+    #side #sideTree { flex: 1 1 auto; min-height: 60px; overflow-y: auto; }
+    #side > .spacer { display: none; }
+    #side #sideCloud, #side #sideSettings { display: none !important; }   /* 동기화·설정은 왼쪽 아래 계정에서 */
+    #side .side-setup, #side .side-acct, #side #sideInstall { flex: 0 0 auto; }
+    #side .ss-list { max-height: 34vh; overflow-y: auto; }
+    .page-head { margin-bottom: 14px; }
+    .side-brand { display: flex; align-items: center; gap: 9px; padding: 4px 10px 14px; font-size: 15px; }
+    body.idle header#bar { background: var(--bg); border-bottom: 0; }
+    body.idle header#bar > .lamp, body.idle header#bar > .title, body.idle #status, body.idle #saveState, body.idle #openSettings { display: none !important; }
+    body.idle .idle-only:not([hidden]) { display: inline-flex; }
+    body.idle .page-head .acct-chip { display: none; }   /* 계정은 왼쪽 아래 */
+    body.idle #setupCard { display: none !important; }   /* 처음 시작하기는 왼쪽 아래 카드 */
+    #empty { max-width: 900px; margin-top: 3vh; }
+    body:not(.side-closed) #empty { padding: 0 16px; }
+  }
+  @media (max-width: 760px) { .side-setup { display: none !important; } }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -699,6 +768,7 @@
 
 <header id="bar">
   <button id="sideBtn" class="btn icon" type="button" title="메뉴 열기·닫기" aria-label="메뉴" aria-controls="side">☰</button>
+  <span class="navarrows idle-only"><button id="navBack" type="button" aria-label="뒤로">‹</button><button id="navFwd" type="button" aria-label="앞으로">›</button></span>
   <span class="lamp" aria-hidden="true"></span>
   <span class="title">회의 통역 도우미</span>
   <span id="status" class="pill">대기</span>
@@ -718,6 +788,8 @@
     <button id="save" class="btn" title="기록을 텍스트 파일로 저장">저장</button>
     <button id="clear" class="btn" title="화면의 기록 지우기">지우기</button>
     <button id="openSettings" class="btn">설정</button>
+    <button id="barUpd" class="btn idle-only" type="button" hidden>↑ 최신 버전으로 새로고침</button>
+    <button id="homeStart" class="btn amber idle-only" type="button"><span class="lamp" aria-hidden="true"></span>새 회의 시작</button>
     <button id="toggle" class="btn primary">시작</button>
   </div>
 </header>
@@ -738,19 +810,21 @@
 
 <div id="work">
 <nav id="side" aria-label="메뉴">
-  <button id="sideNew" class="side-item strong nav" type="button" data-tab="home">홈 · 새 회의</button>
-  <button class="side-item nav" type="button" data-tab="prep">폴더</button>
-  <button class="side-item nav" type="button" data-tab="report">리포트</button>
-  <button class="side-item nav" type="button" data-tab="learn">학습</button>
-  <button class="side-item nav" type="button" data-tab="words">라이브러리</button>
+  <div class="side-brand"><span class="lamp" aria-hidden="true"></span><b>회의 통역</b></div>
+  <button id="sideNew" class="side-item nav" type="button" data-tab="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5h-5v5H5a1 1 0 0 1-1-1z"/></svg><span>홈</span></button>
+  <button class="side-item nav" type="button" data-tab="prep"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg><span>폴더</span></button>
+  <button class="side-item nav" type="button" data-tab="report"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10M10 20V5M15 20v-7M20 20V8"/></svg><span>리포트</span></button>
+  <button class="side-item nav" type="button" data-tab="learn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.5 12 5l9 4.5-9 4.5z"/><path d="M7 11.5V16c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5v-4.5M21 9.5V15"/></svg><span>학습</span></button>
+  <button class="side-item nav" type="button" data-tab="words"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6a2 2 0 0 1 2-2h11v14H7a2 2 0 0 0-2 2zM5 20V6M9 8h5"/></svg><span>라이브러리</span></button>
   <button id="sideNow" class="side-item now" type="button" style="display:none">지금 화면의 회의</button>
-  <div class="side-h">회의 폴더</div>
+  <div class="side-h"><span>회의 폴더</span><button id="sidePackNew" class="side-plus" type="button" title="새 폴더" aria-label="새 폴더">＋</button></div>
   <ul id="sideTree" class="tree" role="tree" aria-label="회의 폴더와 회의"></ul>
-  <button id="sidePackNew" class="side-item sub" type="button">＋ 새 폴더</button>
   <span class="spacer"></span>
   <button id="sideInstall" class="side-item sub" type="button" style="display:none">⤓ 앱으로 설치</button>
-  <button id="sideCloud" class="side-item sub" type="button" title="계정과 동기화">☁ 동기화 꺼짐</button>
-  <button id="sideSettings" class="side-item" type="button">설정</button>
+  <div id="sideSetup" class="side-setup" style="display:none"></div>
+  <button id="sideCloud" class="side-item sub" type="button" title="계정과 동기화" hidden>☁ 동기화 꺼짐</button>
+  <button id="sideSettings" class="side-item" type="button" hidden>설정</button>
+  <button id="sideAcct" class="side-acct" type="button" title="계정·동기화·설정"><span id="sideAv" class="av" aria-hidden="true">?</span><span class="tx"><b id="sideName">로그인</b><span id="sideSub">동기화 꺼짐</span></span><span class="chev" aria-hidden="true">⌃</span></button>
 </nav>
 <div id="stageHome">
   <div id="stage">
@@ -775,15 +849,13 @@
         </div>
       <section class="home">
         <div class="home-go">
-          <button id="homeStart" class="btn primary big" type="button">회의 시작</button>
           <span id="homeKey" class="home-warn" style="display:none">먼저 Soniox API 키를 넣어야 합니다. <button id="homeKeyBtn" class="btn sm" type="button">설정 열기</button></span>
         </div>
       </section>
       <div id="installTip" class="install-tip" style="display:none"></div>
         <section class="recent" id="homeRecentBox" style="display:none">
-          <h2 class="sec-h">최근 회의</h2>
+          <div class="sec-row"><h2 class="sec-h">최근 리포트</h2><button id="homeAllReports" class="linkbtn" type="button">전체 보기 ›</button></div>
           <div id="homeRecent"></div>
-          <button id="homeAllReports" class="linkbtn" type="button">리포트에서 모두 보기</button>
         </section>
       <details class="howto">
         <summary>처음 쓰는 방법</summary>
@@ -2058,7 +2130,7 @@ function studyOrder(items, prog, now) {
 // ---------------------------------------------------------------------------
 const WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 // 앱 버전: 고칠 때마다 올린다. 설정 창 아래에 보이고, 새 버전이 올라왔는지 확인할 때 쓴다
-const APP_VERSION = "2026.11.16-11";
+const APP_VERSION = "2026.11.16-12";
 const STORE_KEY = "meeting-interpreter.settings.v1";
 const DEFAULTS = {
   apiKey: "", hint: "en", target: "ko", terms: "", fontSize: "18",
@@ -4296,7 +4368,7 @@ async function saveMeeting(announce, pending) {
   try {
     // 이미 붙은 제목은 그대로 두고 내용만 바꾼다
     saved = await Store.update("meetings", id, (old) => Object.assign({}, old || {},
-      { id, packId: settings.packId, startedAt: R.meetingStart, endedAt: Date.now(), secs, lines }, extra));
+      { id, packId: settings.packId, startedAt: R.meetingStart, endedAt: Date.now(), secs, lines, dev: (old && old.dev) || (document.body.classList.contains("phone") ? "phone" : "pc") }, extra));
   } catch (e) {
     setSaveState("fail");
     if (announce) setConnState("회의 기록을 저장하지 못했습니다. 위의 '저장 실패'를 눌러 파일로 받아 두세요.");
@@ -5631,29 +5703,69 @@ $("homeAllReports").addEventListener("click", () => showTab("report"));
 function reportDate(m) { const d = new Date(m.startedAt || m.endedAt || 0); return d.getFullYear() + "." + pad2(d.getMonth() + 1) + "." + pad2(d.getDate()); }
 function reportName(m) { return reportDate(m) + "_" + (m.title || "제목 정리 전"); }
 function tagChips(tags) { const t = mk("span", "tags"); for (const x of (tags || []).slice(0, 5)) t.append(mk("span", "tag", "#" + x)); return t; }
+const DEV_ICON = {
+  phone: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2.2"/><path d="M11 17.5h2"/></svg>',
+  pc: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="11" rx="1.6"/><path d="M2.5 19h19"/></svg>',
+  any: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10A.5.5 0 0 1 7 20z"/><path d="M14 3.5V8h4M9.5 12h5M9.5 15.5h5"/></svg>'
+};
+function durText(secs) { secs = Math.round(secs || 0); return secs < 60 ? Math.max(1, secs) + "초" : Math.round(secs / 60) + "분"; }
+function whenText(t) {
+  const d = new Date(t), h = d.getHours();
+  return (d.getMonth() + 1) + "월 " + d.getDate() + "일 · " + (h < 12 ? "오전 " : "오후 ") + ((h % 12) || 12) + ":" + pad2(d.getMinutes());
+}
 function meetRow(m, withPack) {
   const row = mk("button", "rrow"); row.type = "button";
-  const d = new Date(m.startedAt || m.endedAt || 0);
   const pack = packs.find((p) => p.id === m.packId);
+  const ic = mk("span", "ricon"); ic.innerHTML = DEV_ICON[m.dev] || DEV_ICON.any;
+  ic.title = m.dev === "phone" ? "폰에서 한 회의" : m.dev === "pc" ? "PC에서 한 회의" : "";
+  const body = mk("span", "rbody");
   const t = mk("span", "rt" + (m.title ? "" : " pending"), reportName(m));
-  if (withPack && pack) t.append(mk("span", "rp", pack.name));
   if (m.tags && m.tags.length) t.append(tagChips(m.tags));
-  row.append(mk("span", "rd", (d.getMonth() + 1) + "월 " + d.getDate() + "일 " + pad2(d.getHours()) + ":" + pad2(d.getMinutes())), t,
-    mk("span", "rm", Math.max(1, Math.round((m.secs || 0) / 60)) + "분"));
+  const sub = mk("span", "rd", whenText(m.startedAt || m.endedAt || 0) + (withPack && pack ? " · " + pack.name : ""));
+  body.append(t, sub);
+  const dur = mk("span", "rm"); dur.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>'; dur.append(durText(m.secs));
+  row.append(ic, body, dur, mk("span", "rchev", "›"));
   row.addEventListener("click", () => openMeeting(m));
   return row;
 }
 
 // 처음 시작하기: 4가지를 끝내면 사라진다
 let setupOpen = true;
-function renderSetup(all) {
-  const items = [
+function setupItems(all) {
+  return [
     ["Soniox API 키 넣기", !!(settings.apiKey && settings.apiKey.trim()), () => openOnboard(1)],
     ["내 이름과 목소리 등록", !!(profile.name && hasVoice()), () => openOnboard(profile.name ? 3 : 0)],
     ["계정 만들고 기기끼리 맞추기", !!Cloud.session, () => openOnboard(2)],
     ["첫 회의 폴더 준비하기", packs.some((p) => ((p.brief || "") + (p.terms || "") + (p.qa || "") + (p.topic || "") + (p.people || "")).trim()), () => showTab("prep")],
     ["첫 회의 해 보기", all.length > 0, () => $("fab").offsetParent ? $("fab").click() : $("homeStart").click()]
   ];
+}
+// 왼쪽 메뉴 아래: 맞춤 설정 진행률 카드 (넓은 화면). 다 끝내면 사라진다
+let sideSetupOpen = window.innerHeight > 950;   // 화면이 낮으면 접어 두어 폴더 목록 자리를 남긴다
+function renderSideSetup(all) {
+  const box = $("sideSetup"), items = setupItems(all), done = items.filter((x) => x[1]).length;
+  box.textContent = "";
+  box.style.display = done === items.length ? "none" : "";
+  if (done === items.length) return;
+  const pct = Math.round(done / items.length * 100);
+  const head = mk("button", "ss-head"); head.type = "button"; head.setAttribute("aria-expanded", sideSetupOpen ? "true" : "false");
+  head.append(mk("b", "", "나에게 맞추는 중"), mk("span", "chev", sideSetupOpen ? "⌃" : "⌄"));
+  head.addEventListener("click", () => { sideSetupOpen = !sideSetupOpen; renderSideSetup(all); });
+  const bar = mk("div", "ss-bar"), fill = mk("i"); fill.style.width = pct + "%"; bar.append(fill);
+  const row = mk("div", "ss-row"); row.append(bar, mk("span", "ss-pct", pct + "%"));
+  box.append(head, row);
+  if (!sideSetupOpen) return;
+  box.append(mk("p", "ss-sub", "채울수록 번역과 답변 추천이 나에게 맞춰져요."));
+  const ul = mk("ul", "setup-list ss-list");
+  for (const [label, ok, act] of items) {
+    const li = mk("li", ok ? "done" : ""), b = mk("button"); b.type = "button";
+    b.append(mk("span", "ck"), mk("span", "tx", label), mk("span", "go", "›"));
+    b.addEventListener("click", act); li.append(b); ul.append(li);
+  }
+  box.append(ul);
+}
+function renderSetup(all) {
+  const items = setupItems(all);
   const done = items.filter((x) => x[1]).length;
   const card = $("setupCard");
   card.style.display = done === items.length ? "none" : "";
@@ -5674,9 +5786,15 @@ $("setupToggle").addEventListener("click", () => { setupOpen = !setupOpen; rende
 
 function renderRecent(all) {
   const box = $("homeRecent"); box.textContent = "";
-  for (const m of all.slice(0, 5)) box.append(meetRow(m, packs.length > 1));
+  const wk = Date.now() - 7 * 86400e3, list = all.slice(0, 8);
+  let grp = "";
+  for (const m of list) {
+    const g = (m.startedAt || 0) >= wk ? "지난 7일" : "그 전";
+    if (g !== grp) { grp = g; box.append(mk("div", "rgrp", g)); }
+    box.append(meetRow(m, packs.length > 1));
+  }
   $("homeRecentBox").style.display = all.length ? "" : "none";
-  $("homeAllReports").style.display = all.length > 5 ? "" : "none";
+  $("homeAllReports").style.display = all.length > 8 ? "" : "none";
 }
 
 // 폴더 탭: 폴더 목록 → 폴더를 누르면 그 폴더의 회의 리포트(날짜순, 찾기)
@@ -5809,7 +5927,14 @@ function renderAcctChip() {
   $("acctAv").textContent = on ? (email[0] || "?").toUpperCase() : "?";
   $("acctName").textContent = on ? email.split("@")[0] : "로그인";
   $("acctChip").classList.toggle("on", on);
+  $("sideAv").textContent = avatarOf(); $("sideAv").classList.toggle("on", on || !!profile.name);
+  $("sideName").textContent = profile.name || (on ? email.split("@")[0] : "로그인");
+  $("sideSub").textContent = !on ? "동기화 꺼짐" : Cloud.err ? "동기화 문제 있음" : email;
 }
+$("sideAcct").addEventListener("click", () => { if (narrow()) setSide(false); openAcct(); });
+$("navBack").addEventListener("click", () => history.back());
+$("navFwd").addEventListener("click", () => history.forward());
+$("barUpd").addEventListener("click", () => { if (!R.running) location.reload(); });
 async function openAcct() {
   const body = $("acctBody"); body.textContent = "";
   const on = !!Cloud.session, email = on ? Cloud.session.user.email || "" : "";
@@ -6127,6 +6252,7 @@ async function renderSide() {
     tree.append(li);
   }
   if (!Store.ok) tree.append(mk("li", "tempty", "이 브라우저에서는 회의 기록을 저장할 수 없습니다"));
+  renderSideSetup(all);
   $("sideNow").style.display = document.body.classList.contains("idle") ? "none" : "";
   $("sideNow").textContent = R.running ? "● 지금 듣는 회의" : "지금 화면의 회의";
   $("sideNew").disabled = R.running;
@@ -7269,6 +7395,7 @@ async function checkNewVersion() {
     const m = (await res.text()).match(/const APP_VERSION = "([^"]+)"/);
     if (m && m[1] !== APP_VERSION && !el.banner.classList.contains("show")) {
       showBanner("새 버전(" + m[1] + ")이 올라왔습니다. 회의 중이 아니면 새로고침(F5)해 주세요.", true);
+      $("barUpd").hidden = false;
     }
   } catch (e) {}
 }

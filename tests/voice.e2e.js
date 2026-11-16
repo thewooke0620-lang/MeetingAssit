@@ -3,7 +3,7 @@
 // 그래서 실제 목소리로 화자를 잘 가리는지는 이 테스트로 알 수 없다
 const assert = require('assert');
 const { devices } = require('playwright');
-const { openApp, toggle, BASE, run, fakeSupabase, SB, reqs } = require('./helper');
+const { openApp, toggle, BASE, run, fakeSupabase, SB, reqs, openSettings } = require('./helper');
 
 // 시각(start_ms)이 붙은 토큰을 보낸다. Soniox 처럼 연결 맨 앞부터 잰 시각이다
 const emit = (p, toks) => p.evaluate((toks) => window.SOCKS[window.SOCKS.length - 1].emit({ tokens: toks }), toks);
@@ -179,7 +179,7 @@ run('VOICE TESTS', async (b) => {
   assert.strictEqual(await r.evaluate(() => currentPack().people), 'Anna Kim');
   // 키가 이미 있으면 사용자 등록이 저절로 뜨지 않는다. 설정의 '사용자 등록 다시 하기'로 연다
   assert.strictEqual(await r.evaluate(() => document.getElementById('onboard').open), false);
-  await r.click('#openSettings'); await r.waitForTimeout(300);
+  await openSettings(r);
   assert(/아직 등록하지 않았습니다/.test(await r.textContent('#meWho')));
   await r.click('#meVoiceBtn'); await r.waitForTimeout(200);
   assert.strictEqual(await r.textContent('#obCount'), '4 / 5', '목소리 단계로 바로');

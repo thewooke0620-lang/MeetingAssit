@@ -9,7 +9,7 @@ run('KNOWLEDGE TESTS', async (b) => {
   await p.evaluate(() => saveProfile({ name: '김민수', myNames: 'Minsu' }));
 
   // 1) 계정 화면: 개인화 수준과 관리하기, 목소리, 다시 듣기, 앱을 나가도 계속 기록
-  await p.click('#acctChip'); await p.waitForTimeout(300);
+  await p.click('#sideAcct'); await p.waitForTimeout(300);   // PC: 계정은 왼쪽 아래
   const sheet = await p.textContent('#acctBody');
   console.log('1 계정 화면:', sheet.replace(/\s+/g, ' ').slice(0, 260));
   assert(/개인화 수준/.test(sheet) && /레벨 1 \/ 6/.test(sheet) && /개인화 관리하기/.test(sheet));

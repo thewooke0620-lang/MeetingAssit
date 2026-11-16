@@ -137,7 +137,7 @@ async function meeting(p, text, after) { await toggle(p); await speak(p, text); 
 const clickSettings = async (p) => {
   if (await p.isVisible('#openSettings')) { await p.click('#openSettings'); return; }
   if (await p.isVisible('#lvSet')) { await p.click('#lvSet'); return; }   // 폰 대화 듣기 화면의 ⚙
-  await p.click('#acctChip'); await p.waitForTimeout(150);
+  await p.click((await p.isVisible('#acctChip')) ? '#acctChip' : '#sideAcct'); await p.waitForTimeout(150);   // PC 시작 화면: 계정은 왼쪽 아래
   await p.click('#acctSheet .sh-box.link:has-text("설정")');
 };
 const openSettings = async (p) => { await clickSettings(p); await p.waitForTimeout(300); };
