@@ -1,7 +1,7 @@
 const fs = require('fs'), assert = require('assert');
 const html = fs.readFileSync(require('path').join(__dirname, '..', 'index.html'), 'utf8');
 const src = html.split('/*CORE-START*/')[1].split('/*CORE-END*/')[0];
-const api = new Function(src + '; return { createCore, processTokens, mergeChains, blocksToTranslate, parseTerms, exportText, shouldBreak, breakKind, currentPartial };')();
+const api = new Function(src + '; return { questionExcerpt, createCore, processTokens, mergeChains, blocksToTranslate, parseTerms, exportText, shouldBreak, breakKind, currentPartial };')();
 const tok = (text) => text.match(/\s*\S+/g).map((t) => ({ text: t, is_final: true, translation_status: 'original', speaker: '1' }));
 const feed = (core, text) => { for (const t of tok(text)) api.processTokens(core, [t]); };
 
@@ -200,3 +200,10 @@ assert.deepStrictEqual(V.mapVoiceTokens(vm, [{ text: 'a', is_final: true, speake
   assert.deepStrictEqual(L.studyOrder(items, prog, now + 11 * 60e3).map((x) => x.en), ['B two', 'A one', 'C three', 'D four'], '10분 지나면 A 도 볼 때');
 }
 console.log('CORE TESTS PASSED');
+
+// 장시간 회의 중간의 키워드는 번역문에서도 찾아 원래 줄 번호와 함께 전달한다.
+const longRows = Array.from({ length: 500 }, () => ({ en: 'We are reviewing the implementation details with the team.' }));
+longRows[249] = { en: 'David owns the UAT script.', ko: '사용자테스트 시나리오는 David 담당입니다.' };
+const excerpt = api.questionExcerpt(longRows, '사용자테스트 담당은 누구야?', 2000);
+assert(excerpt.includes('[250] David owns the UAT script.'));
+assert(excerpt.length <= 2000);

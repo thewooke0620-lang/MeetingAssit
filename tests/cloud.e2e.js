@@ -8,7 +8,7 @@ const packCount = (sb) => [...sb.db.rows.packs.keys()].filter((k) => !/__profile
 
 run('CLOUD TESTS', async (b) => {
   const sb = fakeSupabase();
-  const S = Object.assign({}, BASE, { sbUrl: SB, sbKey: 'anon-key' });
+  const S = Object.assign({}, BASE, { backupKeys: true, sbUrl: SB, sbKey: 'anon-key' });
   const device = async () => { const p = await openApp(b, S); await p.context().route(SB + '/**', sb.handle); await p.reload(); await p.waitForTimeout(500); return p; };
   const login = async (p, email, kind) => {
     await openSettings(p);
@@ -101,7 +101,7 @@ run('CLOUD TESTS', async (b) => {
   await D.context().route(SB + '/**', sb.handle); await D.reload(); await D.waitForTimeout(800);
   assert.strictEqual(await D.evaluate(() => document.getElementById('onboard').open), true);
   assert.strictEqual(await D.isVisible('#obEmail'), true, '처음 화면은 로그인 칸');
-  assert(/저장해 둔 API 키와 설정/.test(await D.textContent('#obAcctFirst')));
+  assert(/백업한 키를 복원/.test(await D.textContent('#obAcctFirst')));
   await D.fill('#obEmail', 'me@x.com'); await D.fill('#obPw', 'secret12'); await D.click('#obSignIn'); await D.waitForTimeout(1500);
   const got = await D.evaluate(() => ({ open: document.getElementById('onboard').open, apiKey: settings.apiKey, claudeKey: settings.claudeKey, groqKey: settings.groqKey, engine: settings.engine, fontSize: settings.fontSize, onboarded: settings.onboarded }));
   console.log('7 다시 설치한 기기:', JSON.stringify(got));

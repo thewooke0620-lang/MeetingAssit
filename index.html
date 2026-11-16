@@ -14,6 +14,9 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icons/favicon.png">
 <style>
+@font-face { font-family: NanumSquareRound; src: url("./fonts/NanumSquareRoundR.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: NanumSquareRound; src: url("./fonts/NanumSquareRoundB.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+@font-face { font-family: NanumSquareRound; src: url("./fonts/NanumSquareRoundEB.woff2") format("woff2"); font-weight: 800; font-display: swap; }
   :root {
     /* 통역 부스: 어두운 남색 판, 종이색 글자, 방송 중 램프(호박색)는 "지금 듣는 중"에만 쓴다 */
     --bg: #10161f; --panel: #151d28; --panel2: #1b2532; --line: #263243;
@@ -28,7 +31,7 @@
   html, body { height: 100%; margin: 0; }
   body {
     background: var(--bg); color: var(--text);
-    font-family: "Pretendard", "Pretendard Variable", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
+    font-family: NanumSquareRound, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased; letter-spacing: -0.005em;
     display: flex; flex-direction: column;
   }
@@ -831,6 +834,11 @@
   #meetDlg.page .mv-h1 { font-size: 28px; }
   #meetDlg.page .mv-ask { max-width: 720px; margin-bottom: 18px; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+  #lvStop { margin-left: auto; flex: none; min-height: 44px; background: none; color: var(--text); border: 0; padding: 4px 10px; cursor: pointer; }
+  #lvPause, #lvSet { min-width: 44px; min-height: 44px; }
+  #lvRec { flex: none; min-height: 44px; font-size: 13px; padding: 0 9px; }
+  #lvBottom input { min-width: 0; }
+  #mvAskConnect[hidden] { display: none; }
 </style>
 </head>
 <body>
@@ -866,14 +874,13 @@
 
 <div id="lvTop">
   <div class="lv-row">
-    <div class="lv-ctl"><button id="lvPause" type="button" aria-label="일시정지"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg></button><span class="lv-sep" aria-hidden="true"></span><button id="lvStop" type="button" aria-label="회의 끝내기"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button></div>
+    <div class="lv-ctl"><button id="lvPause" type="button" aria-label="일시정지"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg></button></div>
     <div class="lv-tabs" role="tablist" aria-label="회의 화면">
       <button type="button" role="tab" data-lv="live" class="on">라이브</button><button type="button" role="tab" data-lv="sum">요약</button><button type="button" role="tab" data-lv="qa">질문</button>
     </div>
-    <button id="lvRec" class="lv-rec" type="button" title="지금 대화에 맞는 영어 답변 추천">추천<span class="lv-star" aria-hidden="true">✦</span></button>
     <button id="lvSet" class="lv-gear" type="button" aria-label="설정"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.4-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3.5h-4l-.4 2.6a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.4 2.5-1a7.4 7.4 0 0 0 1.7 1l.4 2.5h4l.4-2.6a7.4 7.4 0 0 0 1.7-1l2.5 1 2-3.4zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg></button>
   </div>
-  <div class="lv-sub"><span class="lamp" aria-hidden="true"></span><span id="lvState">대기</span><span id="lvTime"></span><span id="lvPack"></span></div>
+  <div class="lv-sub"><span class="lamp" aria-hidden="true"></span><span id="lvState">대기</span><span id="lvTime"></span><span id="lvPack"></span><button id="lvStop" type="button" aria-label="회의 끝내기"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button></div>
 </div>
 
 <div id="banner"></div>
@@ -1008,6 +1015,7 @@
     <button id="lvMode" class="lv-mode" type="button" title="눌러서 '질문' ↔ '영어로' 바꾸기"><span class="q" aria-hidden="true">?</span><span id="lvModeT">질문</span></button>
     <input id="lvInput" type="text" maxlength="400" enterkeyhint="send" placeholder="이 회의에 대해 물어보세요 (요약, 방금 한 말 등)" aria-label="질문 입력">
   </div>
+  <button id="lvRec" class="lv-rec" type="button" title="지금 대화에 맞는 영어 답변 추천">답변 추천<span class="lv-star" aria-hidden="true">✦</span></button>
   <button id="lvSend" type="submit" aria-label="보내기">↑</button>
 </form>
 
@@ -1090,7 +1098,7 @@
   <div class="dlg-body" id="mvBody" data-tab="sum"></div>
   <form id="mvAsk" class="mv-ask" autocomplete="off">
     <input id="mvAskIn" type="text" maxlength="400" enterkeyhint="send" placeholder="이 회의에 대해 무엇이든 물어보세요 (누가 뭘 하기로 했어? 등)" aria-label="이 회의에 대해 묻기">
-    <button type="submit" aria-label="보내기">↑</button>
+    <button type="submit" aria-label="보내기">↑</button><button id="mvAskConnect" class="btn" type="button" hidden>AI 연결하기</button>
   </form>
 </dialog>
 
@@ -1108,7 +1116,7 @@
     </section>
     <section class="ob-step" data-step="1" hidden>
       <h3>API 키 넣기</h3>
-      <p>Soniox 키는 영어를 받아 적는 데 꼭 필요합니다. Claude나 Groq 키가 있으면 더 자연스럽게 번역하고 답변도 제안합니다. 키는 이 기기에만 저장되고 서버에 올리지 않습니다.</p>
+      <p>Soniox 키는 영어를 받아 적는 데 꼭 필요합니다. Claude나 Groq 키가 있으면 더 자연스럽게 번역하고 답변도 제안합니다. 키는 기본으로 이 기기에 기억합니다. 설정에서 이 기기의 키를 내 계정에도 백업할 수 있습니다.</p>
       <div class="field"><label for="obSoniox">Soniox API 키 (필수)</label><input id="obSoniox" type="password" autocomplete="off" spellcheck="false" placeholder="console.soniox.com 에서 발급"></div>
       <div class="field"><label for="obEngine">번역 방식</label>
         <select id="obEngine">
@@ -1124,7 +1132,7 @@
     <section class="ob-step" data-step="2" hidden>
       <h3>계정 만들기 (Supabase)</h3>
       <p>로그인하면 회의 폴더, 회의 기록, 내 이름과 목소리, 설정과 API 키가 PC·폰·exe 어디서 열어도 같게 맞춰집니다. 다시 설치해도 로그인만 하면 그대로 돌아옵니다. (API 키는 내 계정에만 저장되어 나만 볼 수 있습니다)</p>
-      <div id="obAcctFirst" class="ob-msg ok" hidden style="margin:0 0 12px">이미 계정이 있으면 로그인하세요. 저장해 둔 API 키와 설정, 회의 폴더·기록을 그대로 불러옵니다. 처음이면 '처음이면 가입'을 누르거나 '건너뛰기'로 이름부터 등록하세요.</div>
+      <div id="obAcctFirst" class="ob-msg ok" hidden style="margin:0 0 12px"><button id="obQuick" class="btn primary" type="button">처음 사용하기</button><p>기존 사용자는 아래에서 로그인해 회의 기록과 백업한 키를 복원하세요.</p></div>
       <div id="obAcctIn">
         <div class="field"><label for="obEmail">이메일</label><input id="obEmail" type="email" autocomplete="username"></div>
         <div class="field"><label for="obPw">비밀번호 (6자 이상)</label><input id="obPw" type="password" autocomplete="current-password" minlength="6"></div>
@@ -1157,13 +1165,20 @@
   </div>
 </dialog>
 
+<dialog id="discardDlg" aria-labelledby="discardTitle">
+  <div class="dlg-head" id="discardTitle">저장되지 않은 대화가 있어요</div>
+  <div class="dlg-body">대화록을 파일로 받은 뒤 닫거나 회의 화면으로 돌아갈 수 있어요.</div>
+  <form method="dialog" class="dlg-foot"><button class="btn" value="cancel">돌아가기</button>
+    <button class="btn" value="discard">저장하지 않고 닫기</button>
+    <button class="btn primary" type="button" id="exportUnsaved">파일로 저장</button></form>
+</dialog>
 <dialog id="startDlg" aria-label="회의 시작">
   <div class="dlg-head" id="sdTitle">회의 시작</div>
   <div class="dlg-body">
     <div class="field" id="sdSourceF"><label for="homeSource">들을 소리</label><select id="homeSource"></select></div>
     <section id="sdAsk">
-      <h3 style="margin:2px 0 8px;font-size:18px">회의 배경 정보를 등록할까요?</h3>
-      <p class="hint" style="font-size:14px;line-height:1.65">폴더를 고르고 이번 회의 주제와 참여자를 적어 두면 이름과 용어를 더 정확하게 받아 적고 번역합니다. 등록하지 않으면 지금 폴더(<b id="sdCur"></b>)로 바로 시작합니다.</p>
+      <h3 style="margin:2px 0 8px;font-size:18px">저장할 폴더 · <b id="sdCur"></b></h3>
+      <p class="hint" style="font-size:14px;line-height:1.65">다른 폴더를 쓰거나 주제와 참여자를 추가하려면 회의 정보를 변경하세요.</p>
       <label class="check" style="margin-top:10px"><input id="sdNoAsk" type="checkbox"> 다음부터 묻지 않기 (설정에서 다시 켤 수 있음)</label>
     </section>
     <section id="sdForm" hidden>
@@ -1178,8 +1193,8 @@
   </div>
   <div class="dlg-foot">
     <button id="sdCancel" class="btn" type="button" style="margin-right:auto">취소</button>
-    <button id="sdSkip" class="btn" type="button">그냥 진행하기</button>
-    <button id="sdReg" class="btn primary" type="button">등록하기</button>
+    <button id="sdSkip" class="btn primary" type="button">바로 시작</button>
+    <button id="sdReg" class="btn" type="button">회의 정보 변경</button>
     <button id="sdGo" class="btn primary" type="button" hidden>회의 시작</button>
   </div>
 </dialog>
@@ -1226,7 +1241,7 @@
     <div class="packbox" id="cloudBox">
       <div class="field">
         <label>계정과 동기화 (Supabase)</label>
-        <div id="cloudState" class="hint" style="margin-top:0">로그인하면 회의 폴더와 기록을 Supabase에 저장하고, exe·브라우저·폰 어디서 열어도 같은 기록을 봅니다. API 키는 올리지 않습니다.</div>
+        <div id="cloudState" class="hint" style="margin-top:0">로그인하면 회의 폴더와 기록을 Supabase에 저장하고, exe·브라우저·폰 어디서 열어도 같은 기록을 봅니다. API 키 백업은 아래에서 별도로 선택합니다.</div>
       </div>
       <details id="cloudCfg" class="hint">
         <summary>다른 Supabase 프로젝트 쓰기 (보통은 비워 둡니다)</summary>
@@ -1286,11 +1301,13 @@
         <input id="apiKey" type="password" autocomplete="off" spellcheck="false" placeholder="console.soniox.com 에서 발급" style="flex:4 1 0">
         <button id="showKey" class="btn" type="button" style="flex:1 1 0">보기</button>
       </div>
-      <div class="hint">키는 이 브라우저에만 저장됩니다. 다른 사람과 공유하는 PC에서는 사용 후 지워 주세요.</div>
+      <div class="hint">API 키 저장 위치는 아래에서 선택합니다. 다른 사람과 공유하는 PC에서는 사용 후 지워 주세요.</div>
     </div>
     <div class="field">
       <label class="check"><input id="keepKeys" type="checkbox"> API 키를 이 브라우저에 기억하기</label>
       <div class="hint">끄면 키를 이 창에만 두었다가, 브라우저 창을 닫으면 지웁니다. 다음에 열 때 키를 다시 넣어야 합니다. 여러 사람이 쓰는 PC라면 꺼 두세요.</div>
+      <label class="check"><input id="backupKeys" type="checkbox"> 이 기기의 API 키를 로그인한 계정에도 백업</label>
+      <div class="hint">끄면 이 기기에서 새 키를 올리지 않습니다. 이미 계정에 백업한 키는 이 기기에 키 기억하기를 켜고 로그인하면 복원됩니다.</div>
       <button id="clearKeys" class="btn" type="button" style="margin-top:6px">키 모두 지우기</button>
     </div>
     <div class="field">
@@ -1337,7 +1354,7 @@
           <input id="claudeKey" type="password" autocomplete="off" spellcheck="false" placeholder="Claude Console 에서 발급 (sk-ant-...)" style="flex:4 1 0">
           <button id="showClaudeKey" class="btn" type="button" style="flex:1 1 0">보기</button>
         </div>
-        <div class="hint">키는 이 브라우저에만 저장되고 Claude API로 직접 전송됩니다. 번역 방식이 Groq이면 비워 둬도 됩니다.</div>
+        <div class="hint">키는 Claude API로 직접 전송됩니다. 번역 방식이 Groq이면 비워 둬도 됩니다.</div>
       </div>
       <div class="field">
         <label for="claudeModel">Claude 모델</label>
@@ -1352,7 +1369,7 @@
           <input id="groqKey" type="password" autocomplete="off" spellcheck="false" placeholder="console.groq.com 에서 발급 (gsk_...)" style="flex:4 1 0">
           <button id="showGroqKey" class="btn" type="button" style="flex:1 1 0">보기</button>
         </div>
-        <div class="hint">응답이 빠른 번역 엔진입니다. 키는 이 브라우저에만 저장되고 Groq API로 직접 전송됩니다. 키를 넣으면 회의 내용의 글자가 Groq으로도 전송됩니다.</div>
+        <div class="hint">응답이 빠른 번역 엔진입니다. 키는 Groq API로 직접 전송됩니다. 키를 넣으면 회의 내용의 글자가 Groq으로도 전송됩니다.</div>
       </div>
       <div class="field">
         <label for="groqModel">Groq 모델</label>
@@ -2204,6 +2221,30 @@ function studyOrder(items, prog, now) {
   };
   return items.map((it, i) => [rank(it), i, it]).sort((a, b) => a[0][0] - b[0][0] || a[0][1] - b[0][1] || a[1] - b[1]).map((x) => x[2]);
 }
+// 질문과 관련된 한·영 발언을 전체 대화에서 고르고 원래 줄 번호를 유지한다.
+function questionExcerpt(lines, question, limit = 16000) {
+  const rows = lines.map((line, i) => "[" + (i + 1) + "] " + (line.who ? line.who + ": " : "") + (line.en || line.ko || ""));
+  const full = rows.join("\n");
+  if (full.length <= limit) return full;
+  const words = [...new Set(question.toLowerCase().match(/[가-힣a-z0-9]{2,}/g) || [])];
+  const hits = lines.map((line, i) => {
+    const text = [line.who, line.en, line.ko].join(" ").toLowerCase();
+    const score = words.reduce((sum, word) => sum + (text.includes(word) ? word.length : 0), 0);
+    return { i, score };
+  }).filter(hit => hit.score).sort((a, b) => b.score - a.score);
+  const selected = new Map();
+  let remaining = limit;
+  function add(i) {
+    if (i < 0 || i >= rows.length || selected.has(i) || remaining < 32) return;
+    const row = rows[i].slice(0, Math.min(remaining - 1, 1600));
+    selected.set(i, row);
+    remaining -= row.length + 1;
+  }
+  for (const hit of hits.slice(0, 32)) { add(hit.i); add(hit.i - 1); add(hit.i + 1); }
+  // 일치하는 단어가 적어도 회의 중간의 발언을 고르게 담는다.
+  for (let n = 0; n <= 64; n++) add(Math.round(n * (lines.length - 1) / 64));
+  return [...selected.keys()].sort((a, b) => a - b).map(i => selected.get(i)).join("\n");
+}
 /*CORE-END*/
 
 // ---------------------------------------------------------------------------
@@ -2211,7 +2252,7 @@ function studyOrder(items, prog, now) {
 // ---------------------------------------------------------------------------
 const WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 // 앱 버전: 고칠 때마다 올린다. 설정 창 아래에 보이고, 새 버전이 올라왔는지 확인할 때 쓴다
-const APP_VERSION = "2026.11.16-14";
+const APP_VERSION = "2026.11.16-15";
 const STORE_KEY = "meeting-interpreter.settings.v1";
 const DEFAULTS = {
   apiKey: "", hint: "en", target: "ko", terms: "", fontSize: "18",
@@ -2222,7 +2263,7 @@ const DEFAULTS = {
   packId: "", autoSave: true, micClean: false,
   stable: false, lastBackupAt: 0, backupNagAt: 0,
   assist: true, assistAuto: true, assistOpen: true, me: "", autoDigest: true,
-  assistEngine: "", digestEngine: "", myNames: "", marks: true, keepKeys: true, openAfterStop: true, sbUrl: "", sbKey: "",
+  assistEngine: "", digestEngine: "", myNames: "", marks: true, keepKeys: true, backupKeys: false, openAfterStop: true, sbUrl: "", sbKey: "",
   onboarded: false, voiceMe: true, meetTopic: "", meetPeople: "",
   autoLearn: true, keepAudio: false, bgKeep: true, askBg: true
 };
@@ -2281,7 +2322,7 @@ const SYNC_SETTINGS = ["apiKey", "claudeKey", "groqKey", "engine", "claudeModel"
 function syncedSettings(s) {
   const o = {};
   for (const k of SYNC_SETTINGS) if (s[k] !== undefined) o[k] = s[k];
-  if (s.keepKeys === false) for (const k of KEY_FIELDS) delete o[k];   // '키 기억하기'를 껐으면 키는 올리지 않는다
+  if (s.keepKeys === false || !s.backupKeys) for (const k of KEY_FIELDS) delete o[k];   // '키 기억하기'를 껐으면 키는 올리지 않는다
   for (const k of KEY_FIELDS) if (!(o[k] || "").trim()) delete o[k];   // 비어 있는 키는 올리지 않는다 (키 없는 기기가 계정의 키를 지우지 않게)
   return o;
 }
@@ -3854,11 +3895,15 @@ el.source.addEventListener("change", () => { settings.source = el.source.value; 
 
 el.clear.addEventListener("click", () => clearRecord(false));
 // 화면의 회의 기록을 지운다 (기록은 저장해 둔다). noAsk 면 묻지 않는다 (폰 대화 듣기 화면의 ✕)
-async function clearRecord(noAsk) {
+async function clearRecord(noAsk, clearAuthorized = false) {
   const kept = Store.ok && settings.autoSave !== false && !R.noSave;
-  if (!noAsk && core.blocks.length && !window.confirm(kept ? "화면의 기록을 모두 지울까요?\n(지금까지의 기록은 회의 폴더에 저장해 둡니다.)" : "화면의 기록을 모두 지울까요?")) return;
+  if (kept && !noAsk && core.blocks.length && !window.confirm(kept ? "화면의 기록을 모두 지울까요?\n(지금까지의 기록은 회의 폴더에 저장해 둡니다.)" : "화면의 기록을 모두 지울까요?")) return;
   const prevMeeting = R.meetingId;
-  await saveMeeting();
+  const stored = await saveMeeting();
+  if (core.blocks.length && !stored && !clearAuthorized) {
+    if (!$("discardDlg").open) { $("discardDlg").returnValue = ""; $("discardDlg").showModal(); }
+    return;
+  }
   if (prevMeeting) autoDigest(prevMeeting);      // 정지 없이 지운 회의에도 제목과 정리를 붙인다
   if (AS.ac) { try { AS.ac.abort(); } catch (e) {} AS.ac = null; }
   AS.cur = null; if (assistOn()) renderAssist();
@@ -3873,6 +3918,10 @@ async function clearRecord(noAsk) {
   if (!R.running) el.empty.style.display = "";
 }
 
+$("exportUnsaved").onclick = () => el.save.click();
+$("discardDlg").addEventListener("close", () => {
+  if ($("discardDlg").returnValue === "discard") clearRecord(true, true);
+});
 el.save.addEventListener("click", () => {
   const text = exportText(core, speakerNames, core.mode === "llm" && !!settings.compare);
   if (!text) { showBanner("저장할 기록이 없습니다.", true); return; }
@@ -3918,6 +3967,7 @@ async function openPip() {
   try { pipWin = await window.documentPictureInPicture.requestWindow({ width: 460, height: 720 }); }
   catch (e) { pipWin = null; showBanner("떠 있는 창을 열지 못했습니다. 크롬이나 엣지 최신 버전에서 다시 눌러 주세요."); return; }
   const d = pipWin.document;
+  const base = d.createElement("base"); base.href = document.baseURI; d.head.append(base);
   for (const st of document.querySelectorAll("style")) d.head.append(st.cloneNode(true));
   d.documentElement.style.cssText = document.documentElement.style.cssText;   // 글자 크기 같은 설정
   d.title = "회의 통역";
@@ -4202,7 +4252,9 @@ const Cloud = {
         // 이 기기에 없는 키는 계정에 있던 것을 그대로 둔다
         const ss = syncedSettings(settings);
         if (KEY_FIELDS.some((k) => !ss[k])) {
-          try { const cur = (await this.rest("packs?select=data&id=eq." + SETTINGS_ID)) || []; const prev = (cur[0] && cur[0].data && cur[0].data.s) || {}; for (const k of KEY_FIELDS) if (!ss[k] && prev[k]) ss[k] = prev[k]; } catch (e) {}
+          const cur = (await this.rest("packs?select=data&id=eq." + SETTINGS_ID)) || [];
+          const prev = cur[0]?.data?.s || {};
+          for (const k of KEY_FIELDS) if (!ss[k] && prev[k]) ss[k] = prev[k];
         }
         rows.packs.push({ id: SETTINGS_ID, data: { s: ss, updatedAt: settings.sAt || Date.now() }, deleted: false });
         continue;
@@ -4327,8 +4379,9 @@ const StoreRaw = { all: Store.all.bind(Store), put: Store.put.bind(Store), del: 
 
 // 계정에서 받은 설정을 이 기기에 넣는다 (다시 올리지 않는다)
 function applyCloudSettings(d) {
-  const s = Object.assign({}, d.s);
-  if (settings.keepKeys === false) for (const k of KEY_FIELDS) if (!s[k]) delete s[k];
+  const s = {};
+  for (const k of SYNC_SETTINGS) if (d.s[k] !== undefined) s[k] = d.s[k];
+  if (settings.keepKeys === false) for (const k of KEY_FIELDS) delete s[k];
   Object.assign(settings, s, { sAt: d.updatedAt || Date.now() });
   if ((settings.apiKey || "").trim()) settings.onboarded = true;   // 키까지 받았으면 사용자 등록은 끝난 것으로 본다
   settingsFromCloud = true;
@@ -5048,6 +5101,7 @@ function srcButton(i) {
   const b = mk("button", "srcbtn", "원문" + (l && l.at ? " " + hhmm(l.at) : ""));
   b.type = "button"; b.title = "이 내용이 나온 말로 이동";
   b.addEventListener("click", () => {
+    if (MV.tab === "learn") { MV.tab = "log"; renderMeeting(); }
     const det = $("mvBody").querySelector("details.mvlog");
     if (det) det.open = true;
     const row = $("mvBody").querySelector('.mvline[data-line="' + i + '"]');
@@ -5135,6 +5189,11 @@ function renderMeeting() {
   const m = viewM;
   if (!m) return;
   const pack = packOf(m);
+  const canAsk = !!helperSpec("assist");
+  $("mvAskIn").disabled = !canAsk;
+  $("mvAskIn").placeholder = canAsk ? "결정된 사항이나 내가 할 일을 물어보세요" : "회의에 질문하려면 AI를 연결하세요";
+  $("mvAsk").querySelector('[type="submit"]').style.display = canAsk ? "" : "none";
+  $("mvAskConnect").hidden = canAsk;
   const busy = m.id ? digestBusy.has(m.id) : viewBusy;
   const d = m.digest;
   $("mvTitle").textContent = m.title || "회의 기록";
@@ -5292,7 +5351,13 @@ function renderMeeting() {
   const qa = MV.qa[m.id || "cur"] || [];
   if (qa.length) {
     const box = mk("div", "mv-qa"); box.append(mk("h4", "mvh", "물어본 것"));
-    for (const x of qa) box.append(mk("div", "qa-q", x.q), mk("div", "qa-a" + (x.state === "run" ? " run" : x.state === "err" ? " err" : ""), x.state === "run" ? "답을 찾는 중…" : x.a));
+    for (const x of qa) {
+      box.append(mk("div", "qa-q", x.q), mk("div", "qa-a" + (x.state === "run" ? " run" : x.state === "err" ? " err" : ""), x.state === "run" ? "답을 찾는 중…" : x.a));
+      for (const match of new Set((x.a || "").match(/\[\d+\]/g) || [])) {
+        const i = Number(match.slice(1, -1)) - 1;
+        if (m.lines && m.lines[i]) box.append(srcButton(i));
+      }
+    }
     body.append(box);
   }
   body.scrollTop = keepScroll;
@@ -5311,11 +5376,12 @@ async function mvAsk(q) {
   if (!spec) { item.state = "err"; item.a = "질문에 답하려면 설정에서 Claude 또는 Groq API 키를 넣어 주세요."; renderMeeting(); return; }
   const d = m.digest || {};
   const user = "<ask>\n" + (d.summary && d.summary.length ? "<summary>\n" + d.summary.join("\n") + "\n</summary>\n" : "") +
-    "<transcript>\n" + transcriptForAI(m.lines || [], 16000) + "\n</transcript>\n<question>" + q + "</question>\n</ask>";
-  try { item.a = (await llmAsk(spec, LIVE_ASK_SYSTEM.replace("that is happening right now", "that has ended").replace("so far", ""), user, 700, { tries: 1, timeout: 45000 })).trim() || "답을 받지 못했어요."; item.state = "done"; }
+    "<transcript>\n" + questionExcerpt(m.lines || [], q) + "\n</transcript>\n<question>" + q + "</question>\n</ask>";
+  try { item.a = (await llmAsk(spec, LIVE_ASK_SYSTEM.replace("that is happening right now", "that has ended").replace("so far", "") + " Cite supporting transcript line numbers using [12]. If the excerpts do not support an answer, say so.", user, 700, { tries: 1, timeout: 45000 })).trim() || "답을 받지 못했어요."; item.state = "done"; }
   catch (e) { item.state = "err"; item.a = "답하지 못했습니다: " + (e && e.status ? llmErrorText(e) || "AI 응답 오류" : e && e.timeout ? "시간이 너무 오래 걸렸어요." : "연결을 확인해 주세요."); }
   if (viewM === m) { renderMeeting(); $("mvBody").scrollTop = $("mvBody").scrollHeight; }
 }
+$("mvAskConnect").onclick = () => { openSettingsDialog(); $("claudeKey").focus(); };
 $("mvAsk").addEventListener("submit", (ev) => { ev.preventDefault(); const t = $("mvAskIn").value; $("mvAskIn").value = ""; mvAsk(t); });
 for (const b of document.querySelectorAll("#meetDlg .mv-tabs button")) b.addEventListener("click", () => { MV.tab = b.dataset.mv; renderMeeting(); $("mvBody").scrollTop = 0; });
 
@@ -5720,6 +5786,9 @@ function openSettingsDialog() {
   $("stable").checked = !!settings.stable; syncStable();
   $("assistOn").checked = settings.assist !== false; $("assistAuto").checked = settings.assistAuto !== false; $("me").value = settings.me || "";
   $("keepKeys").checked = settings.keepKeys !== false;
+  $("backupKeys").checked = !!settings.backupKeys;
+  $("backupKeys").disabled = !$("keepKeys").checked;
+  $("keepKeys").onchange = () => { $("backupKeys").disabled = !$("keepKeys").checked; };
   $("sbUrl").value = settings.sbUrl || ""; $("sbKey").value = settings.sbKey || ""; renderCloud();
   $("openAfterStop").checked = settings.openAfterStop !== false; $("askBg").checked = settings.askBg !== false;
   $("myNames").value = settings.myNames || ""; $("assistEngine").value = settings.assistEngine || ""; $("digestEngine").value = settings.digestEngine || "";
@@ -5779,7 +5848,7 @@ $("saveSettings").addEventListener("click", () => {
     refine: $("refine").checked, compare: $("compare").checked, stable: $("stable").checked,
     assist: $("assistOn").checked, assistAuto: $("assistAuto").checked, me: $("me").value.trim().slice(0, 1500), autoDigest: $("autoDigest").checked, openAfterStop: $("openAfterStop").checked,
     sbUrl: $("sbUrl").value.trim(), sbKey: $("sbKey").value.trim(),
-    keepKeys: $("keepKeys").checked, myNames: $("myNames").value.trim().slice(0, 120), assistEngine: $("assistEngine").value, digestEngine: $("digestEngine").value, marks: $("marks").checked,
+    keepKeys: $("keepKeys").checked, backupKeys: $("backupKeys").checked && $("keepKeys").checked, myNames: $("myNames").value.trim().slice(0, 120), assistEngine: $("assistEngine").value, digestEngine: $("digestEngine").value, marks: $("marks").checked,
     groqKey: $("groqKey").value.trim(), groqModel: $("groqModel").value, draftFast: $("draftFast").checked,
     voiceMe: $("voiceMe").checked, askBg: $("askBg").checked
   });
@@ -5795,6 +5864,7 @@ $("saveSettings").addEventListener("click", () => {
   render();
   el.dlg.close();
   if (document.body.classList.contains("idle")) renderHome();
+  if ($("meetDlg").open) renderMeeting();
   if (!ok) showBanner("설정을 이 브라우저에 저장하지 못했습니다. 창을 닫으면 다시 입력해야 합니다.");
   else if (R.running) showBanner("바뀐 설정은 정지 후 다시 시작하면 적용됩니다.", true);
   else hideBanner();
@@ -6962,7 +7032,9 @@ async function obAfterLogin() {
   obMsg("obAcctMsg", Cloud.session.user.email + " 로 로그인했습니다. 계정에 저장된 API 키가 없어 이름부터 등록을 이어 갑니다.", "ok");
   setTimeout(() => { if ($("onboard").open && OB.step === 2) openOnboard(0); }, 900);
 }
+$("obQuick").onclick = () => { OB.quick = true; OB.first = false; obShow(1); };
 function obFinish() {
+  OB.quick = false;
   if (VREC.on) recStop();
   settings.onboarded = true; saveSettings(settings);
   $("onboard").close();
@@ -6976,7 +7048,7 @@ $("obNext").addEventListener("click", async () => {
   try {
     if (VREC.on) { recStop(); await sleep(80); }   // 녹음 중이면 끝내고, 녹음한 것을 정리할 시간을 준다
     if (!(await obSave(OB.step))) return;
-    if (OB.step === OB_STEPS - 1) obFinish(); else obShow(OB.step + 1);
+    if (OB.step === OB_STEPS - 1 || (OB.quick && OB.step === 1)) obFinish(); else obShow(OB.step + 1);
   } finally { OB.busy = false; }
 });
 $("obSkip").addEventListener("click", () => {
@@ -7036,7 +7108,7 @@ function lvSync() {
   if (pb.dataset.k !== pauseHtml) { pb.innerHTML = pauseHtml; pb.dataset.k = pauseHtml; }
   pb.setAttribute("aria-label", live ? "일시정지" : R.paused ? "이어서 듣기" : "다시 시작");
   const ended = !live && !R.paused;
-  const stopHtml = ended ? SVG_CLOSE : SVG_STOP;
+  const stopHtml = ended ? "닫기" : "회의 종료";
   if (sb.dataset.k !== stopHtml) { sb.innerHTML = stopHtml; sb.dataset.k = stopHtml; }
   sb.setAttribute("aria-label", ended ? "닫고 홈으로" : "회의 끝내기");
   $("lvState").textContent = R.starting ? el.status.textContent : live ? el.status.textContent : R.paused ? "일시정지" : fresh0 ? "시작 전" : "회의가 끝났습니다";
