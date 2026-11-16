@@ -258,7 +258,12 @@
   .tname { flex: 1 1 auto; min-width: 0; text-align: left; background: none; border: 0; padding: 6px 4px; font-size: 14px; color: var(--text); cursor: pointer;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   li.cur > .tw .tname { font-weight: 700; }
-  li.cur > .tw { box-shadow: inset 2px 0 0 var(--lamp); }
+  li.cur > .tw { background: var(--panel2); }
+  .tw { border-radius: 10px; }
+  .twisty { font-size: 15px !important; line-height: 1; }
+  .tree ul { border-left: 0 !important; margin-left: 24px !important; padding-left: 0 !important; }
+  .tcount { background: var(--bg); border-radius: 999px; padding: 1px 8px !important; margin-right: 6px; font-size: 11.5px !important; }
+  .tmeet { border-radius: 8px; padding: 6px 8px !important; }
   .tcount { flex: 0 0 auto; font-size: 12px; color: var(--muted); padding-right: 8px; font-variant-numeric: tabular-nums; }
   .tmeet { display: block; width: 100%; text-align: left; background: none; border: 0; border-radius: 6px; padding: 5px 8px; cursor: pointer; color: var(--text); }
   .tmeet:hover { background: var(--panel2); }
@@ -761,6 +766,30 @@
     body:not(.side-closed) #empty { padding: 0 16px; }
   }
   @media (max-width: 760px) { .side-setup { display: none !important; } }
+
+  /* ================= 떠 있는 회의 창 (PC 웹, 문서 PiP) ================= */
+  .pip-note { display: none; }
+  body.pip-on:not(.idle) .pip-note { display: block; max-width: 640px; margin: 12vh auto 0; text-align: center; color: var(--muted); font-size: 15px; line-height: 2; }
+  body.pipwin { margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; background: #0d1219; }
+  body.pipwin #lvTop { display: block !important; padding: 10px 10px 8px !important; background: #0d1219; border-bottom: 1px solid var(--line); }
+  body.pipwin #lvBottom { display: flex !important; background: #0d1219; padding-bottom: 10px; }
+  body.pipwin #pipStage { position: relative; flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 10px 16px 16px; font-size: var(--fs); }
+  body.pipwin.lv-empty-on #lvEmpty { display: flex !important; min-height: 100%; }
+  body.pipwin:not(.lv-empty-on) #lvEmpty { display: none !important; }
+  body.pipwin.lv-sum #lvSum, body.pipwin.lv-qa #lvQA { display: block !important; }
+  body.pipwin:not(.lv-sum) #lvSum, body.pipwin:not(.lv-qa) #lvQA { display: none !important; }
+  body.pipwin.lv-sum #transcript, body.pipwin.lv-qa #transcript, body.pipwin.lv-sum #jump, body.pipwin.lv-qa #jump { display: none !important; }
+  /* 추천은 아래쪽 카드로 늘 보인다 (Claude·Groq 키가 있을 때) */
+  body.pipwin #assist:not([style*="none"]) { display: flex !important; flex-direction: column; position: static !important; flex: 0 0 auto; max-height: 34vh;
+    margin: 8px 10px 0; border: 1px solid var(--line); border-radius: 18px; background: var(--panel); padding: 10px 12px; box-shadow: none; }
+  body.pipwin #assist .as-body { display: flex !important; max-height: none; flex: 1 1 auto; min-height: 0; margin: 6px 0; }
+  body.pipwin #assist .as-acts { display: none !important; }
+  body.pipwin.lv-rec-open #assist .as-acts { display: flex !important; }
+  body.pipwin #assist .as-form { display: none !important; }
+  body.pipwin #assist .as-empty { text-align: center; padding: 6px 0; }
+  body.pipwin .lv-tabs button { font-size: 15.5px; }
+  body.pipwin #asHide { display: none; }
+  .lv-ctl.fresh #lvPause { width: auto; padding: 0 14px 0 10px; gap: 6px; display: inline-flex; align-items: center; background: var(--lamp); color: #1b1305; font-weight: 800; font-size: 14.5px; }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -788,6 +817,7 @@
     <button id="save" class="btn" title="기록을 텍스트 파일로 저장">저장</button>
     <button id="clear" class="btn" title="화면의 기록 지우기">지우기</button>
     <button id="openSettings" class="btn">설정</button>
+    <button id="barPip" class="btn idle-only" type="button" title="Teams·Zoom 창 위에 늘 떠 있는 회의 창">떠 있는 창으로 보기</button>
     <button id="barUpd" class="btn idle-only" type="button" hidden>↑ 최신 버전으로 새로고침</button>
     <button id="homeStart" class="btn amber idle-only" type="button"><span class="lamp" aria-hidden="true"></span>새 회의 시작</button>
     <button id="toggle" class="btn primary">시작</button>
@@ -908,6 +938,7 @@
         <div id="wordsBody"></div>
       </section>
     </div>
+    <div id="pipNote" class="pip-note">회의 화면을 떠 있는 창에서 보고 있어요. <button id="pipBackBtn" class="btn sm" type="button">이 창으로 가져오기</button></div>
     <div id="transcript"></div>
     <div id="lvEmpty" class="lv-empty"><div class="lv-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><b id="lvEmptyH">듣고 있어요</b><p id="lvEmptyP">영어가 들리면 자막과 한국어 번역이 바로 여기에 나와요.</p></div>
     <section id="lvSum" class="lv-pane" aria-label="지금까지 요약"></section>
@@ -2130,7 +2161,7 @@ function studyOrder(items, prog, now) {
 // ---------------------------------------------------------------------------
 const WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 // 앱 버전: 고칠 때마다 올린다. 설정 창 아래에 보이고, 새 버전이 올라왔는지 확인할 때 쓴다
-const APP_VERSION = "2026.11.16-12";
+const APP_VERSION = "2026.11.16-13";
 const STORE_KEY = "meeting-interpreter.settings.v1";
 const DEFAULTS = {
   apiKey: "", hint: "en", target: "ko", terms: "", fontSize: "18",
@@ -2257,7 +2288,7 @@ function voicePrefixPcm(rate) {
 // ---------------------------------------------------------------------------
 // 화면 요소
 // ---------------------------------------------------------------------------
-const $ = (id) => document.getElementById(id);
+const $ = (id) => document.getElementById(id) || (window.__pipDoc ? window.__pipDoc.getElementById(id) : null);
 const el = {
   status: $("status"), timer: $("timer"), source: $("source"), toggle: $("toggle"),
   pip: $("pip"), save: $("save"), clear: $("clear"), openSettings: $("openSettings"),
@@ -3822,22 +3853,46 @@ if (DESKTOP && !POPUP) { try { window.desktop.onPopupClosed(() => { popupOpen = 
 el.pip.addEventListener("click", async () => {
   if (DESKTOP) { setPopup(!popupOpen); return; }
   if (pipWin) { pipWin.close(); return; }
-  try {
-    pipWin = await window.documentPictureInPicture.requestWindow({ width: 520, height: 320 });
-  } catch (e) { showBanner("작은 창을 열지 못했습니다. 크롬이나 엣지 최신 버전에서 사용해 주세요."); return; }
-  for (const s of document.querySelectorAll("style")) pipWin.document.head.append(s.cloneNode(true));
-  pipWin.document.body.style.cssText = "margin:0;display:flex;height:100vh;background:#0f1115;";
-  pipWin.document.body.append(el.stage);
-  pipWin.document.addEventListener("keydown", onStarKey);   // 작은 창에서도 B 로 중요 표시
-  el.stage.scrollTop = el.stage.scrollHeight;
-  el.pip.textContent = "작은 창 닫기";
-  pipWin.addEventListener("pagehide", () => {
-    el.stageHome.append(el.stage);
-    el.stage.scrollTop = el.stage.scrollHeight;
-    el.pip.textContent = "작은 창";
-    pipWin = null;
-  });
+  openPip();
 });
+// 떠 있는 회의 창 (크롬·엣지의 '문서 PiP'): Teams·Zoom 창 위에 늘 떠 있다.
+// 폰의 대화 듣기 화면(위쪽 ▶·■, 라이브·요약·질문, 추천, 아래 입력칸)을 그대로 옮겨 쓴다. 창을 닫으면 제자리로 돌려 놓는다
+const PIP_MOVE = ["transcript", "lvEmpty", "lvSum", "lvQA", "jump"];   // 자막 자리에 있던 것 (#pipStage 로)
+let pipBack = [], pipObs = null, pipMainStage = null;
+function syncPipBody() {
+  if (!window.__pipDoc) return;
+  window.__pipDoc.body.className = document.body.className.replace(/\b(idle|side-closed|desktop)\b/g, "") + " pipwin";
+}
+async function openPip() {
+  if (pipWin || !("documentPictureInPicture" in window)) { if (!pipWin) showBanner("떠 있는 창은 크롬이나 엣지 최신 버전에서만 열립니다.", true); return; }
+  try { pipWin = await window.documentPictureInPicture.requestWindow({ width: 460, height: 720 }); }
+  catch (e) { pipWin = null; showBanner("떠 있는 창을 열지 못했습니다. 크롬이나 엣지 최신 버전에서 다시 눌러 주세요."); return; }
+  const d = pipWin.document;
+  for (const st of document.querySelectorAll("style")) d.head.append(st.cloneNode(true));
+  d.documentElement.style.cssText = document.documentElement.style.cssText;   // 글자 크기 같은 설정
+  d.title = "회의 통역";
+  window.__pipDoc = d;
+  const put = (n) => { pipBack.push([n, n.parentNode, n.nextSibling]); return n; };
+  const stage = d.createElement("div"); stage.id = "pipStage";
+  d.body.append(put($("lvTop")), stage, put($("assist")), put($("lvBottom")));
+  for (const id of PIP_MOVE) stage.append(put($(id)));
+  pipMainStage = el.stage; el.stage = stage;
+  stage.addEventListener("scroll", () => { if (nearBottom()) el.jump.classList.remove("show"); });
+  syncPipBody();
+  pipObs = new MutationObserver(syncPipBody); pipObs.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+  document.body.classList.add("pip-on");
+  d.addEventListener("keydown", onStarKey);   // 떠 있는 창에서도 B 로 중요 표시
+  el.pip.textContent = "떠 있는 창 닫기"; $("barPip").textContent = "떠 있는 창 닫기";
+  lvSync(); stage.scrollTop = stage.scrollHeight;
+  pipWin.addEventListener("pagehide", () => {
+    if (pipObs) pipObs.disconnect();
+    for (const [n, parent, next] of pipBack.reverse()) { try { parent.insertBefore(n, next && next.parentNode === parent ? next : null); } catch (e) {} }
+    pipBack = []; el.stage = pipMainStage || $("stage"); window.__pipDoc = null; pipWin = null;
+    document.body.classList.remove("pip-on");
+    el.pip.textContent = "작은 창"; $("barPip").textContent = "떠 있는 창으로 보기";
+    el.stage.scrollTop = el.stage.scrollHeight; lvSync();
+  });
+}
 
 // ---------------------------------------------------------------------------
 // 회의 폴더와 회의 기록
@@ -5933,6 +5988,9 @@ function renderAcctChip() {
 }
 $("sideAcct").addEventListener("click", () => { if (narrow()) setSide(false); openAcct(); });
 $("navBack").addEventListener("click", () => history.back());
+$("pipBackBtn").addEventListener("click", () => { if (pipWin) pipWin.close(); });
+$("barPip").addEventListener("click", () => { if (DESKTOP) { setPopup(!popupOpen); return; } if (pipWin) pipWin.close(); else openPip(); });
+if (!DESKTOP && !("documentPictureInPicture" in window)) $("barPip").hidden = true;
 $("navFwd").addEventListener("click", () => history.forward());
 $("barUpd").addEventListener("click", () => { if (!R.running) location.reload(); });
 async function openAcct() {
@@ -6229,7 +6287,7 @@ async function renderSide() {
     const li = mk("li", p.id === settings.packId ? "cur" : "");
     li.setAttribute("role", "treeitem"); li.setAttribute("aria-expanded", open ? "true" : "false");
     const row = mk("div", "tw");
-    const tw = mk("button", "twisty", "▶"); tw.type = "button"; tw.setAttribute("aria-label", open ? "접기" : "펼치기");
+    const tw = mk("button", "twisty", "›"); tw.type = "button"; tw.setAttribute("aria-label", open ? "접기" : "펼치기");
     const nm = mk("button", "tname", p.name); nm.type = "button";
     nm.title = R.running ? "회의 중에는 폴더를 바꿀 수 없습니다" : "이 폴더로 회의하기";
     row.append(tw, nm, mk("span", "tcount", String(list.length)));
@@ -6819,7 +6877,7 @@ const LIVE_ASK_SYSTEM =
   "Answer in Korean, short and to the point (at most 6 sentences or a short list). When the user asks how to say something or asks for a reply, give natural English they can say, each with its Korean meaning in parentheses. " +
   "When something was not said in the meeting, say so plainly instead of guessing. Plain text only, no markdown headings.";
 LV = { tab: "live", mode: "ask", qa: [], sum: null, sumBusy: false, sumErr: "", rec: false };
-function lvMode() { return narrow() && !document.body.classList.contains("idle") && !POPUP; }
+function lvMode() { return !!window.__pipDoc || (narrow() && !document.body.classList.contains("idle") && !POPUP); }
 function lvReset() { LV.qa = []; LV.sum = null; LV.sumErr = ""; LV.sumBusy = false; lvSetRec(false); lvSetTab("live"); }
 function lvLines() {
   return core.blocks.filter((b) => b.en.trim()).map((b) => ({ en: b.en.trim(), ko: (b.ko || "").trim(), who: b.speaker && b.speaker !== "me" ? aiSpeaker(b.speaker) : "", me: b.speaker === "me" }));
@@ -6828,23 +6886,26 @@ function lvSync() {
   if (!LV || POPUP) return;
   const live = R.running || R.starting;
   const pb = $("lvPause"), sb = $("lvStop");
-  const pauseHtml = live ? SVG_PAUSE : SVG_PLAY;
+  const fresh0 = !live && !R.paused && document.body.classList.contains("idle");
+  const pauseHtml = live ? SVG_PAUSE : fresh0 ? SVG_PLAY + "<span>시작</span>" : SVG_PLAY;
+  pb.closest(".lv-ctl").classList.toggle("fresh", fresh0);
   if (pb.dataset.k !== pauseHtml) { pb.innerHTML = pauseHtml; pb.dataset.k = pauseHtml; }
   pb.setAttribute("aria-label", live ? "일시정지" : R.paused ? "이어서 듣기" : "다시 시작");
   const ended = !live && !R.paused;
   const stopHtml = ended ? SVG_CLOSE : SVG_STOP;
   if (sb.dataset.k !== stopHtml) { sb.innerHTML = stopHtml; sb.dataset.k = stopHtml; }
   sb.setAttribute("aria-label", ended ? "닫고 홈으로" : "회의 끝내기");
-  $("lvState").textContent = R.starting ? el.status.textContent : live ? el.status.textContent : R.paused ? "일시정지" : "회의가 끝났습니다";
+  $("lvState").textContent = R.starting ? el.status.textContent : live ? el.status.textContent : R.paused ? "일시정지" : fresh0 ? "시작 전" : "회의가 끝났습니다";
   $("lvTime").textContent = el.timer.textContent;
   const p = currentPack();
   $("lvPack").textContent = p ? "· " + p.name : "";
   const empty = LV.tab === "live" && !core.blocks.some((b) => b.en.trim()) && !((core.nf && core.nf.en) || "").trim();
   document.body.classList.toggle("lv-empty-on", empty);
   if (empty) {
-    $("lvEmptyH").textContent = live ? "듣고 있어요" : R.paused ? "잠시 멈췄어요" : "기록이 없어요";
+    const fresh = !live && !R.paused && document.body.classList.contains("idle");
+    $("lvEmptyH").textContent = live ? "듣고 있어요" : R.paused ? "잠시 멈췄어요" : fresh ? "아직 시작하지 않았어요" : "기록이 없어요";
     $("lvEmptyP").textContent = live ? (settings.source === "phone" ? "폰에서 재생되는 영어가 들리면 자막과 한국어 번역이 바로 여기에 나와요." : "영어가 들리면 자막과 한국어 번역이 바로 여기에 나와요.")
-      : R.paused ? "▶ 를 누르면 이어서 들어요." : "✕ 를 누르면 홈으로 돌아가요.";
+      : R.paused ? "▶ 를 누르면 이어서 들어요." : fresh ? "▶ 를 누르면 회의 소리를 듣기 시작해요. 이 창은 Teams·Zoom 위에 늘 떠 있어요." : "✕ 를 누르면 홈으로 돌아가요.";
   }
   $("lvRec").classList.toggle("off", !assistOn());
 }
@@ -6947,6 +7008,7 @@ $("lvStop").addEventListener("click", () => {
   if (R.starting) return;
   if (R.running) { R.paused = false; stop(); }
   else if (R.paused) { R.paused = false; setStatus("", "정지됨"); finishMeeting(R.session); }
+  else if (window.__pipDoc && document.body.classList.contains("idle")) { if (pipWin) pipWin.close(); }   // 시작 전 떠 있는 창: 닫기
   else clearRecord(true);
   lvSync();
 });

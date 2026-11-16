@@ -59,6 +59,11 @@
 - 위쪽 막대(시작 화면): ☰, ‹ › (history), '최신 버전으로 새로고침'(#barUpd, 새 버전 때만), '새 회의 시작'(#homeStart, 호박색). 홈의 처음 시작하기 카드·계정 칩은 넓은 화면에서 숨긴다(폰은 그대로).
 - 리포트 줄(`meetRow`, 폰·PC 공통): 기기 아이콘(m.dev = phone/pc, saveMeeting 이 기록) · 날짜_제목과 '11월 14일 · 오후 10:40' · 길이(초/분). 홈은 '최근 리포트'를 지난 7일 / 그 전으로 나눠 8개까지.
 
+## PC 웹 떠 있는 회의 창 (문서 PiP, 2026-11-16)
+- 시작 화면 위쪽 '떠 있는 창으로 보기'(#barPip)와 회의 중 '작은 창'(#pip)이 `openPip()` 을 연다 (데스크톱 exe 는 예전 #popup 창). 크롬·엣지의 documentPictureInPicture 로 Teams·Zoom 위에 늘 떠 있다.
+- 폰 대화 듣기 화면을 그대로 옮긴다: #lvTop·#assist·#lvBottom 과 자막 자리(#transcript·#lvEmpty·#lvSum·#lvQA·#jump → #pipStage). 열려 있는 동안 `el.stage` 는 #pipStage, `$()` 는 `window.__pipDoc` 에서도 찾는다. 본 창 body 클래스를 MutationObserver 로 떠 있는 창 body(`pipwin`)에 옮긴다(idle 빼고). 닫으면(pagehide) 제자리로 돌린다. 본 창에는 #pipNote.
+- 시작 전(본 창이 idle)에는 ▶ '시작' 이 `start()` 를 바로 부른다(배경 정보 묻는 창 없음). 추천(#assist)은 아래 카드로 늘 보인다. 테스트: `tests/pip.e2e.js`.
+
 ## 폰 대화 듣기 화면·학습 탭 (2026-11-16)
 - 좁은 화면(760px 이하)에서 회의 중이거나 기록이 화면에 있으면 위쪽 막대(#bar) 대신 `#lvTop`(❚❚/▶ · ■/✕ · 라이브|요약|질문 · 추천 · ⚙)과 아래 입력칸 `#lvBottom` 을 쓴다. 상태는 `LV`, 그리기는 `lvSync()`(updateMode·queueLive 에서 부름). 넓은 화면은 예전 그대로.
 - 일시정지: `R.paused = true; stop()` → `finishMeeting` 이 정리 화면·자동 정리를 건너뛴다. ■ 는 끝내기(일시정지 상태면 `finishMeeting` 을 직접 부름), 끝난 뒤 ✕ 는 `clearRecord(true)`(묻지 않고 지우기, 기록은 저장됨).
