@@ -31,8 +31,6 @@ run('PWA TESTS', async (b) => {
   console.log('3 아이폰 안내:', tip);
   assert(/홈 화면에 추가/.test(tip));
   assert.deepStrictEqual(await p.$$eval('#homeSource option', (n) => n.map((o) => o.value)), ['mic']);
-  await p.click('#empty details.howto summary');
-  assert.strictEqual(await p.isVisible('#howtoList .phone-only'), true);
-  assert.strictEqual(await p.isVisible('#howtoList .web-only'), false);
+  assert.strictEqual(await p.locator('#tabHome details.howto').count(), 0);
   await p.context().close();
 });

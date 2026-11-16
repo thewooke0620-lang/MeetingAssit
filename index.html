@@ -304,9 +304,6 @@
   .rt { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .rt.pending { color: var(--muted); font-weight: 400; }
   .rm { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
-  .howto { margin-top: 36px; font-size: 13.5px; line-height: 1.7; }
-  .howto summary { cursor: pointer; color: var(--text); font-weight: 600; }
-  .howto ol { padding-left: 20px; margin: 10px 0; }
   body.desktop .web-only, body:not(.desktop) .desk-only, body.phone .web-only, body:not(.phone) .phone-only { display: none; }
   @media (max-width: 560px) {
     /* 폰: 위쪽 도구는 한 줄로 두고 옆으로 밀어 본다. 들을 소리는 시작 화면에서 고른다 */
@@ -968,19 +965,6 @@
           <div class="sec-row"><h2 class="sec-h">최근 리포트</h2><button id="homeAllReports" class="linkbtn" type="button">전체 보기 ›</button></div>
           <div id="homeRecent"></div>
         </section>
-      <details class="howto">
-        <summary>처음 쓰는 방법</summary>
-        <ol id="howtoList">
-          <li><b>설정</b>에서 Soniox API 키를 입력합니다. (처음 한 번)</li>
-          <li><b>회의 시작</b>을 누릅니다.</li>
-          <li class="phone-only">폰에서는 <b>마이크</b>로 듣습니다. 회의 소리가 나는 스피커 가까이에 두세요. 화면이 꺼지거나 다른 앱으로 넘어가면 듣기가 멈출 수 있으니, 회의 중에는 이 앱을 켜 둔 채로 두세요.</li>
-          <li class="web-only">화면 공유 창이 뜨면 <b>전체 화면</b>을 고르고 <b>시스템 오디오도 공유</b>를 켠 뒤 공유를 누릅니다.</li>
-          <li class="desk-only">공유 창 없이 바로 컴퓨터 소리(Zoom, Teams 등)를 듣습니다.</li>
-          <li>영어가 들리면 영어 자막과 한국어 번역이 표시됩니다. <b>작은 창</b>을 누르면 회의 창 위에 자막만 띄웁니다.</li>
-        </ol>
-        <p>정지를 누르면 요금이 더 이상 발생하지 않습니다. 화면은 녹화되거나 전송되지 않고 소리만 사용합니다.</p>
-        <p class="restore">브라우저 기록을 지웠거나 다른 컴퓨터에서 쓰던 회의 기록이 있으면 <button id="restoreBtn" class="btn sm" type="button">백업 파일에서 되살리기</button></p>
-      </details>
       </section>
 
       <section id="tabPrep" class="pane" data-tab="prep" hidden>
@@ -2286,7 +2270,7 @@ function questionExcerpt(lines, question, limit = 16000) {
 // ---------------------------------------------------------------------------
 const WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 // 앱 버전: 고칠 때마다 올린다. 설정 창 아래에 보이고, 새 버전이 올라왔는지 확인할 때 쓴다
-const APP_VERSION = "2026.11.16-17";
+const APP_VERSION = "2026.11.16-18";
 const STORE_KEY = "meeting-interpreter.settings.v1";
 const DEFAULTS = {
   apiKey: "", hint: "en", target: "ko", terms: "", fontSize: "18",
@@ -5937,13 +5921,6 @@ $("saveSettings").addEventListener("click", () => {
 setTimeout(() => { if (!R.running) checkShellUpdate(); }, 2500);
 // 처음 여는 사람에게는 사용자 등록을 띄운다 (키가 이미 있는 사람은 '처음 시작하기'에서 연다)
 if (!POPUP && !settings.onboarded && !(settings.apiKey || "").trim() && /^https?:$/.test(location.protocol)) setTimeout(() => { if (!R.running && !el.dlg.open) { OB.first = !Cloud.session; openOnboard(Cloud.session ? 0 : 2); } }, 300);
-
-// ---- 백업에서 되살리기: 첫 화면에서 바로 백업 파일을 고른다 ----
-$("restoreBtn").addEventListener("click", () => {
-  openSettingsDialog();
-  $("packFile").value = "";
-  $("packFile").click();
-});
 
 // ---- 시작 화면: 폴더와 들을 소리를 고르고 시작, 최근 회의 ----
 if (DESKTOP) {

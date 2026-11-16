@@ -101,10 +101,10 @@ run('ROUND2 TESTS', async (b) => {
     await checkNewVersion();
   });
   assert(/새 버전\(2099\.01\.01-1\)/.test(await p.textContent('#banner')));
-  // 7) 첫 화면의 '백업 파일에서 되살리기'
+  // 7) 설정의 백업 가져오기
   await p.evaluate(() => hideBanner());
-  await p.click('#empty details.howto summary');   // '처음 쓰는 방법'을 펼친다
-  const [fc] = await Promise.all([p.waitForEvent('filechooser'), p.click('#restoreBtn')]);
+  await openSettings(p);
+  const [fc] = await Promise.all([p.waitForEvent('filechooser'), p.click('#packImport')]);
   assert(fc && await p.isVisible('#settings'));
   console.log('7 OK 되살리기 단추');
   await p.context().close();
