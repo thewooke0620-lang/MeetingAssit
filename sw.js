@@ -1,7 +1,7 @@
 // 회의 통역 도우미 서비스 워커: 폰에 설치한 앱이 빨리 열리고, 인터넷이 잠깐 없어도 화면은 뜨게 한다
 // 앱 파일(같은 주소의 화면·아이콘)만 다룬다. Soniox·Claude·Groq·Supabase 요청은 건드리지 않는다
-const CACHE = "meetingassit-v2";
-const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./fonts/NanumSquareRoundR.woff2", "./fonts/NanumSquareRoundB.woff2", "./fonts/NanumSquareRoundEB.woff2", "./icons/icon-192.png", "./icons/icon-512.png"];
+const CACHE = "meetingassit-v3";
+const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./fonts/SpoqaHanSansNeo-Regular.woff2", "./fonts/SpoqaHanSansNeo-Medium.woff2", "./fonts/SpoqaHanSansNeo-Bold.woff2", "./icons/icon-192.png", "./icons/icon-512.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

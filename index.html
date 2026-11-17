@@ -14,9 +14,9 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icons/favicon.png">
 <style>
-@font-face { font-family: NanumSquareRound; src: url("./fonts/NanumSquareRoundR.woff2") format("woff2"); font-weight: 400; font-display: swap; }
-@font-face { font-family: NanumSquareRound; src: url("./fonts/NanumSquareRoundB.woff2") format("woff2"); font-weight: 700; font-display: swap; }
-@font-face { font-family: NanumSquareRound; src: url("./fonts/NanumSquareRoundEB.woff2") format("woff2"); font-weight: 800; font-display: swap; }
+@font-face { font-family: "Spoqa Han Sans Neo"; src: url("./fonts/SpoqaHanSansNeo-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Spoqa Han Sans Neo"; src: url("./fonts/SpoqaHanSansNeo-Medium.woff2") format("woff2"); font-weight: 500 600; font-display: swap; }
+@font-face { font-family: "Spoqa Han Sans Neo"; src: url("./fonts/SpoqaHanSansNeo-Bold.woff2") format("woff2"); font-weight: 700 900; font-display: swap; }
   :root {
     /* 통역 부스: 어두운 남색 판, 종이색 글자, 방송 중 램프(호박색)는 "지금 듣는 중"에만 쓴다 */
     --bg: #10161f; --panel: #151d28; --panel2: #1b2532; --line: #263243;
@@ -31,7 +31,7 @@
   html, body { height: 100%; margin: 0; }
   body {
     background: var(--bg); color: var(--text);
-    font-family: NanumSquareRound, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
+    font-family: "Spoqa Han Sans Neo", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased; letter-spacing: -0.005em;
     display: flex; flex-direction: column;
   }
@@ -2309,7 +2309,7 @@ function questionExcerpt(lines, question, limit = 16000) {
 // ---------------------------------------------------------------------------
 const WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 // 앱 버전: 고칠 때마다 올린다. 설정 창 아래에 보이고, 새 버전이 올라왔는지 확인할 때 쓴다
-const APP_VERSION = "2026.11.16-20";
+const APP_VERSION = "2026.11.17-1";
 const STORE_KEY = "meeting-interpreter.settings.v1";
 const DEFAULTS = {
   apiKey: "", hint: "en", target: "ko", terms: "", fontSize: "18",
